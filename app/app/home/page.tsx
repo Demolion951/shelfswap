@@ -74,7 +74,7 @@ export default async function HomePage() {
         }
       >
         {newNear.map((l) => (
-          <div key={l.id} className="snap-start shrink-0 w-[min(100%,16rem)]">
+          <div key={l.id} className="snap-start shrink-0 w-[min(100%,20.5rem)]">
             <ListingCard listing={l} variant="row" />
           </div>
         ))}

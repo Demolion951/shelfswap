@@ -31,7 +31,7 @@ export function ListingCard({ listing, variant = "grid" }: Props) {
       <figure
         className={
           variant === "row"
-            ? "relative aspect-[3/4] w-[5.5rem] shrink-0 overflow-hidden bg-base-300"
+            ? "relative aspect-[3/4] w-full overflow-hidden rounded-l-[0.65rem] bg-base-300"
             : "relative aspect-[3/4] w-full overflow-hidden bg-base-300"
         }
       >
@@ -50,25 +50,67 @@ export function ListingCard({ listing, variant = "grid" }: Props) {
           </div>
         )}
       </figure>
-      <div className={variant === "row" ? "min-w-0 flex-1 py-1 pr-2" : "card-body gap-1 p-3"}>
-        <h3 className="shelfswap-heading line-clamp-2 text-base font-semibold leading-tight text-base-content">
-          {listing.title}
-        </h3>
-        {listing.author ? (
-          <p className="line-clamp-1 text-xs text-base-content/60">{listing.author}</p>
-        ) : null}
-        <div className="mt-1 flex flex-wrap items-center gap-2">
-          <span className="badge badge-sm badge-ghost border-primary/20 text-primary">
-            {cond}
-          </span>
-          <span className="text-sm font-semibold text-primary">
-            {formatUnlockCredits(credits)}
-          </span>
-          {listing.open_to_swaps ? (
-            <span className="badge badge-sm badge-accent badge-outline">Swaps</span>
+      <div
+        className={
+          variant === "row"
+            ? "flex h-full min-h-0 min-w-0 flex-col gap-1.5 py-0.5 pr-1 sm:pr-2"
+            : "card-body gap-2 p-3"
+        }
+      >
+        <div className={variant === "row" ? "min-w-0 space-y-0.5" : "contents"}>
+          <h3
+            className={
+              variant === "row"
+                ? "shelfswap-heading line-clamp-2 text-[0.95rem] font-semibold leading-tight text-base-content sm:text-base"
+                : "shelfswap-heading line-clamp-2 text-base font-semibold leading-tight text-base-content"
+            }
+          >
+            {listing.title}
+          </h3>
+          {listing.author ? (
+            <p
+              className={
+                variant === "row"
+                  ? "line-clamp-1 text-[0.8125rem] leading-snug text-base-content/60"
+                  : "line-clamp-1 text-xs text-base-content/60"
+              }
+            >
+              {listing.author}
+            </p>
           ) : null}
         </div>
-        <p className="text-xs text-base-content/50">@{seller}</p>
+        <p
+          className={
+            variant === "row"
+              ? "text-sm font-semibold tabular-nums tracking-tight text-primary"
+              : "text-sm font-semibold tabular-nums text-primary"
+          }
+        >
+          {formatUnlockCredits(credits)}
+        </p>
+        <div
+          className={
+            variant === "row"
+              ? "flex flex-wrap items-center gap-1.5"
+              : "flex flex-wrap items-center gap-2"
+          }
+        >
+          <span className="badge badge-sm badge-ghost shrink-0 border-primary/20 text-primary">
+            {cond}
+          </span>
+          {listing.open_to_swaps ? (
+            <span className="badge badge-sm shrink-0 badge-accent badge-outline">Swaps</span>
+          ) : null}
+        </div>
+        <p
+          className={
+            variant === "row"
+              ? "mt-auto text-[0.7rem] leading-normal text-base-content/45"
+              : "text-xs text-base-content/50"
+          }
+        >
+          @{seller}
+        </p>
       </div>
     </>
   );
@@ -83,7 +125,9 @@ export function ListingCard({ listing, variant = "grid" }: Props) {
       }
     >
       {variant === "row" ? (
-        <div className="flex w-full gap-0">{inner}</div>
+        <div className="grid w-full grid-cols-[6.25rem_1fr] items-stretch gap-3 p-3 sm:grid-cols-[6.75rem_1fr] sm:gap-3.5 sm:p-3.5">
+          {inner}
+        </div>
       ) : (
         <div className="flex flex-col">{inner}</div>
       )}

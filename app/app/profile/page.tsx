@@ -14,7 +14,7 @@ export default async function ProfilePage() {
   const { data: profile } = user
     ? await supabase
         .from("profiles")
-        .select("display_name, avatar_url")
+        .select("display_name, avatar_url, credit_balance")
         .eq("id", user.id)
         .maybeSingle()
     : { data: null };
@@ -49,7 +49,11 @@ export default async function ProfilePage() {
               <Coins className="h-5 w-5" aria-hidden />
               <span className="text-xs font-semibold uppercase tracking-wide">Wallet</span>
             </div>
-            <p className="text-2xl font-bold">0</p>
+            <p className="text-2xl font-bold tabular-nums">
+              {typeof profile?.credit_balance === "number"
+                ? profile.credit_balance
+                : Number(profile?.credit_balance ?? 0) || 0}
+            </p>
             <p className="text-[10px] text-base-content/50">Tap to buy credits (soon)</p>
           </div>
         </Link>
