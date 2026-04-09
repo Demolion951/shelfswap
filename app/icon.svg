@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="ShelfSwap">
+  <rect width="32" height="32" rx="8" fill="#6b4f3a"/>
+  <!-- Open book: left page -->
+  <path fill="#f8f5f0" d="M16 7.5 8 10.2V24.8l8 2.7V7.5z"/>
+  <!-- Right page -->
+  <path fill="#ebe3d9" d="M16 7.5l8 2.7v14.6l-8 2.7V7.5z"/>
+  <!-- Spine -->
+  <path fill="#5a4030" d="M15.25 7.5h1.5v22.25l-.75.25-.75-.25V7.5z"/>
+</svg>
