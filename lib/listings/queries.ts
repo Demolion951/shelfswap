@@ -1,0 +1,256 @@
+import { createClient } from "@/lib/supabase/server";
+
+export type ListingPhotoRow = {
+  id: string;
+  url: string;
+  sort: number;
+};
+
+export type ListingWithRelations = {
+  id: string;
+  user_id: string;
+  isbn: string | null;
+  title: string;
+  author: string | null;
+  cover_url: string | null;
+  condition: string;
+  price_cents: number;
+  unlock_credits: number;
+  open_to_swaps: boolean;
+  description: string | null;
+  created_at: string;
+  listing_photos: ListingPhotoRow[] | null;
+  profiles: { display_name: string; avatar_url: string | null } | null;
+};
+
+/** PostgREST error when migration 20260410_listing_unlock_credits.sql has not been applied yet. */
+function isUnlockCreditsMissingError(message: string | undefined): boolean {
+  return Boolean(
+    message?.includes("unlock_credits") && message?.includes("does not exist"),
+  );
+}
+
+const listingSelectNoUnlockCredits = `
+      id,
+      user_id,
+      isbn,
+      title,
+      author,
+      cover_url,
+      condition,
+      price_cents,
+      open_to_swaps,
+      description,
+      created_at,
+      listing_photos ( id, url, sort ),
+      profiles!listings_user_id_fkey ( display_name, avatar_url )
+    `;
+
+const listingSelectWithUnlockCredits = `
+      id,
+      user_id,
+      isbn,
+      title,
+      author,
+      cover_url,
+      condition,
+      price_cents,
+      unlock_credits,
+      open_to_swaps,
+      description,
+      created_at,
+      listing_photos ( id, url, sort ),
+      profiles!listings_user_id_fkey ( display_name, avatar_url )
+    `;
+
+const listingDetailSelectNoUnlockCredits = `
+      id,
+      user_id,
+      isbn,
+      title,
+      author,
+      cover_url,
+      condition,
+      price_cents,
+      open_to_swaps,
+      description,
+      created_at,
+      status,
+      listing_photos ( id, url, sort ),
+      profiles!listings_user_id_fkey ( display_name, avatar_url )
+    `;
+
+const listingDetailSelectWithUnlockCredits = `
+      id,
+      user_id,
+      isbn,
+      title,
+      author,
+      cover_url,
+      condition,
+      price_cents,
+      unlock_credits,
+      open_to_swaps,
+      description,
+      created_at,
+      status,
+      listing_photos ( id, url, sort ),
+      profiles!listings_user_id_fkey ( display_name, avatar_url )
+    `;
+
+export function normalizeListingRow(
+  row: Record<string, unknown>,
+): ListingWithRelations {
+  const uc = row.unlock_credits;
+  const unlock_credits = uc === 2 || uc === "2" ? 2 : 1;
+  return { ...row, unlock_credits } as ListingWithRelations;
+}
+
+async function withUnlockCreditsRetry<T>(
+  primary: () => PromiseLike<{ data: T; error: { message: string } | null }>,
+  fallback: () => PromiseLike<{ data: T; error: { message: string } | null }>,
+): Promise<{ data: T; error: { message: string } | null }> {
+  const first = await primary();
+  if (isUnlockCreditsMissingError(first.error?.message)) {
+    return fallback();
+  }
+  return first;
+}
+
+export async function fetchRecentListings(
+  limit = 24,
+): Promise<ListingWithRelations[]> {
+  const supabase = await createClient();
+  const res = await withUnlockCreditsRetry(
+    () =>
+      supabase
+        .from("listings")
+        .select(listingSelectWithUnlockCredits)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(limit),
+    () =>
+      supabase
+        .from("listings")
+        .select(listingSelectNoUnlockCredits)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(limit),
+  );
+
+  if (res.error) {
+    console.error("[fetchRecentListings]", res.error.message);
+    return [] as ListingWithRelations[];
+  }
+  return (res.data ?? []).map((r) =>
+    normalizeListingRow(r as Record<string, unknown>),
+  );
+}
+
+export async function searchListingsByText(
+  q: string,
+  limit = 30,
+): Promise<ListingWithRelations[]> {
+  const supabase = await createClient();
+  const safe = q.trim().replace(/[^\w\s-]/g, "").trim();
+  if (!safe) return [] as ListingWithRelations[];
+
+  const res = await withUnlockCreditsRetry(
+    () =>
+      supabase
+        .from("listings")
+        .select(listingSelectWithUnlockCredits)
+        .eq("status", "active")
+        .textSearch("search_tsv", safe, {
+          type: "websearch",
+          config: "simple",
+        })
+        .order("created_at", { ascending: false })
+        .limit(limit),
+    () =>
+      supabase
+        .from("listings")
+        .select(listingSelectNoUnlockCredits)
+        .eq("status", "active")
+        .textSearch("search_tsv", safe, {
+          type: "websearch",
+          config: "simple",
+        })
+        .order("created_at", { ascending: false })
+        .limit(limit),
+  );
+
+  if (res.error) {
+    console.error("[searchListingsByText]", res.error.message);
+    return [] as ListingWithRelations[];
+  }
+  return (res.data ?? []).map((r) =>
+    normalizeListingRow(r as Record<string, unknown>),
+  );
+}
+
+export type ListingWithRelationsAndStatus = ListingWithRelations & {
+  status: string;
+};
+
+export async function fetchListingById(
+  id: string,
+): Promise<ListingWithRelationsAndStatus | null> {
+  const supabase = await createClient();
+  const res = await withUnlockCreditsRetry(
+    () =>
+      supabase
+        .from("listings")
+        .select(listingDetailSelectWithUnlockCredits)
+        .eq("id", id)
+        .maybeSingle(),
+    () =>
+      supabase
+        .from("listings")
+        .select(listingDetailSelectNoUnlockCredits)
+        .eq("id", id)
+        .maybeSingle(),
+  );
+
+  if (res.error) {
+    console.error("[fetchListingById]", res.error.message);
+    return null;
+  }
+  if (!res.data) return null;
+  return normalizeListingRow(
+    res.data as Record<string, unknown>,
+  ) as ListingWithRelationsAndStatus;
+}
+
+export async function fetchMyListings(
+  userId: string,
+  limit = 50,
+): Promise<ListingWithRelations[]> {
+  const supabase = await createClient();
+  const res = await withUnlockCreditsRetry(
+    () =>
+      supabase
+        .from("listings")
+        .select(listingSelectWithUnlockCredits)
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(limit),
+    () =>
+      supabase
+        .from("listings")
+        .select(listingSelectNoUnlockCredits)
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(limit),
+  );
+
+  if (res.error) {
+    console.error("[fetchMyListings]", res.error.message);
+    return [] as ListingWithRelations[];
+  }
+  return (res.data ?? []).map((r) =>
+    normalizeListingRow(r as Record<string, unknown>),
+  );
+}
