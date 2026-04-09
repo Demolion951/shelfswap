@@ -40,16 +40,19 @@ export default async function ProfilePage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="card bg-base-100 border border-base-300/80 shadow-sm">
+        <Link
+          href="/app/credits"
+          className="card bg-base-100 border border-base-300/80 shadow-sm transition hover:border-primary/35"
+        >
           <div className="card-body p-4 gap-1">
             <div className="flex items-center gap-2 text-primary">
               <Coins className="h-5 w-5" aria-hidden />
               <span className="text-xs font-semibold uppercase tracking-wide">Wallet</span>
             </div>
             <p className="text-2xl font-bold">0</p>
-            <p className="text-[10px] text-base-content/50">credits (purchase flow next)</p>
+            <p className="text-[10px] text-base-content/50">Tap to buy credits (soon)</p>
           </div>
-        </div>
+        </Link>
         <div className="card bg-base-100 border border-base-300/80 shadow-sm">
           <div className="card-body p-4 gap-1">
             <div className="flex items-center gap-2 text-secondary">

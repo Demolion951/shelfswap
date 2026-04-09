@@ -1,3 +1,4 @@
+import { coverImageSrcForDisplay } from "@/lib/books/openLibraryCoverDisplay";
 import { CONDITION_LABELS, formatUnlockCredits } from "@/lib/listings/format";
 import type { ListingWithRelations } from "@/lib/listings/queries";
 import { Heart, Lock, MapPin } from "lucide-react";
@@ -26,25 +27,28 @@ export function ListingDetailView({ listing, isOwner }: Props) {
   return (
     <div className="space-y-4 pb-8">
       <div className="carousel carousel-center w-full gap-2 rounded-xl bg-base-200/50 p-2">
-        {photos.map((ph) => (
-          <div
-            key={ph.id}
-            className="carousel-item w-[85%] max-w-sm first:pl-0"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={ph.url}
-              alt=""
-              className="max-h-80 w-full rounded-lg object-contain bg-base-300/30"
-              referrerPolicy="no-referrer"
-            />
-          </div>
-        ))}
+        {photos.map((ph) => {
+          const src = coverImageSrcForDisplay(ph.url) ?? ph.url;
+          return (
+            <div
+              key={ph.id}
+              className="carousel-item w-[85%] max-w-sm first:pl-0"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={src}
+                alt=""
+                className="max-h-80 w-full rounded-lg object-contain bg-base-300/30"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+          );
+        })}
         {photos.length === 0 && listing.cover_url ? (
           <div className="carousel-item w-full">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={listing.cover_url}
+              src={coverImageSrcForDisplay(listing.cover_url) ?? listing.cover_url}
               alt=""
               className="max-h-80 w-full rounded-lg object-contain"
               referrerPolicy="no-referrer"

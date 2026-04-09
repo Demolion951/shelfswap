@@ -1,10 +1,10 @@
 "use client";
 
 /**
- * Open Library catalogue cover with HTTPS-friendly fallbacks and no-referrer (mobile hotlink).
- * Cycles L → M → S ISBN covers if the primary URL fails to load.
+ * Open Library catalogue cover via same-origin proxy + size fallbacks (reliable on mobile).
  * Location: components/sell/CatalogueCoverPreview.tsx
  */
+import { coverImageSrcForDisplay } from "@/lib/books/openLibraryCoverDisplay";
 import { useEffect, useState } from "react";
 
 type Props = {
@@ -16,11 +16,14 @@ type Props = {
 function buildCandidates(initialSrc: string, isbnDigits: string): string[] {
   const out: string[] = [];
   const t = initialSrc.trim();
-  if (t) out.push(t);
+  if (t) {
+    const proxied = coverImageSrcForDisplay(t) ?? t;
+    out.push(proxied);
+  }
   const b = isbnDigits.replace(/\D/g, "");
-  if (b) {
+  if (b && (b.length === 10 || b.length === 13)) {
     for (const size of ["L", "M", "S"] as const) {
-      const u = `https://covers.openlibrary.org/b/isbn/${b}-${size}.jpg`;
+      const u = `/api/openlibrary-cover?isbn=${encodeURIComponent(b)}&size=${size}`;
       if (!out.includes(u)) out.push(u);
     }
   }
@@ -43,7 +46,6 @@ export function CatalogueCoverPreview({ initialSrc, isbnDigits, className }: Pro
     <img
       src={src}
       alt=""
-      referrerPolicy="no-referrer"
       className={className}
       onError={() => {
         setIndex((i) => (i + 1 < candidates.length ? i + 1 : i));

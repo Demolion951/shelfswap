@@ -1,3 +1,4 @@
+import { coverImageSrcForDisplay } from "@/lib/books/openLibraryCoverDisplay";
 import { CONDITION_LABELS, formatUnlockCredits } from "@/lib/listings/format";
 import type { ListingWithRelations } from "@/lib/listings/queries";
 import Link from "next/link";
@@ -19,7 +20,8 @@ function sortedPhotos(listing: ListingWithRelations) {
 
 export function ListingCard({ listing, variant = "grid" }: Props) {
   const photos = sortedPhotos(listing);
-  const thumb = photos[0]?.url ?? listing.cover_url;
+  const thumbRaw = photos[0]?.url ?? listing.cover_url;
+  const thumb = thumbRaw ? coverImageSrcForDisplay(thumbRaw) ?? thumbRaw : null;
   const seller = listing.profiles?.display_name ?? "Seller";
   const cond = CONDITION_LABELS[listing.condition] ?? listing.condition;
   const credits = listing.unlock_credits === 2 ? 2 : 1;

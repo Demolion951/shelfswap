@@ -6,6 +6,7 @@
  */
 import {
   Bell,
+  Coins,
   Home,
   PlusCircle,
   Search,
@@ -17,7 +18,8 @@ import { usePathname } from "next/navigation";
 const tabs = [
   { href: "/app/home", label: "Home", Icon: Home },
   { href: "/app/search", label: "Search", Icon: Search },
-  { href: "/app/sell", label: "Sell", Icon: PlusCircle },
+  { href: "/app/sell", label: "Add", Icon: PlusCircle },
+  { href: "/app/credits", label: "Credits", Icon: Coins },
   { href: "/app/activity", label: "Activity", Icon: Bell },
   { href: "/app/profile", label: "Profile", Icon: UserRound },
 ] as const;
@@ -51,7 +53,7 @@ export function BottomTabs() {
               <Link
                 href={href}
                 prefetch={true}
-                className={`flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors ${
+                className={`flex flex-col items-center gap-0.5 py-2 text-[9px] font-medium transition-colors sm:text-[10px] ${
                   active
                     ? "text-primary"
                     : "text-base-content/55 hover:text-base-content"

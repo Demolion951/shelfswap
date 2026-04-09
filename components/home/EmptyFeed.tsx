@@ -20,7 +20,7 @@ export function EmptyFeed() {
         </div>
         <Link href="/app/sell" className="btn btn-primary gap-2">
           <Plus className="h-5 w-5" aria-hidden />
-          List a book
+          Add a book
         </Link>
       </div>
     </div>

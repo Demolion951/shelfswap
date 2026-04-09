@@ -69,7 +69,7 @@ export default async function HomePage() {
         subtitle="Freshly listed"
         action={
           <Link href="/app/sell" className="btn btn-primary btn-xs">
-            Sell
+            Add
           </Link>
         }
       >
