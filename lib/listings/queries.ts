@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { isUnlockCreditsColumnMissing } from "@/lib/listings/unlockCreditsPostgrest";
 
 export type ListingPhotoRow = {
   id: string;
@@ -22,13 +23,6 @@ export type ListingWithRelations = {
   listing_photos: ListingPhotoRow[] | null;
   profiles: { display_name: string; avatar_url: string | null } | null;
 };
-
-/** PostgREST error when migration 20260410_listing_unlock_credits.sql has not been applied yet. */
-function isUnlockCreditsMissingError(message: string | undefined): boolean {
-  return Boolean(
-    message?.includes("unlock_credits") && message?.includes("does not exist"),
-  );
-}
 
 const listingSelectNoUnlockCredits = `
       id,
@@ -111,7 +105,7 @@ async function withUnlockCreditsRetry<T>(
   fallback: () => PromiseLike<{ data: T; error: { message: string } | null }>,
 ): Promise<{ data: T; error: { message: string } | null }> {
   const first = await primary();
-  if (isUnlockCreditsMissingError(first.error?.message)) {
+  if (isUnlockCreditsColumnMissing(first.error?.message)) {
     return fallback();
   }
   return first;

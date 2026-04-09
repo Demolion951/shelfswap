@@ -40,6 +40,7 @@ export function ListingCard({ listing, variant = "grid" }: Props) {
             alt=""
             className="h-full w-full object-cover"
             loading="lazy"
+            referrerPolicy="no-referrer"
           />
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-base-content/40 px-1 text-center">

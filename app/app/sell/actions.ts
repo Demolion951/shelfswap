@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { isUnlockCreditsColumnMissing } from "@/lib/listings/unlockCreditsPostgrest";
 import { revalidatePath } from "next/cache";
 
 const CONDITIONS = new Set(["new", "like_new", "good", "acceptable"]);
@@ -44,23 +45,36 @@ export async function createListing(
     return { error: "Pick a condition." };
   }
 
-  const { data: listing, error: insertErr } = await supabase
+  const rowBase = {
+    user_id: user.id,
+    title,
+    author,
+    isbn,
+    cover_url: coverUrl,
+    condition,
+    price_cents: 0,
+    open_to_swaps: openToSwaps,
+    description,
+    status: "active" as const,
+  };
+
+  let insertRes = await supabase
     .from("listings")
     .insert({
-      user_id: user.id,
-      title,
-      author,
-      isbn,
-      cover_url: coverUrl,
-      condition,
-      price_cents: 0,
+      ...rowBase,
       unlock_credits: unlockCredits,
-      open_to_swaps: openToSwaps,
-      description,
-      status: "active",
     })
     .select("id")
     .single();
+
+  if (isUnlockCreditsColumnMissing(insertRes.error?.message)) {
+    console.warn(
+      "[createListing] listings.unlock_credits missing — retry without column. Run database/migrations/20260410_listing_unlock_credits.sql",
+    );
+    insertRes = await supabase.from("listings").insert(rowBase).select("id").single();
+  }
+
+  const { data: listing, error: insertErr } = insertRes;
 
   if (insertErr || !listing) {
     console.error("[createListing] insert", insertErr?.message);

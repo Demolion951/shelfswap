@@ -101,6 +101,19 @@ create trigger trg_listings_set_updated_at
 before update on public.listings
 for each row execute function public.set_updated_at();
 
+-- Credits to unlock (1–2 per listing). Idempotent; same as 20260410_listing_unlock_credits.sql.
+alter table public.listings
+  add column if not exists unlock_credits smallint not null default 1;
+
+alter table public.listings
+  drop constraint if exists listings_unlock_credits_check;
+
+alter table public.listings
+  add constraint listings_unlock_credits_check
+  check (unlock_credits >= 1 and unlock_credits <= 2);
+
+comment on column public.listings.unlock_credits is 'Credits required for a buyer to unlock this listing (1 or 2).';
+
 -- Search index (fast title/author/isbn search)
 alter table public.listings
   add column if not exists search_tsv tsvector

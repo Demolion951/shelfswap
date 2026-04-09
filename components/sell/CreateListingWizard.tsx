@@ -8,6 +8,7 @@
 import { createListing } from "@/app/app/sell/actions";
 import { lookupIsbnAction } from "@/app/app/sell/lookup-action";
 import { BarcodeScannerModal } from "@/components/sell/BarcodeScannerModal";
+import { CatalogueCoverPreview } from "@/components/sell/CatalogueCoverPreview";
 import {
   ArrowLeft,
   ArrowRight,
@@ -199,10 +200,9 @@ export function CreateListingWizard() {
                 {coverUrl ? (
                   <div className="flex flex-col items-center gap-2 sm:flex-row sm:items-start sm:gap-4">
                     <div className="shrink-0 overflow-hidden rounded-lg border border-base-300/70 bg-base-100 shadow-sm">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={coverUrl}
-                        alt=""
+                      <CatalogueCoverPreview
+                        initialSrc={coverUrl}
+                        isbnDigits={isbnInput}
                         className="mx-auto block h-44 w-[7.25rem] object-cover sm:h-52 sm:w-[8.25rem]"
                       />
                     </div>

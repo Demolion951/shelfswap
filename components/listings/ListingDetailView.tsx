@@ -36,6 +36,7 @@ export function ListingDetailView({ listing, isOwner }: Props) {
               src={ph.url}
               alt=""
               className="max-h-80 w-full rounded-lg object-contain bg-base-300/30"
+              referrerPolicy="no-referrer"
             />
           </div>
         ))}
@@ -46,6 +47,7 @@ export function ListingDetailView({ listing, isOwner }: Props) {
               src={listing.cover_url}
               alt=""
               className="max-h-80 w-full rounded-lg object-contain"
+              referrerPolicy="no-referrer"
             />
           </div>
         ) : null}
