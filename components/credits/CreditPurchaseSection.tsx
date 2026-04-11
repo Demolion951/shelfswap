@@ -89,9 +89,10 @@ export function CreditPurchaseSection({
           <span>
             Set <code className="mx-0.5 rounded bg-base-200 px-1 text-xs">STRIPE_SECRET_KEY</code>,{" "}
             <code className="rounded bg-base-200 px-1 text-xs">STRIPE_WEBHOOK_SECRET</code>, and{" "}
-            <code className="rounded bg-base-200 px-1 text-xs">STRIPE_PRICE_STARTER</code> /{" "}
-            <code className="rounded bg-base-200 px-1 text-xs">READER</code> /{" "}
-            <code className="rounded bg-base-200 px-1 text-xs">SHELF</code> for card checkout, or
+            <code className="rounded bg-base-200 px-1 text-xs">STRIPE_PRICE_SINGLE</code>,{" "}
+            <code className="rounded bg-base-200 px-1 text-xs">STRIPE_PRICE_FIVE</code>,{" "}
+            <code className="rounded bg-base-200 px-1 text-xs">STRIPE_PRICE_BUNDLE</code> for card
+            checkout, or
             enable dev grants locally.
           </span>
         </div>
@@ -122,10 +123,11 @@ export function CreditPurchaseSection({
                   <div className="card-body flex-col gap-3 p-4 sm:flex-row sm:items-center">
                     <div className="min-w-0 flex-1">
                       <p className="shelfswap-heading font-semibold text-base-content">
-                        {pack.label}
+                        {pack.label}{" "}
+                        <span className="text-primary tabular-nums">{pack.priceLabel}</span>
                       </p>
                       <p className="text-sm font-semibold tabular-nums text-primary">
-                        {pack.credits} credits
+                        {pack.credits} credit{pack.credits === 1 ? "" : "s"}
                       </p>
                       <p className="text-xs text-base-content/55">{pack.helper}</p>
                     </div>

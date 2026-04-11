@@ -3,9 +3,9 @@
  * Location: lib/stripe/prices.ts
  */
 const ENV_KEYS: Record<string, string> = {
-  starter: "STRIPE_PRICE_STARTER",
-  reader: "STRIPE_PRICE_READER",
-  shelf: "STRIPE_PRICE_SHELF",
+  single: "STRIPE_PRICE_SINGLE",
+  five: "STRIPE_PRICE_FIVE",
+  bundle: "STRIPE_PRICE_BUNDLE",
 };
 
 export function stripePriceIdForPack(packId: string): string | undefined {
