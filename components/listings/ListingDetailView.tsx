@@ -1,7 +1,8 @@
 import { coverImageSrcForDisplay } from "@/lib/books/openLibraryCoverDisplay";
 import { CONDITION_LABELS, formatUnlockCredits } from "@/lib/listings/format";
 import type { ListingWithRelations } from "@/lib/listings/queries";
-import { Heart, Lock, MapPin } from "lucide-react";
+import { ListingUnlockPanel } from "@/components/listings/ListingUnlockPanel";
+import { MapPin } from "lucide-react";
 import Link from "next/link";
 
 /**
@@ -11,6 +12,9 @@ import Link from "next/link";
 type Props = {
   listing: ListingWithRelations & { status?: string };
   isOwner: boolean;
+  isSignedIn: boolean;
+  viewerUnlocked: boolean;
+  creditBalance: number;
 };
 
 function sortPhotos(listing: ListingWithRelations) {
@@ -18,7 +22,13 @@ function sortPhotos(listing: ListingWithRelations) {
   return [...p].sort((a, b) => a.sort - b.sort);
 }
 
-export function ListingDetailView({ listing, isOwner }: Props) {
+export function ListingDetailView({
+  listing,
+  isOwner,
+  isSignedIn,
+  viewerUnlocked,
+  creditBalance,
+}: Props) {
   const photos = sortPhotos(listing);
   const seller = listing.profiles?.display_name ?? "Seller";
   const cond = CONDITION_LABELS[listing.condition] ?? listing.condition;
@@ -107,31 +117,13 @@ export function ListingDetailView({ listing, isOwner }: Props) {
           someone unlocks (credits phase).
         </div>
       ) : (
-        <div className="card bg-base-100 border border-primary/20 shadow-md">
-          <div className="card-body gap-3">
-            <div className="flex items-start gap-2">
-              <Lock className="mt-0.5 h-5 w-5 text-primary shrink-0" aria-hidden />
-              <div>
-                <h2 className="font-semibold">
-                  Unlock for {formatUnlockCredits(credits)}
-                </h2>
-                <p className="text-sm text-base-content/65">
-                  Reveal exact pickup spot and start a chat to arrange collection. Wallet and
-                  unlock flow are next on the roadmap.
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button type="button" className="btn btn-primary btn-outline gap-2" disabled>
-                Unlock (soon)
-              </button>
-              <button type="button" className="btn btn-ghost btn-sm gap-1" disabled title="Soon">
-                <Heart className="h-4 w-4" aria-hidden />
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
+        <ListingUnlockPanel
+          listingId={listing.id}
+          creditsRequired={credits}
+          creditBalance={creditBalance}
+          isSignedIn={isSignedIn}
+          initiallyUnlocked={viewerUnlocked}
+        />
       )}
 
       <Link href="/app/home" className="btn btn-ghost btn-block">
