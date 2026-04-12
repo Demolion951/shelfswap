@@ -6,7 +6,7 @@
  */
 import { unlockListingAction } from "@/app/app/listings/actions";
 import { formatUnlockCredits } from "@/lib/listings/format";
-import { Heart, Lock, Loader2, MapPin, MessageCircle } from "lucide-react";
+import { Heart, Lock, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -71,26 +71,7 @@ export function ListingUnlockPanel({
   }
 
   if (unlocked) {
-    return (
-      <div className="space-y-3">
-        <div className="alert alert-success text-sm">
-          <span>
-            You&apos;ve unlocked this listing. Exact pickup location and chat will show here in a
-            future update — for now you can coordinate via the contact tools we add next.
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-2 text-sm text-base-content/60">
-          <span className="inline-flex items-center gap-1">
-            <MapPin className="h-4 w-4" aria-hidden />
-            Location (coming)
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <MessageCircle className="h-4 w-4" aria-hidden />
-            Chat (coming)
-          </span>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   const canAfford = creditBalance >= creditsRequired;

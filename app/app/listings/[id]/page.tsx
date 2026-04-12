@@ -1,5 +1,12 @@
 import { ListingDetailView } from "@/components/listings/ListingDetailView";
-import { fetchListingById } from "@/lib/listings/queries";
+import { fetchDistanceKmForListing } from "@/lib/listings/distance";
+import {
+  fetchListingById,
+  fetchListingMessagesIfAllowed,
+  fetchListingPickupIfAllowed,
+  type ListingMessageRow,
+  type ListingPickupRow,
+} from "@/lib/listings/queries";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 
@@ -39,6 +46,22 @@ export default async function ListingPage({ params }: Props) {
     viewerUnlocked = !!unlockRow;
   }
 
+  let pickup: ListingPickupRow | null = null;
+  let messages: ListingMessageRow[] = [];
+  let distanceKm: number | null = null;
+  if (isOwner || viewerUnlocked) {
+    const [p, m] = await Promise.all([
+      fetchListingPickupIfAllowed(id),
+      fetchListingMessagesIfAllowed(id),
+    ]);
+    pickup = p;
+    messages = m;
+  }
+
+  if (!isOwner) {
+    distanceKm = await fetchDistanceKmForListing(id);
+  }
+
   return (
     <ListingDetailView
       listing={listing}
@@ -46,6 +69,10 @@ export default async function ListingPage({ params }: Props) {
       isSignedIn={isSignedIn}
       viewerUnlocked={viewerUnlocked}
       creditBalance={creditBalance}
+      currentUserId={user?.id ?? null}
+      pickup={pickup}
+      messages={messages}
+      distanceKm={distanceKm}
     />
   );
 }

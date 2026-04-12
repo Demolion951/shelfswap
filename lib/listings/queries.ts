@@ -22,6 +22,8 @@ export type ListingWithRelations = {
   created_at: string;
   listing_photos: ListingPhotoRow[] | null;
   profiles: { display_name: string; avatar_url: string | null } | null;
+  /** Straight-line km from viewer profile to listing; set by attachDistanceKmToListings. */
+  distance_km?: number | null;
 };
 
 const listingSelectNoUnlockCredits = `
@@ -214,6 +216,58 @@ export async function fetchListingById(
   return normalizeListingRow(
     res.data as Record<string, unknown>,
   ) as ListingWithRelationsAndStatus;
+}
+
+/** Pickup row; only returned when RLS allows (owner or unlocked buyer). */
+export type ListingPickupRow = {
+  listing_id: string;
+  pickup_instructions: string;
+  contact_hint: string | null;
+};
+
+export type ListingMessageRow = {
+  id: string;
+  listing_id: string;
+  sender_id: string;
+  sender_display_name: string;
+  body: string;
+  created_at: string;
+};
+
+export async function fetchListingPickupIfAllowed(
+  listingId: string,
+): Promise<ListingPickupRow | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("listing_pickup")
+    .select("listing_id, pickup_instructions, contact_hint")
+    .eq("listing_id", listingId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[fetchListingPickupIfAllowed]", error.message);
+    return null;
+  }
+  return data as ListingPickupRow | null;
+}
+
+export async function fetchListingMessagesIfAllowed(
+  listingId: string,
+  limit = 200,
+): Promise<ListingMessageRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("listing_messages")
+    .select("id, listing_id, sender_id, sender_display_name, body, created_at")
+    .eq("listing_id", listingId)
+    .order("created_at", { ascending: true })
+    .limit(limit);
+
+  if (error) {
+    console.error("[fetchListingMessagesIfAllowed]", error.message);
+    return [];
+  }
+  return (data ?? []) as ListingMessageRow[];
 }
 
 export async function fetchMyListings(

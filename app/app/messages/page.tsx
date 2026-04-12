@@ -1,0 +1,27 @@
+import { MessagesInboxList } from "@/components/messages/MessagesInboxList";
+import { requireUser } from "@/lib/auth/requireUser";
+import { fetchInboxThreads } from "@/lib/messages/inbox";
+import { MessageCircle } from "lucide-react";
+
+/**
+ * Messages inbox: all listing threads the user is part of (buyer or seller).
+ * Location: app/app/messages/page.tsx
+ */
+export default async function MessagesPage() {
+  const user = await requireUser({ returnTo: "/app/messages" });
+  const threads = await fetchInboxThreads(user.id);
+
+  return (
+    <div className="space-y-4 pb-6 pt-1">
+      <div className="flex items-center gap-2">
+        <MessageCircle className="h-6 w-6 text-primary" aria-hidden />
+        <h1 className="shelfswap-heading text-xl font-semibold">Messages</h1>
+      </div>
+      <p className="text-sm text-base-content/65 -mt-2">
+        Each book has one thread. If several buyers unlock your listing, they share the same chat so
+        everyone stays aligned.
+      </p>
+      <MessagesInboxList threads={threads} />
+    </div>
+  );
+}

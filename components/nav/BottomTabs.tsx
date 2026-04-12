@@ -4,13 +4,14 @@
  * Mobile-first bottom tab bar for the authenticated app shell (/app/*).
  * Icons via lucide-react; active state from pathname.
  */
-import { Home, PlusCircle, Search, UserRound } from "lucide-react";
+import { Home, MessageCircle, PlusCircle, Search, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const tabs = [
   { href: "/app/home", label: "Home", Icon: Home },
   { href: "/app/search", label: "Search", Icon: Search },
+  { href: "/app/messages", label: "Messages", Icon: MessageCircle },
   { href: "/app/sell", label: "Add", Icon: PlusCircle },
   { href: "/app/profile", label: "Profile", Icon: UserRound },
 ] as const;
@@ -24,6 +25,9 @@ function isActive(pathname: string, href: string) {
       pathname.startsWith("/app/search") ||
       pathname.startsWith("/app/listings")
     );
+  }
+  if (href === "/app/messages") {
+    return pathname.startsWith("/app/messages");
   }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -44,7 +48,7 @@ export function BottomTabs() {
               <Link
                 href={href}
                 prefetch={true}
-                className={`flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors ${
+                className={`flex flex-col items-center gap-0.5 py-2 text-[9px] font-medium transition-colors ${
                   active
                     ? "text-primary"
                     : "text-base-content/55 hover:text-base-content"

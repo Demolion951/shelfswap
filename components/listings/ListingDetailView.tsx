@@ -1,12 +1,19 @@
 import { coverImageSrcForDisplay } from "@/lib/books/openLibraryCoverDisplay";
+import { formatApproxDistanceKm } from "@/lib/geo/formatDistance";
 import { CONDITION_LABELS, formatUnlockCredits } from "@/lib/listings/format";
-import type { ListingWithRelations } from "@/lib/listings/queries";
+import type {
+  ListingMessageRow,
+  ListingPickupRow,
+  ListingWithRelations,
+} from "@/lib/listings/queries";
+import { ListingMessagesThread } from "@/components/listings/ListingMessagesThread";
+import { ListingPickupBlock } from "@/components/listings/ListingPickupBlock";
 import { ListingUnlockPanel } from "@/components/listings/ListingUnlockPanel";
 import { MapPin } from "lucide-react";
 import Link from "next/link";
 
 /**
- * Book / listing detail: locked preview for buyers; full notes for owners.
+ * Book / listing detail: locked preview for buyers; pickup + messages after unlock (or for seller).
  * Location: components/listings/ListingDetailView.tsx
  */
 type Props = {
@@ -15,6 +22,10 @@ type Props = {
   isSignedIn: boolean;
   viewerUnlocked: boolean;
   creditBalance: number;
+  currentUserId: string | null;
+  pickup: ListingPickupRow | null;
+  messages: ListingMessageRow[];
+  distanceKm: number | null;
 };
 
 function sortPhotos(listing: ListingWithRelations) {
@@ -28,11 +39,17 @@ export function ListingDetailView({
   isSignedIn,
   viewerUnlocked,
   creditBalance,
+  currentUserId,
+  pickup,
+  messages,
+  distanceKm,
 }: Props) {
   const photos = sortPhotos(listing);
   const seller = listing.profiles?.display_name ?? "Seller";
   const cond = CONDITION_LABELS[listing.condition] ?? listing.condition;
   const credits = listing.unlock_credits === 2 ? 2 : 1;
+  const distanceLine =
+    !isOwner && isSignedIn ? formatApproxDistanceKm(distanceKm) : null;
 
   return (
     <div className="space-y-4 pb-8">
@@ -96,9 +113,34 @@ export function ListingDetailView({
         ) : null}
       </div>
 
-      <div className="flex items-center gap-2 text-sm text-base-content/60">
-        <MapPin className="h-4 w-4 shrink-0" aria-hidden />
-        <span>Approx. distance shown after we add your location (coming next).</span>
+      <div className="flex items-start gap-2 text-sm text-base-content/70">
+        <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-primary/80" aria-hidden />
+        <span>
+          {isOwner ? (
+            <>
+              Approximate straight-line distance (km) is shown to buyers whenever both sides have a
+              saved rough area—we never show a precise address or map pin here. Exact pickup notes
+              stay unlock-only below.
+            </>
+          ) : distanceLine ? (
+            <>
+              <span className="font-medium text-base-content">{distanceLine}</span> from your saved
+              rough area (straight line, not driving time). Exact pickup text is only after unlock
+              below—we still never show the seller&apos;s precise address on the map.
+            </>
+          ) : isSignedIn ? (
+            <>
+              We always use approximate straight-line km, never a precise address. You don&apos;t
+              see a number yet because your Profile rough area or the seller&apos;s listing area
+              isn&apos;t set—add yours in Profile; exact pickup stays unlock-only below.
+            </>
+          ) : (
+            <>
+              We show approximate straight-line km (never a precise address) after you sign in and
+              save a rough area in Profile. Exact pickup details stay unlock-only below.
+            </>
+          )}
+        </span>
       </div>
 
       {listing.description ? (
@@ -111,12 +153,38 @@ export function ListingDetailView({
         Listed by <span className="font-medium text-base-content">@{seller}</span>
       </p>
 
-      {isOwner ? (
-        <div className="alert alert-success text-sm">
-          This is your listing — exact pickup location and buyer chat will appear here after
-          someone unlocks (credits phase).
+      {isOwner || viewerUnlocked ? (
+        <div className="card bg-base-100 border border-base-300/80 shadow-sm">
+          <div className="card-body gap-4">
+            <h2 className="shelfswap-heading text-lg font-semibold text-primary">
+              Pickup &amp; coordination
+            </h2>
+            {isOwner ? (
+              <p className="text-sm text-base-content/65">
+                Add pickup instructions and optional contact hints. Buyers only see this after they
+                spend credits to unlock.
+              </p>
+            ) : (
+              <div className="alert alert-success text-sm py-2">
+                You&apos;ve unlocked this listing — use the details below to arrange handoff.
+              </div>
+            )}
+            <ListingPickupBlock
+              listingId={listing.id}
+              isOwner={isOwner}
+              initialPickup={pickup}
+            />
+            <div className="divider my-0" />
+            <ListingMessagesThread
+              listingId={listing.id}
+              messages={messages}
+              currentUserId={currentUserId}
+            />
+          </div>
         </div>
-      ) : (
+      ) : null}
+
+      {!isOwner ? (
         <ListingUnlockPanel
           listingId={listing.id}
           creditsRequired={credits}
@@ -124,7 +192,7 @@ export function ListingDetailView({
           isSignedIn={isSignedIn}
           initiallyUnlocked={viewerUnlocked}
         />
-      )}
+      ) : null}
 
       <Link href="/app/home" className="btn btn-ghost btn-block">
         Back to discovery

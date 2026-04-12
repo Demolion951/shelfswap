@@ -1,11 +1,12 @@
 import { EmptyFeed } from "@/components/home/EmptyFeed";
 import { FeedSection } from "@/components/home/FeedSection";
 import { ListingCard } from "@/components/listings/ListingCard";
+import { attachDistanceKmToListings } from "@/lib/listings/distance";
 import { fetchRecentListings } from "@/lib/listings/queries";
 import Link from "next/link";
 
 export default async function HomePage() {
-  const all = await fetchRecentListings(36);
+  const all = await attachDistanceKmToListings(await fetchRecentListings(36));
 
   const byPhotos = [...all].sort(
     (a, b) => (b.listing_photos?.length ?? 0) - (a.listing_photos?.length ?? 0),

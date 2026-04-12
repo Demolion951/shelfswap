@@ -1,4 +1,8 @@
 import { coverImageSrcForDisplay } from "@/lib/books/openLibraryCoverDisplay";
+import {
+  approxDistanceAlwaysVisibleLine,
+  formatApproxDistanceKm,
+} from "@/lib/geo/formatDistance";
 import { CONDITION_LABELS, formatUnlockCredits } from "@/lib/listings/format";
 import type { ListingWithRelations } from "@/lib/listings/queries";
 import Link from "next/link";
@@ -25,6 +29,8 @@ export function ListingCard({ listing, variant = "grid" }: Props) {
   const seller = listing.profiles?.display_name ?? "Seller";
   const cond = CONDITION_LABELS[listing.condition] ?? listing.condition;
   const credits = listing.unlock_credits === 2 ? 2 : 1;
+  const distanceLine = approxDistanceAlwaysVisibleLine(listing.distance_km ?? null);
+  const hasApproxKm = formatApproxDistanceKm(listing.distance_km ?? null) != null;
 
   const inner = (
     <>
@@ -110,6 +116,15 @@ export function ListingCard({ listing, variant = "grid" }: Props) {
           }
         >
           @{seller}
+        </p>
+        <p
+          className={
+            variant === "row"
+              ? `text-[0.7rem] leading-snug ${hasApproxKm ? "text-secondary" : "text-base-content/55"}`
+              : `text-[0.7rem] leading-snug sm:text-xs ${hasApproxKm ? "text-secondary" : "text-base-content/55"}`
+          }
+        >
+          {distanceLine}
         </p>
       </div>
     </>

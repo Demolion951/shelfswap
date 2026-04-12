@@ -1,5 +1,6 @@
 import { ListingCard } from "@/components/listings/ListingCard";
 import { SearchBar } from "@/components/search/SearchBar";
+import { attachDistanceKmToListings } from "@/lib/listings/distance";
 import { searchListingsByText } from "@/lib/listings/queries";
 import { Suspense } from "react";
 
@@ -8,7 +9,9 @@ type Props = { searchParams: Promise<{ q?: string }> };
 export default async function SearchPage({ searchParams }: Props) {
   const { q } = await searchParams;
   const query = q?.trim() ?? "";
-  const results = query ? await searchListingsByText(query) : [];
+  const results = query
+    ? await attachDistanceKmToListings(await searchListingsByText(query))
+    : [];
 
   return (
     <div className="space-y-5 pt-2">

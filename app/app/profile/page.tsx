@@ -1,5 +1,6 @@
 import { signOut } from "@/app/auth/actions";
 import { ListingCard } from "@/components/listings/ListingCard";
+import { ApproxLocationCard } from "@/components/profile/ApproxLocationCard";
 import { fetchMyListings } from "@/lib/listings/queries";
 import { createClient } from "@/lib/supabase/server";
 import { Coins, Library, LogOut, Settings } from "lucide-react";
@@ -24,9 +25,9 @@ export default async function ProfilePage() {
   return (
     <div className="space-y-6 pt-2">
       <div className="flex items-start gap-4">
-        <div className="avatar placeholder">
-          <div className="w-16 rounded-full bg-primary/15 text-primary">
-            <span className="text-2xl font-serif">
+        <div className="avatar placeholder shrink-0">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/15 text-primary">
+            <span className="w-full text-center text-2xl font-serif leading-none select-none">
               {(profile?.display_name ?? user?.email ?? "?").charAt(0).toUpperCase()}
             </span>
           </div>
@@ -68,6 +69,8 @@ export default async function ProfilePage() {
           </div>
         </div>
       </div>
+
+      <ApproxLocationCard />
 
       <div className="flex flex-col gap-2">
         <button

@@ -17,6 +17,7 @@ import {
   Camera,
   Images,
   Loader2,
+  MapPin,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
@@ -45,6 +46,11 @@ export function CreateListingWizard() {
   const [unlockCredits, setUnlockCredits] = useState<1 | 2>(1);
   const [openToSwaps, setOpenToSwaps] = useState(false);
   const [description, setDescription] = useState("");
+  const [pickupInstructions, setPickupInstructions] = useState("");
+  const [contactHint, setContactHint] = useState("");
+  /** When true, skip device prompt on post and only use Profile rough area (if saved). */
+  const [profileOnlyForListingGeo, setProfileOnlyForListingGeo] = useState(false);
+  const [listingGeo, setListingGeo] = useState<{ lat: number; lng: number } | null>(null);
 
   async function runLookup(overrideIsbn?: string) {
     setError(null);
@@ -103,18 +109,45 @@ export function CreateListingWizard() {
 
   function submit() {
     setError(null);
-    const fd = new FormData();
-    fd.append("title", title.trim());
-    fd.append("author", author.trim());
-    fd.append("isbn", isbnInput.replace(/\D/g, ""));
-    fd.append("cover_url", coverUrl);
-    fd.append("description", description);
-    fd.append("condition", condition);
-    fd.append("unlock_credits", String(unlockCredits));
-    if (openToSwaps) fd.append("open_to_swaps", "on");
-    photos.forEach((p) => fd.append("photos", p.file));
-
     startTransition(async () => {
+      let lat: number | undefined;
+      let lng: number | undefined;
+      if (listingGeo) {
+        lat = listingGeo.lat;
+        lng = listingGeo.lng;
+      } else if (!profileOnlyForListingGeo && typeof navigator !== "undefined" && navigator.geolocation) {
+        const pos = await new Promise<GeolocationPosition | null>((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (p) => resolve(p),
+            () => resolve(null),
+            { enableHighAccuracy: false, maximumAge: 600_000, timeout: 12_000 },
+          );
+        });
+        if (pos) {
+          lat = Math.round(pos.coords.latitude * 100) / 100;
+          lng = Math.round(pos.coords.longitude * 100) / 100;
+        }
+      }
+
+      const fd = new FormData();
+      fd.append("title", title.trim());
+      fd.append("author", author.trim());
+      fd.append("isbn", isbnInput.replace(/\D/g, ""));
+      fd.append("cover_url", coverUrl);
+      fd.append("description", description);
+      fd.append("pickup_instructions", pickupInstructions);
+      fd.append("contact_hint", contactHint);
+      fd.append("condition", condition);
+      fd.append("unlock_credits", String(unlockCredits));
+      if (openToSwaps) fd.append("open_to_swaps", "on");
+      if (lat !== undefined && lng !== undefined) {
+        fd.append("approx_lat", String(lat));
+        fd.append("approx_lng", String(lng));
+      } else {
+        fd.append("use_profile_area", "on");
+      }
+      photos.forEach((p) => fd.append("photos", p.file));
+
       const res = await createListing(fd);
       if ("error" in res) {
         setError(res.error);
@@ -367,9 +400,103 @@ export function CreateListingWizard() {
                 className="textarea textarea-bordered h-24 w-full text-sm"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Pickup hints, edition notes…"
+                placeholder="Edition notes, condition details…"
               />
             </label>
+            <div className="rounded-lg border border-primary/15 bg-primary/5 p-3 space-y-3">
+              <p className="text-sm font-medium text-base-content">
+                After unlock (private)
+              </p>
+              <p className="text-xs text-base-content/60 leading-snug">
+                Only buyers who spend credits on this listing see pickup and contact hints below.
+                The public description stays separate.
+              </p>
+              <label className="form-control w-full">
+                <span className="label-text text-sm">Pickup instructions (optional)</span>
+                <textarea
+                  className="textarea textarea-bordered min-h-20 w-full text-sm"
+                  value={pickupInstructions}
+                  onChange={(e) => setPickupInstructions(e.target.value)}
+                  placeholder="Area, how handoff works, shelf pickup…"
+                />
+              </label>
+              <label className="form-control w-full">
+                <span className="label-text text-sm">Contact hint (optional)</span>
+                <input
+                  type="text"
+                  className="input input-bordered w-full text-sm"
+                  value={contactHint}
+                  onChange={(e) => setContactHint(e.target.value)}
+                  placeholder="e.g. WhatsApp, preferred times"
+                />
+              </label>
+            </div>
+            <div className="rounded-lg border border-secondary/20 bg-secondary/5 p-3 space-y-3">
+              <div className="flex items-center gap-2 text-secondary">
+                <MapPin className="h-4 w-4 shrink-0" aria-hidden />
+                <p className="text-sm font-medium">Approximate distance</p>
+              </div>
+              <p className="text-xs text-base-content/60 leading-snug">
+                When you tap <span className="font-medium text-base-content/75">Post listing</span>,
+                your browser can share where you are <span className="italic">at that moment</span>{" "}
+                (usually where you’re listing from). We round it to about{" "}
+                <span className="font-medium text-base-content/75">1 km</span> on our servers—buyers
+                only ever see straight-line km, never your address or a map pin. Storing pin-point
+                GPS would be riskier if data leaked; rounding keeps it useful but safer.
+              </p>
+              {listingGeo ? (
+                <p className="text-xs text-base-content/80">
+                  Using a preview point you set (overrides post-time location).
+                  <button
+                    type="button"
+                    className="link link-secondary ml-2 align-baseline"
+                    onClick={() => setListingGeo(null)}
+                  >
+                    Clear
+                  </button>
+                </p>
+              ) : null}
+              <label className="label cursor-pointer justify-start gap-3 py-0">
+                <input
+                  type="checkbox"
+                  className="checkbox checkbox-secondary checkbox-sm"
+                  checked={profileOnlyForListingGeo && !listingGeo}
+                  disabled={!!listingGeo}
+                  onChange={(e) => {
+                    setProfileOnlyForListingGeo(e.target.checked);
+                    if (e.target.checked) setListingGeo(null);
+                  }}
+                />
+                <span className="label-text text-sm">
+                  Don&apos;t use device when I post—only copy my Profile rough area (if I saved one)
+                </span>
+              </label>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm gap-2"
+                disabled={pending}
+                onClick={() => {
+                  if (!navigator.geolocation) {
+                    setError("Location isn’t available in this browser.");
+                    return;
+                  }
+                  setError(null);
+                  navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                      setListingGeo({
+                        lat: Math.round(pos.coords.latitude * 100) / 100,
+                        lng: Math.round(pos.coords.longitude * 100) / 100,
+                      });
+                      setProfileOnlyForListingGeo(false);
+                    },
+                    () => setError("Couldn’t read your location. Check permissions."),
+                    { enableHighAccuracy: false, maximumAge: 600_000, timeout: 15_000 },
+                  );
+                }}
+              >
+                Preview location now (optional)
+              </button>
+            </div>
           </div>
         </div>
       ) : null}

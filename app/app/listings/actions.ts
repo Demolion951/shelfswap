@@ -47,10 +47,24 @@ export async function unlockListingAction(listingId: string): Promise<UnlockList
     if (p.already_unlocked) {
       return { ok: true, alreadyUnlocked: true };
     }
+    const spent =
+      typeof p.credits_spent === "number" && Number.isFinite(p.credits_spent)
+        ? p.credits_spent
+        : 1;
+    const { error: evErr } = await supabase.from("events").insert({
+      user_id: user.id,
+      type: "unlock_listing",
+      listing_id: listingId,
+      payload: { credits_spent: spent },
+    });
+    if (evErr) {
+      console.warn("[unlockListingAction] events insert", evErr.message);
+    }
     revalidatePath(`/app/listings/${listingId}`);
     revalidatePath("/app/profile");
     revalidatePath("/app/credits");
-    return { ok: true, creditsSpent: p.credits_spent };
+    revalidatePath("/app/activity");
+    return { ok: true, creditsSpent: spent };
   }
 
   const req = typeof p.required === "number" ? p.required : undefined;

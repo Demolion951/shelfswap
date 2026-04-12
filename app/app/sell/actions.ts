@@ -32,6 +32,9 @@ export async function createListing(
   const unlockRaw = Number.parseInt(String(formData.get("unlock_credits") ?? "1"), 10);
   const unlockCredits = unlockRaw === 2 ? 2 : 1;
   const openToSwaps = formData.get("open_to_swaps") === "on";
+  const pickupInstructions = String(formData.get("pickup_instructions") ?? "").trim();
+  const contactHintRaw = String(formData.get("contact_hint") ?? "").trim();
+  const contactHint = contactHintRaw.length > 0 ? contactHintRaw : null;
 
   const files = formData.getAll("photos") as File[];
   const imageFiles = files.filter(
@@ -122,6 +125,38 @@ export async function createListing(
     }
   }
 
+  if (pickupInstructions.length > 0 || contactHint) {
+    const { error: pickupErr } = await supabase.from("listing_pickup").insert({
+      listing_id: listingId,
+      pickup_instructions: pickupInstructions,
+      contact_hint: contactHint,
+    });
+    if (pickupErr) {
+      console.warn("[createListing] listing_pickup", pickupErr.message);
+    }
+  }
+
+  const useProfileArea = formData.get("use_profile_area") === "on";
+  const approxLat = Number.parseFloat(String(formData.get("approx_lat") ?? ""));
+  const approxLng = Number.parseFloat(String(formData.get("approx_lng") ?? ""));
+  if (Number.isFinite(approxLat) && Number.isFinite(approxLng)) {
+    const { error: geoErr } = await supabase.rpc("set_listing_approx_geo", {
+      p_listing_id: listingId,
+      p_lat: approxLat,
+      p_lng: approxLng,
+    });
+    if (geoErr) {
+      console.warn("[createListing] set_listing_approx_geo", geoErr.message);
+    }
+  } else if (useProfileArea) {
+    const { error: copyErr } = await supabase.rpc("copy_listing_geo_from_profile", {
+      p_listing_id: listingId,
+    });
+    if (copyErr) {
+      console.warn("[createListing] copy_listing_geo_from_profile", copyErr.message);
+    }
+  }
+
   await supabase.from("events").insert({
     user_id: user.id,
     type: "create_listing",
@@ -132,5 +167,6 @@ export async function createListing(
   revalidatePath("/app/home");
   revalidatePath("/app/search");
   revalidatePath("/app/profile");
+  revalidatePath("/app/activity");
   return { ok: true, listingId };
 }
