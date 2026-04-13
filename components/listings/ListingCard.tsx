@@ -119,6 +119,11 @@ export function ListingCard({ listing, variant = "grid" }: Props) {
         >
           @{seller}
         </p>
+        {listing.approx_area_text ? (
+          <p className="text-[0.68rem] leading-snug text-base-content/50 line-clamp-1">
+            {listing.approx_area_text} (approx.)
+          </p>
+        ) : null}
         <p
           className={
             variant === "row"

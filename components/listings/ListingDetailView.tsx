@@ -123,14 +123,21 @@ export function ListingDetailView({
 
       <div className="flex items-start gap-2 text-sm text-base-content/70">
         <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-primary/80" aria-hidden />
-        <span>
-          {isOwner
-            ? "Buyers see ~km away (approx.) when this listing has a rough area and they save one in Profile. Exact pickup shows after unlock."
-            : !isSignedIn
-              ? "Sign in and save a rough area in Profile to see approximate distance."
-              : distanceLine
-                ? `${distanceLine} (approx.)`
-                : "~km when Profile and this listing both have a rough area (approx.)."}
+        <span className="space-y-1">
+          {listing.approx_area_text ? (
+            <span className="block text-base-content/80">
+              Rough area: {listing.approx_area_text} (approx.)
+            </span>
+          ) : null}
+          <span className="block">
+            {isOwner
+              ? "Buyers see ~km away (approx.) when this listing has a rough area and they save one in Profile. Exact pickup shows after unlock."
+              : !isSignedIn
+                ? "Sign in and save a rough area in Profile to see approximate distance."
+                : distanceLine
+                  ? `${distanceLine} (approx.)`
+                  : "~km when Profile and this listing both have a rough area (approx.)."}
+          </span>
         </span>
       </div>
 

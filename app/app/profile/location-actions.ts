@@ -54,6 +54,16 @@ export async function setMyApproxLocationAction(
       if (upErr) {
         console.warn("[setMyApproxLocationAction] approx_area_text", upErr.message);
       }
+      // Backfill listing cards: older posts may lack approx_area_text while profile has it.
+      const { error: listErr } = await supabase
+        .from("listings")
+        .update({ approx_area_text: areaText })
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .is("approx_area_text", null);
+      if (listErr) {
+        console.warn("[setMyApproxLocationAction] listings approx_area_text", listErr.message);
+      }
     }
   } catch (e) {
     console.warn("[setMyApproxLocationAction] reverse geocode failed", e);
