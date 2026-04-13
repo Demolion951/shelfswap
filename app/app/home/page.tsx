@@ -62,11 +62,6 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-8 pt-2">
-      <div>
-        <h1 className="shelfswap-heading text-3xl font-semibold text-primary">Discover</h1>
-        {/* Small-print subtitle removed (cleaner). */}
-      </div>
-
       <HomeSectionToggle
         title="New Listings"
         listings={newListings}

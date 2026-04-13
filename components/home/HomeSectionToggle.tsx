@@ -74,17 +74,17 @@ export function HomeSectionToggle({
           {emptyMessage}
         </div>
       ) : mode === "cards" ? (
-        <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 scrollbar-thin snap-x snap-mandatory">
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-thin snap-x snap-mandatory">
           {listings.map((l) => (
-            <div key={l.id} className="snap-start shrink-0 w-[12.5rem]">
-              <ListingCard listing={l} />
+            <div key={l.id} className="snap-start shrink-0 w-[9.75rem] sm:w-[10.25rem]">
+              <ListingCard listing={l} compact />
             </div>
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-5 sm:gap-2">
           {listings.map((l) => (
-            <ListingMiniCard key={l.id} listing={l} />
+            <ListingMiniCard key={l.id} listing={l} compact />
           ))}
         </div>
       )}

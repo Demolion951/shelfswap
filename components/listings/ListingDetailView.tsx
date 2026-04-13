@@ -1,5 +1,8 @@
 import { coverImageSrcForDisplay } from "@/lib/books/openLibraryCoverDisplay";
-import { formatApproxDistanceKm } from "@/lib/geo/formatDistance";
+import {
+  approxDistanceAlwaysVisibleLine,
+  formatApproxDistanceKm,
+} from "@/lib/geo/formatDistance";
 import { CONDITION_LABELS, formatUnlockCredits } from "@/lib/listings/format";
 import type {
   ListingMessageRow,
@@ -123,21 +126,27 @@ export function ListingDetailView({
 
       <div className="flex items-start gap-2 text-sm text-base-content/70">
         <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-primary/80" aria-hidden />
-        <span className="space-y-1">
-          {listing.approx_area_text ? (
-            <span className="block text-base-content/80">
-              Rough area: {listing.approx_area_text} (approx.)
+        <span>
+          {isOwner ? (
+            "Buyers see ~km away (approx.) when this listing has a rough area and they save one in Profile. Exact pickup shows after unlock."
+          ) : !isSignedIn ? (
+            "Sign in and save a rough area in Profile to see approximate distance."
+          ) : (
+            <span className="block space-y-1.5">
+              {listing.approx_area_text?.trim() ? (
+                <span className="block text-base-content/85">
+                  <span className="text-base-content/55">Rough area: </span>
+                  {listing.approx_area_text.trim()} (approx.)
+                </span>
+              ) : null}
+              <span
+                className={`block ${distanceLine ? "text-secondary" : "text-base-content/70"}`}
+              >
+                <span className="text-base-content/55">Distance: </span>
+                {distanceLine ?? approxDistanceAlwaysVisibleLine(distanceKm)}
+              </span>
             </span>
-          ) : null}
-          <span className="block">
-            {isOwner
-              ? "Buyers see ~km away (approx.) when this listing has a rough area and they save one in Profile. Exact pickup shows after unlock."
-              : !isSignedIn
-                ? "Sign in and save a rough area in Profile to see approximate distance."
-                : distanceLine
-                  ? `${distanceLine} (approx.)`
-                  : "~km when Profile and this listing both have a rough area (approx.)."}
-          </span>
+          )}
         </span>
       </div>
 

@@ -19,3 +19,4 @@ export function approxDistanceAlwaysVisibleLine(km: number | null | undefined): 
   if (formatted) return formatted;
   return "~km when rough areas saved (approx.).";
 }
+

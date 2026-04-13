@@ -17,6 +17,8 @@ type Props = {
   listing: ListingWithRelations;
   /** When true, uses horizontal layout for carousel rows */
   variant?: "grid" | "row";
+  /** Tighter typography and padding (e.g. home carousel). */
+  compact?: boolean;
 };
 
 function sortedPhotos(listing: ListingWithRelations) {
@@ -24,15 +26,17 @@ function sortedPhotos(listing: ListingWithRelations) {
   return [...photos].sort((a, b) => a.sort - b.sort);
 }
 
-export function ListingCard({ listing, variant = "grid" }: Props) {
+export function ListingCard({ listing, variant = "grid", compact = false }: Props) {
   const photos = sortedPhotos(listing);
   const thumbRaw = photos[0]?.url ?? listing.cover_url;
   const thumb = thumbRaw ? coverImageSrcForDisplay(thumbRaw) ?? thumbRaw : null;
   const seller = listing.profiles?.display_name ?? "Seller";
   const cond = CONDITION_LABELS[listing.condition] ?? listing.condition;
   const credits = listing.unlock_credits === 2 ? 2 : 1;
-  const distanceLine = approxDistanceAlwaysVisibleLine(listing.distance_km ?? null);
-  const hasApproxKm = formatApproxDistanceKm(listing.distance_km ?? null) != null;
+  const km = listing.distance_km ?? null;
+  const distanceOnly =
+    formatApproxDistanceKm(km) ?? approxDistanceAlwaysVisibleLine(km);
+  const hasApproxKm = formatApproxDistanceKm(km) != null;
 
   const inner = (
     <>
@@ -53,7 +57,13 @@ export function ListingCard({ listing, variant = "grid" }: Props) {
             referrerPolicy="no-referrer"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-xs text-base-content/40 px-1 text-center">
+          <div
+            className={
+              compact
+                ? "flex h-full items-center justify-center text-[10px] text-base-content/40 px-1 text-center"
+                : "flex h-full items-center justify-center text-xs text-base-content/40 px-1 text-center"
+            }
+          >
             No image
           </div>
         )}
@@ -62,7 +72,9 @@ export function ListingCard({ listing, variant = "grid" }: Props) {
         className={
           variant === "row"
             ? "flex h-full min-h-0 min-w-0 flex-col gap-1 py-0.5 pr-1"
-            : "card-body gap-1.5 p-2.5"
+            : compact
+              ? "card-body gap-1 p-2"
+              : "card-body gap-1.5 p-2.5"
         }
       >
         <div className={variant === "row" ? "min-w-0 space-y-0.5" : "contents"}>
@@ -70,7 +82,9 @@ export function ListingCard({ listing, variant = "grid" }: Props) {
             className={
               variant === "row"
                 ? "shelfswap-heading line-clamp-2 text-[0.92rem] font-semibold leading-tight text-base-content"
-                : "shelfswap-heading line-clamp-2 text-[0.95rem] font-semibold leading-tight text-base-content"
+                : compact
+                  ? "shelfswap-heading line-clamp-2 text-[0.8rem] font-semibold leading-tight text-base-content"
+                  : "shelfswap-heading line-clamp-2 text-[0.95rem] font-semibold leading-tight text-base-content"
             }
           >
             {listing.title}
@@ -80,7 +94,9 @@ export function ListingCard({ listing, variant = "grid" }: Props) {
               className={
                 variant === "row"
                   ? "line-clamp-1 text-[0.78rem] leading-snug text-base-content/60"
-                  : "line-clamp-1 text-[0.72rem] leading-snug text-base-content/60"
+                  : compact
+                    ? "line-clamp-1 text-[0.65rem] leading-snug text-base-content/60"
+                    : "line-clamp-1 text-[0.72rem] leading-snug text-base-content/60"
               }
             >
               {listing.author}
@@ -91,7 +107,9 @@ export function ListingCard({ listing, variant = "grid" }: Props) {
           className={
             variant === "row"
               ? "text-[0.9rem] font-semibold tabular-nums tracking-tight text-primary"
-              : "text-[0.9rem] font-semibold tabular-nums text-primary"
+              : compact
+                ? "text-[0.78rem] font-semibold tabular-nums text-primary"
+                : "text-[0.9rem] font-semibold tabular-nums text-primary"
           }
         >
           {formatUnlockCredits(credits)}
@@ -114,25 +132,39 @@ export function ListingCard({ listing, variant = "grid" }: Props) {
           className={
             variant === "row"
               ? "mt-auto text-[0.68rem] leading-snug text-base-content/45"
-              : "text-[0.7rem] leading-snug text-base-content/50"
+              : compact
+                ? "text-[0.62rem] leading-snug text-base-content/50"
+                : "text-[0.7rem] leading-snug text-base-content/50"
           }
         >
           @{seller}
         </p>
-        {listing.approx_area_text ? (
-          <p className="text-[0.68rem] leading-snug text-base-content/50 line-clamp-1">
-            {listing.approx_area_text} (approx.)
+        <div className={variant === "row" ? "mt-0.5 space-y-0.5" : "space-y-0.5"}>
+          {listing.approx_area_text?.trim() ? (
+            <p
+              className={
+                compact
+                  ? "text-[0.6rem] leading-snug text-base-content/55 line-clamp-2"
+                  : "text-[0.68rem] leading-snug text-base-content/55 line-clamp-2"
+              }
+            >
+              <span className="text-base-content/45">Area: </span>
+              {listing.approx_area_text.trim()} (approx.)
+            </p>
+          ) : null}
+          <p
+            className={
+              variant === "row"
+                ? `text-[0.68rem] leading-snug line-clamp-2 ${hasApproxKm ? "text-secondary" : "text-base-content/55"}`
+                : compact
+                  ? `text-[0.6rem] leading-snug line-clamp-2 ${hasApproxKm ? "text-secondary" : "text-base-content/55"}`
+                  : `text-[0.68rem] leading-snug line-clamp-2 ${hasApproxKm ? "text-secondary" : "text-base-content/55"}`
+            }
+          >
+            <span className="text-base-content/45">Distance: </span>
+            {distanceOnly}
           </p>
-        ) : null}
-        <p
-          className={
-            variant === "row"
-              ? `text-[0.68rem] leading-snug ${hasApproxKm ? "text-secondary" : "text-base-content/55"}`
-              : `text-[0.68rem] leading-snug ${hasApproxKm ? "text-secondary" : "text-base-content/55"}`
-          }
-        >
-          {distanceLine}
-        </p>
+        </div>
       </div>
     </>
   );

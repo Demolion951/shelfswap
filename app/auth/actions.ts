@@ -1,11 +1,14 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 export type AuthActionState = {
   error?: string;
+  /** Non-error feedback (e.g. password reset email sent). */
+  message?: string;
 };
 
 function safeNextPath(next: string | undefined, fallback: string) {
@@ -13,6 +16,47 @@ function safeNextPath(next: string | undefined, fallback: string) {
     return fallback;
   }
   return next;
+}
+
+async function appOrigin(): Promise<string> {
+  const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
+  if (fromEnv) return fromEnv;
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? "http";
+  if (host) return `${proto}://${host}`;
+  return "http://localhost:3000";
+}
+
+/**
+ * Sends Supabase recovery email. Always returns the same success copy (no email enumeration).
+ * Add /auth/update-password to Supabase Auth → URL configuration → Redirect URLs.
+ */
+export async function requestPasswordReset(
+  _prev: AuthActionState | undefined,
+  formData: FormData,
+): Promise<AuthActionState> {
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email) {
+    return { error: "Enter your email address." };
+  }
+
+  const supabase = await createClient();
+  const origin = await appOrigin();
+  const next = encodeURIComponent("/auth/update-password");
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/auth/callback?next=${next}`,
+  });
+
+  if (error) {
+    console.error("[requestPasswordReset]", error.message);
+    return { error: error.message };
+  }
+
+  return {
+    message:
+      "If an account exists for that email, we sent a link to reset your password. Check your inbox and spam folder.",
+  };
 }
 
 export async function signInWithPassword(
