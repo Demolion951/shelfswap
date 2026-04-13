@@ -6,6 +6,7 @@
  */
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { logEventAction } from "@/app/app/events/actions";
 
 export type SimpleActionResult = { ok: true } | { ok: false; error: string };
 
@@ -135,6 +136,12 @@ export async function sendListingMessageAction(
           : insErr.message,
     };
   }
+
+  await logEventAction({
+    type: "message_sent",
+    listingId,
+    payload: { length: body.length },
+  });
 
   revalidatePath(`/app/listings/${listingId}`);
   return { ok: true };

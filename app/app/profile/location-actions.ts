@@ -5,6 +5,7 @@
  * Location: app/app/profile/location-actions.ts
  */
 import { createClient } from "@/lib/supabase/server";
+import { reverseGeocodeAreaText } from "@/lib/geo/reverseGeocode";
 import { revalidatePath } from "next/cache";
 
 export type LocationActionResult = { ok: true } | { ok: false; error: string };
@@ -42,9 +43,28 @@ export async function setMyApproxLocationAction(
     };
   }
 
+  // Best-effort: store a human-friendly rough area label.
+  try {
+    const areaText = await reverseGeocodeAreaText(lat, lng);
+    if (areaText) {
+      const { error: upErr } = await supabase
+        .from("profiles")
+        .update({ approx_area_text: areaText })
+        .eq("id", user.id);
+      if (upErr) {
+        console.warn("[setMyApproxLocationAction] approx_area_text", upErr.message);
+      }
+    }
+  } catch (e) {
+    console.warn("[setMyApproxLocationAction] reverse geocode failed", e);
+  }
+
   revalidatePath("/app/profile");
   revalidatePath("/app/home");
   revalidatePath("/app/search");
   revalidatePath("/app/messages");
+  revalidatePath("/app/browse");
+  // So listing detail / feeds pick up new viewer location without a stale shell.
+  revalidatePath("/app", "layout");
   return { ok: true };
 }

@@ -1,20 +1,48 @@
 import { EmptyFeed } from "@/components/home/EmptyFeed";
-import { FeedSection } from "@/components/home/FeedSection";
-import { ListingCard } from "@/components/listings/ListingCard";
-import { attachDistanceKmToListings } from "@/lib/listings/distance";
+import { HomeSectionToggle } from "@/components/home/HomeSectionToggle";
+import {
+  attachDistanceKmToListings,
+  sortListingsByDistanceThenRecency,
+} from "@/lib/listings/distance";
 import { fetchRecentListings } from "@/lib/listings/queries";
-import Link from "next/link";
+import { recommendListingsForUser } from "@/lib/listings/recommendations";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function HomePage() {
-  const all = await attachDistanceKmToListings(await fetchRecentListings(36));
-
-  const byPhotos = [...all].sort(
-    (a, b) => (b.listing_photos?.length ?? 0) - (a.listing_photos?.length ?? 0),
+  // Nearest-first among the latest listings (signed-in + rough areas); falls back to newest-only when no km.
+  const all = sortListingsByDistanceThenRecency(
+    await attachDistanceKmToListings(await fetchRecentListings(60)),
   );
+  const newListings = all.slice(0, 12);
 
-  const newNear = all.slice(0, 12);
-  const popular = byPhotos.slice(0, 12);
-  const picked = all.slice(3, 15);
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const excludeNew = new Set(newListings.map((l) => l.id));
+  const notInNew = all.filter((l) => !excludeNew.has(l.id));
+  const recommendedRaw = user
+    ? await recommendListingsForUser(user.id, all, 12, excludeNew)
+    : notInNew.slice(0, 12);
+  // Small catalog: everything can be in "New", leaving nothing for recommendations — fall back so the row isn’t blank.
+  let recommendedFilled =
+    recommendedRaw.length > 0
+      ? recommendedRaw
+      : notInNew.length > 0
+        ? notInNew.slice(0, 12)
+        : all.slice(0, 12);
+  recommendedFilled = sortListingsByDistanceThenRecency(recommendedFilled);
+
+  const excludeRecommended = new Set([
+    ...excludeNew,
+    ...recommendedFilled.map((l) => l.id),
+  ]);
+  // `all` is already distance → recency; explore skips rows already in New / Recommended.
+  const exploreUnique = all
+    .filter((l) => !excludeRecommended.has(l.id))
+    .slice(0, 24);
+  const explore = exploreUnique.length > 0 ? exploreUnique : all.slice(0, 24);
 
   if (all.length === 0) {
     return (
@@ -36,50 +64,33 @@ export default async function HomePage() {
     <div className="space-y-8 pt-2">
       <div>
         <h1 className="shelfswap-heading text-3xl font-semibold text-primary">Discover</h1>
-        <p className="mt-1 text-sm text-base-content/65">
-          Rule-based feeds for now — personalisation grows as you browse.
-        </p>
+        {/* Small-print subtitle removed (cleaner). */}
       </div>
 
-      <FeedSection
+      <HomeSectionToggle
+        title="New Listings"
+        listings={newListings}
+        actionHref="/app/browse"
+        actionLabel="View all"
+        defaultMode="shelf"
+        showStar={true}
+      />
+
+      <HomeSectionToggle
         title="Recommended for you"
-        subtitle="Based on what’s new in your area"
-        action={
-          <Link href="/app/search" className="btn btn-ghost btn-xs text-primary">
-            Search
-          </Link>
-        }
-      >
-        {picked.map((l) => (
-          <div key={l.id} className="snap-start shrink-0 w-[14rem]">
-            <ListingCard listing={l} />
-          </div>
-        ))}
-      </FeedSection>
+        listings={recommendedFilled}
+        actionHref="/app/search"
+        actionLabel="Search"
+        emptyMessage="Nothing to recommend yet — use Search or Browse to explore."
+      />
 
-      <FeedSection title="Popular near you" subtitle="Listings with rich photos">
-        {popular.map((l) => (
-          <div key={l.id} className="snap-start shrink-0 w-[12.5rem]">
-            <ListingCard listing={l} />
-          </div>
-        ))}
-      </FeedSection>
-
-      <FeedSection
-        title="New near you"
-        subtitle="Freshly listed"
-        action={
-          <Link href="/app/sell" className="btn btn-primary btn-xs">
-            Add
-          </Link>
-        }
-      >
-        {newNear.map((l) => (
-          <div key={l.id} className="snap-start shrink-0 w-[min(100%,20.5rem)]">
-            <ListingCard listing={l} variant="row" />
-          </div>
-        ))}
-      </FeedSection>
+      <HomeSectionToggle
+        title="Explore all books"
+        listings={explore}
+        actionHref="/app/browse"
+        actionLabel="View all"
+        defaultMode="shelf"
+      />
     </div>
   );
 }

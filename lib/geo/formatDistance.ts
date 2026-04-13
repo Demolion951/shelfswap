@@ -17,5 +17,5 @@ export function formatApproxDistanceKm(km: number | null | undefined): string | 
 export function approxDistanceAlwaysVisibleLine(km: number | null | undefined): string {
   const formatted = formatApproxDistanceKm(km);
   if (formatted) return formatted;
-  return "~km once you & seller save a rough area—not an exact address.";
+  return "~km when rough areas saved (approx.).";
 }

@@ -19,9 +19,7 @@ export function FeedSection({ title, subtitle, action, children }: Props) {
           <h2 className="shelfswap-heading text-lg font-semibold text-base-content">
             {title}
           </h2>
-          {subtitle ? (
-            <p className="text-xs text-base-content/60">{subtitle}</p>
-          ) : null}
+          {/* Subtitle intentionally hidden for a cleaner feed. */}
         </div>
         {action}
       </div>

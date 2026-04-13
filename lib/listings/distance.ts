@@ -3,6 +3,28 @@ import type { ListingWithRelations } from "@/lib/listings/queries";
 
 type DistanceRow = { listing_id: string; distance_km: number | null };
 
+type WithDistanceAndCreated = {
+  distance_km?: number | null;
+  created_at: string;
+};
+
+/**
+ * Nearer listings first when km is known; unknown distance last; ties by newest first.
+ * Location: lib/listings/distance.ts
+ */
+export function sortListingsByDistanceThenRecency<
+  T extends WithDistanceAndCreated,
+>(listings: T[]): T[] {
+  return [...listings].sort((a, b) => {
+    const ad = typeof a.distance_km === "number" ? a.distance_km : null;
+    const bd = typeof b.distance_km === "number" ? b.distance_km : null;
+    if (ad != null && bd != null && ad !== bd) return ad - bd;
+    if (ad != null && bd == null) return -1;
+    if (ad == null && bd != null) return 1;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+}
+
 /**
  * Batch km from current user profile to listings (PostGIS). Null if either side has no point.
  * Location: lib/listings/distance.ts

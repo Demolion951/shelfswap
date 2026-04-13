@@ -32,8 +32,14 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function BottomTabs() {
+type Props = {
+  unreadMessagesCount: number;
+};
+
+export function BottomTabs({ unreadMessagesCount }: Props) {
   const pathname = usePathname();
+  const msgBadge =
+    unreadMessagesCount > 9 ? "9+" : unreadMessagesCount > 0 ? String(unreadMessagesCount) : null;
 
   return (
     <nav
@@ -54,11 +60,18 @@ export function BottomTabs() {
                     : "text-base-content/55 hover:text-base-content"
                 }`}
               >
-                <Icon
-                  className="h-5 w-5"
-                  strokeWidth={active ? 2.25 : 1.75}
-                  aria-hidden
-                />
+                <span className={href === "/app/messages" ? "indicator" : ""}>
+                  {href === "/app/messages" && msgBadge ? (
+                    <span className="indicator-item badge badge-primary badge-xs min-w-[1.1rem] px-1">
+                      {msgBadge}
+                    </span>
+                  ) : null}
+                  <Icon
+                    className="h-5 w-5"
+                    strokeWidth={active ? 2.25 : 1.75}
+                    aria-hidden
+                  />
+                </span>
                 {label}
               </Link>
             </li>

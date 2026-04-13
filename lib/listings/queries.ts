@@ -19,6 +19,7 @@ export type ListingWithRelations = {
   unlock_credits: number;
   open_to_swaps: boolean;
   description: string | null;
+  approx_area_text?: string | null;
   created_at: string;
   listing_photos: ListingPhotoRow[] | null;
   profiles: { display_name: string; avatar_url: string | null } | null;
@@ -35,6 +36,7 @@ const listingSelectNoUnlockCredits = `
       cover_url,
       condition,
       price_cents,
+      approx_area_text,
       open_to_swaps,
       description,
       created_at,
@@ -52,6 +54,7 @@ const listingSelectWithUnlockCredits = `
       condition,
       price_cents,
       unlock_credits,
+      approx_area_text,
       open_to_swaps,
       description,
       created_at,
@@ -68,6 +71,7 @@ const listingDetailSelectNoUnlockCredits = `
       cover_url,
       condition,
       price_cents,
+      approx_area_text,
       open_to_swaps,
       description,
       created_at,
@@ -86,6 +90,7 @@ const listingDetailSelectWithUnlockCredits = `
       condition,
       price_cents,
       unlock_credits,
+      approx_area_text,
       open_to_swaps,
       description,
       created_at,

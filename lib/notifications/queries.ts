@@ -23,3 +23,24 @@ export async function getUnreadNotificationCountForUser(
   }
   return count ?? 0;
 }
+
+export async function getUnreadMessageNotificationCountForUser(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<number> {
+  const { count, error } = await supabase
+    .from("notifications")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("type", "new_message")
+    .is("read_at", null);
+
+  if (error) {
+    const msg = error.message.toLowerCase();
+    if (!msg.includes("relation") && !msg.includes("does not exist") && !msg.includes("schema cache")) {
+      console.error("[getUnreadMessageNotificationCountForUser]", error.message);
+    }
+    return 0;
+  }
+  return count ?? 0;
+}

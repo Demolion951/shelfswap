@@ -1,3 +1,5 @@
+"use client";
+
 import { coverImageSrcForDisplay } from "@/lib/books/openLibraryCoverDisplay";
 import {
   approxDistanceAlwaysVisibleLine,

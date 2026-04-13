@@ -48,6 +48,7 @@ export function CreateListingWizard() {
   const [description, setDescription] = useState("");
   const [pickupInstructions, setPickupInstructions] = useState("");
   const [contactHint, setContactHint] = useState("");
+  const [approxAreaText, setApproxAreaText] = useState("");
   /** When true, skip device prompt on post and only use Profile rough area (if saved). */
   const [profileOnlyForListingGeo, setProfileOnlyForListingGeo] = useState(false);
   const [listingGeo, setListingGeo] = useState<{ lat: number; lng: number } | null>(null);
@@ -135,6 +136,7 @@ export function CreateListingWizard() {
       fd.append("isbn", isbnInput.replace(/\D/g, ""));
       fd.append("cover_url", coverUrl);
       fd.append("description", description);
+      fd.append("approx_area_text", approxAreaText);
       fd.append("pickup_instructions", pickupInstructions);
       fd.append("contact_hint", contactHint);
       fd.append("condition", condition);
@@ -434,15 +436,21 @@ export function CreateListingWizard() {
             <div className="rounded-lg border border-secondary/20 bg-secondary/5 p-3 space-y-3">
               <div className="flex items-center gap-2 text-secondary">
                 <MapPin className="h-4 w-4 shrink-0" aria-hidden />
-                <p className="text-sm font-medium">Approximate distance</p>
+                <p className="text-sm font-medium">Area (shown to buyers)</p>
               </div>
-              <p className="text-xs text-base-content/60 leading-snug">
-                When you tap <span className="font-medium text-base-content/75">Post listing</span>,
-                your browser can share where you are <span className="italic">at that moment</span>{" "}
-                (usually where you’re listing from). We round it to about{" "}
-                <span className="font-medium text-base-content/75">1 km</span> on our servers—buyers
-                only ever see straight-line km, never your address or a map pin. Storing pin-point
-                GPS would be riskier if data leaked; rounding keeps it useful but safer.
+              <label className="form-control w-full">
+                <span className="label-text text-sm">Town / area</span>
+                <input
+                  type="text"
+                  className="input input-bordered w-full text-sm"
+                  value={approxAreaText}
+                  onChange={(e) => setApproxAreaText(e.target.value)}
+                  placeholder="e.g. Ealing, London"
+                />
+              </label>
+              <p className="text-[11px] text-base-content/55 leading-snug">
+                Optional: allow device location so buyers can also see approximate km (never an
+                address).
               </p>
               {listingGeo ? (
                 <p className="text-xs text-base-content/80">

@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { fetchOpenLibraryEnrichmentByIsbn } from "@/lib/books/openLibraryEnrichment";
 import { isUnlockCreditsColumnMissing } from "@/lib/listings/unlockCreditsPostgrest";
 import { revalidatePath } from "next/cache";
 
@@ -32,6 +33,8 @@ export async function createListing(
   const unlockRaw = Number.parseInt(String(formData.get("unlock_credits") ?? "1"), 10);
   const unlockCredits = unlockRaw === 2 ? 2 : 1;
   const openToSwaps = formData.get("open_to_swaps") === "on";
+  const approxAreaTextRaw = String(formData.get("approx_area_text") ?? "").trim();
+  const approxAreaText = approxAreaTextRaw.length > 0 ? approxAreaTextRaw : null;
   const pickupInstructions = String(formData.get("pickup_instructions") ?? "").trim();
   const contactHintRaw = String(formData.get("contact_hint") ?? "").trim();
   const contactHint = contactHintRaw.length > 0 ? contactHintRaw : null;
@@ -58,6 +61,7 @@ export async function createListing(
     price_cents: 0,
     open_to_swaps: openToSwaps,
     description,
+    approx_area_text: approxAreaText,
     status: "active" as const,
   };
 
@@ -154,6 +158,33 @@ export async function createListing(
     });
     if (copyErr) {
       console.warn("[createListing] copy_listing_geo_from_profile", copyErr.message);
+    }
+  }
+
+  if (isbn) {
+    const enrich = await fetchOpenLibraryEnrichmentByIsbn(isbn);
+    if (enrich && enrich.subjects.length > 0) {
+      const { data: row, error: metaErr } = await supabase
+        .from("listings")
+        .select("metadata")
+        .eq("id", listingId)
+        .maybeSingle();
+      if (metaErr) {
+        console.warn("[createListing] fetch metadata", metaErr.message);
+      }
+      const prev = (row?.metadata as Record<string, unknown> | null) ?? {};
+      const nextMeta = {
+        ...prev,
+        openlibrary: { workKey: enrich.workKey, sourceUrl: enrich.sourceUrl },
+        subjects: enrich.subjects,
+      };
+      const { error: upErr } = await supabase
+        .from("listings")
+        .update({ metadata: nextMeta })
+        .eq("id", listingId);
+      if (upErr) {
+        console.warn("[createListing] update metadata subjects", upErr.message);
+      }
     }
   }
 

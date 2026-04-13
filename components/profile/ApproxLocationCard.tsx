@@ -4,7 +4,9 @@
  * Lets the user save a coarse device location for approximate listing distances (no address stored).
  * Location: components/profile/ApproxLocationCard.tsx
  */
-import { setMyApproxLocationAction } from "@/app/app/profile/location-actions";
+import {
+  setMyApproxLocationAction,
+} from "@/app/app/profile/location-actions";
 import { MapPin, Loader2 } from "lucide-react";
 import { useState, useTransition } from "react";
 
@@ -54,11 +56,22 @@ export function ApproxLocationCard() {
           <div>
             <h2 className="shelfswap-heading text-sm font-semibold">Rough area for distances</h2>
             <p className="text-xs text-base-content/60 leading-snug mt-1">
-              We round to ~1 km precision and never show your pin on a map. Sellers set a rough point
-              too; you’ll see approximate km away (straight line), not addresses.
+              Use your device location once and we’ll save a rough area for distances.
             </p>
           </div>
         </div>
+        <button
+          type="button"
+          className="btn btn-outline btn-primary btn-sm border-primary/30 gap-2"
+          disabled={pending}
+          onClick={() => onUseDevice()}
+        >
+          {pending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+          Use device location
+        </button>
+        <p className="text-[11px] text-base-content/50 leading-snug">
+          We store only a rough area (not an address) and use it to show distance.
+        </p>
         {message ? (
           <div role="status" className="alert alert-success text-xs py-2">
             {message}
@@ -69,15 +82,6 @@ export function ApproxLocationCard() {
             {error}
           </div>
         ) : null}
-        <button
-          type="button"
-          className="btn btn-outline btn-primary btn-sm border-primary/30 gap-2"
-          disabled={pending}
-          onClick={() => onUseDevice()}
-        >
-          {pending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-          Use device location (approximate)
-        </button>
       </div>
     </div>
   );

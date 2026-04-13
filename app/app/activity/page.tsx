@@ -209,16 +209,28 @@ export default async function ActivityPage() {
   }
 
   for (const n of (notifRows ?? []) as NotifRow[]) {
-    if (n.type !== "conversation_started" || !n.listing_id) continue;
+    if (!n.listing_id) continue;
     const payload = (n.payload ?? {}) as Record<string, unknown>;
-    items.push({
-      key: `notif-${n.id}`,
-      createdAt: n.created_at,
-      kind: "conversation_started",
-      listingId: n.listing_id,
-      payload,
-      wasUnread: n.read_at == null,
-    });
+    if (n.type === "conversation_started") {
+      items.push({
+        key: `notif-${n.id}`,
+        createdAt: n.created_at,
+        kind: "conversation_started",
+        listingId: n.listing_id,
+        payload,
+        wasUnread: n.read_at == null,
+      });
+    }
+    if (n.type === "new_message") {
+      items.push({
+        key: `notif-msg-${n.id}`,
+        createdAt: n.created_at,
+        kind: "conversation_started",
+        listingId: n.listing_id,
+        payload: { ...payload, _is_message: true },
+        wasUnread: n.read_at == null,
+      });
+    }
   }
 
   items.sort(
@@ -332,12 +344,14 @@ export default async function ActivityPage() {
           }
 
           if (item.kind === "conversation_started") {
+            const isMessage = Boolean(item.payload._is_message);
             const role = String(item.payload.role ?? "");
             const payloadTitle = String(item.payload.listing_title ?? "").trim();
             const title =
               payloadTitle ||
               listingTitle(item.listingId, titleById, null);
             const senderName = String(item.payload.sender_display_name ?? "Someone").trim();
+            const preview = String(item.payload.preview ?? "").trim();
             return (
               <li key={item.key}>
                 <div
@@ -354,7 +368,9 @@ export default async function ActivityPage() {
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="text-sm text-base-content">
-                            <span className="font-medium">New chat</span>
+                            <span className="font-medium">
+                              {isMessage ? "New message" : "New chat"}
+                            </span>
                             {" — "}
                             {role === "seller" ? (
                               <>
@@ -363,8 +379,17 @@ export default async function ActivityPage() {
                               </>
                             ) : (
                               <>
-                                <span className="font-medium">{senderName}</span> started a
-                                conversation about <span className="font-medium">{title}</span>.
+                                <span className="font-medium">{senderName}</span>{" "}
+                                {isMessage ? (
+                                  <>
+                                    messaged about <span className="font-medium">{title}</span>.
+                                  </>
+                                ) : (
+                                  <>
+                                    started a conversation about{" "}
+                                    <span className="font-medium">{title}</span>.
+                                  </>
+                                )}
                               </>
                             )}
                           </p>
@@ -372,6 +397,11 @@ export default async function ActivityPage() {
                             <span className="badge badge-primary badge-xs">New</span>
                           ) : null}
                         </div>
+                        {isMessage && preview ? (
+                          <p className="mt-1 line-clamp-2 text-xs text-base-content/60">
+                            “{preview}”
+                          </p>
+                        ) : null}
                         <p className="text-xs text-base-content/50 mt-1">{when}</p>
                         <Link
                           href={`/app/listings/${item.listingId}`}

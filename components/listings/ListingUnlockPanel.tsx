@@ -5,6 +5,7 @@
  * Location: components/listings/ListingUnlockPanel.tsx
  */
 import { unlockListingAction } from "@/app/app/listings/actions";
+import { toggleSaveListingAction } from "@/app/app/saves/actions";
 import { formatUnlockCredits } from "@/lib/listings/format";
 import { Heart, Lock, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -17,6 +18,7 @@ type Props = {
   creditBalance: number;
   isSignedIn: boolean;
   initiallyUnlocked: boolean;
+  initiallySaved: boolean;
 };
 
 export function ListingUnlockPanel({
@@ -25,10 +27,12 @@ export function ListingUnlockPanel({
   creditBalance,
   isSignedIn,
   initiallyUnlocked,
+  initiallySaved,
 }: Props) {
   const router = useRouter();
   const [unlocked, setUnlocked] = useState(initiallyUnlocked);
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(initiallySaved);
   const [pending, startTransition] = useTransition();
 
   const nextPath = `/app/listings/${listingId}`;
@@ -43,6 +47,19 @@ export function ListingUnlockPanel({
         return;
       }
       setError(res.error);
+    });
+  }
+
+  function onToggleSave() {
+    setError(null);
+    startTransition(async () => {
+      const res = await toggleSaveListingAction(listingId);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      setSaved(res.saved);
+      router.refresh();
     });
   }
 
@@ -115,9 +132,14 @@ export function ListingUnlockPanel({
               Buy credits
             </Link>
           ) : null}
-          <button type="button" className="btn btn-ghost btn-sm gap-1" disabled title="Soon">
+          <button
+            type="button"
+            className={`btn btn-ghost btn-sm gap-1 ${saved ? "text-primary" : ""}`}
+            onClick={() => onToggleSave()}
+            disabled={pending}
+          >
             <Heart className="h-4 w-4" aria-hidden />
-            Save
+            {saved ? "Saved" : "Save"}
           </button>
         </div>
       </div>

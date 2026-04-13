@@ -7,6 +7,7 @@
 import { Search, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { logEventAction } from "@/app/app/events/actions";
 
 export function SearchBar() {
   const router = useRouter();
@@ -33,6 +34,11 @@ export function SearchBar() {
     else params.delete("q");
     // replace() prevents “dropped characters” feeling from frequent soft navigations.
     router.replace(`/app/search?${params.toString()}`);
+
+    const safe = trimmed.replace(/[^\w\s-]/g, "").trim();
+    if (safe.length >= 2) {
+      void logEventAction({ type: "search_query", payload: { q: safe } });
+    }
   }
 
   function onChange(v: string) {

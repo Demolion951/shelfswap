@@ -11,6 +11,7 @@ import { BookBlurb } from "@/components/listings/BookBlurb";
 import { ListingMessagesThread } from "@/components/listings/ListingMessagesThread";
 import { ListingPickupBlock } from "@/components/listings/ListingPickupBlock";
 import { ListingUnlockPanel } from "@/components/listings/ListingUnlockPanel";
+import { ListingViewTracker } from "@/components/listings/ListingViewTracker";
 import { MapPin } from "lucide-react";
 import Link from "next/link";
 
@@ -23,6 +24,7 @@ type Props = {
   isOwner: boolean;
   isSignedIn: boolean;
   viewerUnlocked: boolean;
+  viewerSaved: boolean;
   creditBalance: number;
   currentUserId: string | null;
   pickup: ListingPickupRow | null;
@@ -41,6 +43,7 @@ export function ListingDetailView({
   isOwner,
   isSignedIn,
   viewerUnlocked,
+  viewerSaved,
   creditBalance,
   currentUserId,
   pickup,
@@ -57,6 +60,7 @@ export function ListingDetailView({
 
   return (
     <div className="space-y-4 pb-8">
+      <ListingViewTracker listingId={listing.id} enabled={isSignedIn && !isOwner} />
       <div className="carousel carousel-center w-full gap-2 rounded-xl bg-base-200/50 p-2">
         {photos.map((ph) => {
           const src = coverImageSrcForDisplay(ph.url) ?? ph.url;
@@ -121,10 +125,12 @@ export function ListingDetailView({
         <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-primary/80" aria-hidden />
         <span>
           {isOwner
-            ? "Buyers see ~km away (approx.). Exact pickup shows after unlock."
-            : distanceLine
-              ? `${distanceLine} (approx.)`
-              : "Distance will show here once you save your rough area (approx.)."}
+            ? "Buyers see ~km away (approx.) when this listing has a rough area and they save one in Profile. Exact pickup shows after unlock."
+            : !isSignedIn
+              ? "Sign in and save a rough area in Profile to see approximate distance."
+              : distanceLine
+                ? `${distanceLine} (approx.)`
+                : "~km when Profile and this listing both have a rough area (approx.)."}
         </span>
       </div>
 
@@ -178,6 +184,7 @@ export function ListingDetailView({
           creditBalance={creditBalance}
           isSignedIn={isSignedIn}
           initiallyUnlocked={viewerUnlocked}
+          initiallySaved={viewerSaved}
         />
       ) : null}
 
