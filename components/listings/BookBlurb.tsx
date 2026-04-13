@@ -1,17 +1,14 @@
 "use client";
 
 /**
- * Displays a sourced book blurb (Open Library) on the listing detail page.
+ * Displays Open Library catalogue copy on the listing detail page (not seller-written).
  * Location: components/listings/BookBlurb.tsx
  */
-import Link from "next/link";
-
 type Props = {
   text: string;
-  sourceUrl: string;
 };
 
-export function BookBlurb({ text, sourceUrl }: Props) {
+export function BookBlurb({ text }: Props) {
   return (
     <section
       className="space-y-2"
@@ -23,14 +20,9 @@ export function BookBlurb({ text, sourceUrl }: Props) {
       >
         About this book
       </h2>
-      <div className="rounded-xl border border-dashed border-secondary/35 bg-base-200/40 p-4 text-sm leading-relaxed text-base-content/90">
+      <div className="rounded-xl border border-base-300/80 bg-base-100 p-4 text-sm leading-relaxed text-base-content">
         <p className="whitespace-pre-wrap">{text}</p>
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-base-300/50 pt-3 text-[11px] text-base-content/50">
-          <span>Open Library catalogue — not from the seller</span>
-          <Link href={sourceUrl} className="link link-primary shrink-0" target="_blank" rel="noreferrer">
-            View source
-          </Link>
-        </div>
+        <p className="mt-3 text-[11px] text-base-content/50">Source: Open Library</p>
       </div>
     </section>
   );

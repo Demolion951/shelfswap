@@ -157,7 +157,7 @@ export function ListingDetailView({
         </section>
       ) : null}
 
-      {blurb ? <BookBlurb text={blurb.text} sourceUrl={blurb.sourceUrl} /> : null}
+      {blurb ? <BookBlurb text={blurb.text} /> : null}
 
       <p className="text-sm text-base-content/60">
         Listed by <span className="font-medium text-base-content">@{seller}</span>
