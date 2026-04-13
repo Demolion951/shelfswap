@@ -6,6 +6,8 @@ import type {
   ListingPickupRow,
   ListingWithRelations,
 } from "@/lib/listings/queries";
+import type { OpenLibraryBlurb } from "@/lib/books/openLibraryBlurb";
+import { BookBlurb } from "@/components/listings/BookBlurb";
 import { ListingMessagesThread } from "@/components/listings/ListingMessagesThread";
 import { ListingPickupBlock } from "@/components/listings/ListingPickupBlock";
 import { ListingUnlockPanel } from "@/components/listings/ListingUnlockPanel";
@@ -26,6 +28,7 @@ type Props = {
   pickup: ListingPickupRow | null;
   messages: ListingMessageRow[];
   distanceKm: number | null;
+  blurb: OpenLibraryBlurb | null;
 };
 
 function sortPhotos(listing: ListingWithRelations) {
@@ -43,6 +46,7 @@ export function ListingDetailView({
   pickup,
   messages,
   distanceKm,
+  blurb,
 }: Props) {
   const photos = sortPhotos(listing);
   const seller = listing.profiles?.display_name ?? "Seller";
@@ -116,30 +120,11 @@ export function ListingDetailView({
       <div className="flex items-start gap-2 text-sm text-base-content/70">
         <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-primary/80" aria-hidden />
         <span>
-          {isOwner ? (
-            <>
-              Approximate straight-line distance (km) is shown to buyers whenever both sides have a
-              saved rough area—we never show a precise address or map pin here. Exact pickup notes
-              stay unlock-only below.
-            </>
-          ) : distanceLine ? (
-            <>
-              <span className="font-medium text-base-content">{distanceLine}</span> from your saved
-              rough area (straight line, not driving time). Exact pickup text is only after unlock
-              below—we still never show the seller&apos;s precise address on the map.
-            </>
-          ) : isSignedIn ? (
-            <>
-              We always use approximate straight-line km, never a precise address. You don&apos;t
-              see a number yet because your Profile rough area or the seller&apos;s listing area
-              isn&apos;t set—add yours in Profile; exact pickup stays unlock-only below.
-            </>
-          ) : (
-            <>
-              We show approximate straight-line km (never a precise address) after you sign in and
-              save a rough area in Profile. Exact pickup details stay unlock-only below.
-            </>
-          )}
+          {isOwner
+            ? "Buyers see ~km away (approx.). Exact pickup shows after unlock."
+            : distanceLine
+              ? `${distanceLine} (approx.)`
+              : "Distance will show here once you save your rough area (approx.)."}
         </span>
       </div>
 
@@ -148,6 +133,8 @@ export function ListingDetailView({
           {listing.description}
         </div>
       ) : null}
+
+      {blurb ? <BookBlurb text={blurb.text} sourceUrl={blurb.sourceUrl} /> : null}
 
       <p className="text-sm text-base-content/60">
         Listed by <span className="font-medium text-base-content">@{seller}</span>

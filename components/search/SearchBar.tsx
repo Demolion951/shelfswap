@@ -11,14 +11,16 @@ import { useEffect, useRef, useState } from "react";
 export function SearchBar() {
   const router = useRouter();
   const sp = useSearchParams();
-  const initial = sp.get("q") ?? "";
-  const [q, setQ] = useState(initial);
+  const qParam = sp.get("q") ?? "";
+  const [q, setQ] = useState(qParam);
   const t = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setQ(sp.get("q") ?? "");
-  }, [sp]);
+    // Avoid clobbering fast typing during debounced navigations.
+    if (document.activeElement === inputRef.current) return;
+    setQ(qParam);
+  }, [qParam]);
 
   useEffect(() => {
     return () => clearTimeout(t.current);
@@ -29,7 +31,8 @@ export function SearchBar() {
     const trimmed = next.trim();
     if (trimmed) params.set("q", trimmed);
     else params.delete("q");
-    router.push(`/app/search?${params.toString()}`);
+    // replace() prevents “dropped characters” feeling from frequent soft navigations.
+    router.replace(`/app/search?${params.toString()}`);
   }
 
   function onChange(v: string) {

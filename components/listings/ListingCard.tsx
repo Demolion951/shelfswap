@@ -59,16 +59,16 @@ export function ListingCard({ listing, variant = "grid" }: Props) {
       <div
         className={
           variant === "row"
-            ? "flex h-full min-h-0 min-w-0 flex-col gap-1.5 py-0.5 pr-1 sm:pr-2"
-            : "card-body gap-2 p-3"
+            ? "flex h-full min-h-0 min-w-0 flex-col gap-1 py-0.5 pr-1"
+            : "card-body gap-1.5 p-2.5"
         }
       >
         <div className={variant === "row" ? "min-w-0 space-y-0.5" : "contents"}>
           <h3
             className={
               variant === "row"
-                ? "shelfswap-heading line-clamp-2 text-[0.95rem] font-semibold leading-tight text-base-content sm:text-base"
-                : "shelfswap-heading line-clamp-2 text-base font-semibold leading-tight text-base-content"
+                ? "shelfswap-heading line-clamp-2 text-[0.92rem] font-semibold leading-tight text-base-content"
+                : "shelfswap-heading line-clamp-2 text-[0.95rem] font-semibold leading-tight text-base-content"
             }
           >
             {listing.title}
@@ -77,8 +77,8 @@ export function ListingCard({ listing, variant = "grid" }: Props) {
             <p
               className={
                 variant === "row"
-                  ? "line-clamp-1 text-[0.8125rem] leading-snug text-base-content/60"
-                  : "line-clamp-1 text-xs text-base-content/60"
+                  ? "line-clamp-1 text-[0.78rem] leading-snug text-base-content/60"
+                  : "line-clamp-1 text-[0.72rem] leading-snug text-base-content/60"
               }
             >
               {listing.author}
@@ -88,8 +88,8 @@ export function ListingCard({ listing, variant = "grid" }: Props) {
         <p
           className={
             variant === "row"
-              ? "text-sm font-semibold tabular-nums tracking-tight text-primary"
-              : "text-sm font-semibold tabular-nums text-primary"
+              ? "text-[0.9rem] font-semibold tabular-nums tracking-tight text-primary"
+              : "text-[0.9rem] font-semibold tabular-nums text-primary"
           }
         >
           {formatUnlockCredits(credits)}
@@ -97,22 +97,22 @@ export function ListingCard({ listing, variant = "grid" }: Props) {
         <div
           className={
             variant === "row"
-              ? "flex flex-wrap items-center gap-1.5"
-              : "flex flex-wrap items-center gap-2"
+              ? "flex flex-wrap items-center gap-1"
+              : "flex flex-wrap items-center gap-1"
           }
         >
-          <span className="badge badge-sm badge-ghost shrink-0 border-primary/20 text-primary">
+          <span className="badge badge-xs badge-ghost shrink-0 border-primary/20 text-primary">
             {cond}
           </span>
           {listing.open_to_swaps ? (
-            <span className="badge badge-sm shrink-0 badge-accent badge-outline">Swaps</span>
+            <span className="badge badge-xs shrink-0 badge-accent badge-outline">Swaps</span>
           ) : null}
         </div>
         <p
           className={
             variant === "row"
-              ? "mt-auto text-[0.7rem] leading-normal text-base-content/45"
-              : "text-xs text-base-content/50"
+              ? "mt-auto text-[0.68rem] leading-snug text-base-content/45"
+              : "text-[0.7rem] leading-snug text-base-content/50"
           }
         >
           @{seller}
@@ -120,8 +120,8 @@ export function ListingCard({ listing, variant = "grid" }: Props) {
         <p
           className={
             variant === "row"
-              ? `text-[0.7rem] leading-snug ${hasApproxKm ? "text-secondary" : "text-base-content/55"}`
-              : `text-[0.7rem] leading-snug sm:text-xs ${hasApproxKm ? "text-secondary" : "text-base-content/55"}`
+              ? `text-[0.68rem] leading-snug ${hasApproxKm ? "text-secondary" : "text-base-content/55"}`
+              : `text-[0.68rem] leading-snug ${hasApproxKm ? "text-secondary" : "text-base-content/55"}`
           }
         >
           {distanceLine}
@@ -140,7 +140,7 @@ export function ListingCard({ listing, variant = "grid" }: Props) {
       }
     >
       {variant === "row" ? (
-        <div className="grid w-full grid-cols-[6.25rem_1fr] items-stretch gap-3 p-3 sm:grid-cols-[6.75rem_1fr] sm:gap-3.5 sm:p-3.5">
+        <div className="grid w-full grid-cols-[5.75rem_1fr] items-stretch gap-2.5 p-2.5">
           {inner}
         </div>
       ) : (

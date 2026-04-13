@@ -59,7 +59,7 @@ export default async function HomePage() {
 
       <FeedSection title="Popular near you" subtitle="Listings with rich photos">
         {popular.map((l) => (
-          <div key={l.id} className="snap-start shrink-0 w-[14rem]">
+          <div key={l.id} className="snap-start shrink-0 w-[12.5rem]">
             <ListingCard listing={l} />
           </div>
         ))}

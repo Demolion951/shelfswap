@@ -1,4 +1,5 @@
 import { ListingDetailView } from "@/components/listings/ListingDetailView";
+import { fetchOpenLibraryBlurbByIsbn } from "@/lib/books/openLibraryBlurb";
 import { fetchDistanceKmForListing } from "@/lib/listings/distance";
 import {
   fetchListingById,
@@ -49,6 +50,7 @@ export default async function ListingPage({ params }: Props) {
   let pickup: ListingPickupRow | null = null;
   let messages: ListingMessageRow[] = [];
   let distanceKm: number | null = null;
+  const blurb = listing.isbn ? await fetchOpenLibraryBlurbByIsbn(listing.isbn) : null;
   if (isOwner || viewerUnlocked) {
     const [p, m] = await Promise.all([
       fetchListingPickupIfAllowed(id),
@@ -73,6 +75,7 @@ export default async function ListingPage({ params }: Props) {
       pickup={pickup}
       messages={messages}
       distanceKm={distanceKm}
+      blurb={blurb}
     />
   );
 }

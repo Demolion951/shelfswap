@@ -151,38 +151,53 @@ export async function searchListingsByText(
   const safe = q.trim().replace(/[^\w\s-]/g, "").trim();
   if (!safe) return [] as ListingWithRelations[];
 
+  // Type-ahead UX: for short queries, full-text search can feel too strict.
+  // Use ILIKE to support partial matches; keep full-text for longer queries.
+  const qLen = safe.replace(/\s+/g, " ").length;
+  const like = `%${safe}%`;
+
+  const runIlike = (selectClause: string) =>
+    supabase
+      .from("listings")
+      .select(selectClause)
+      .eq("status", "active")
+      .or(`title.ilike.${like},author.ilike.${like},isbn.ilike.${like}`)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+  const runText = (selectClause: string) =>
+    supabase
+      .from("listings")
+      .select(selectClause)
+      .eq("status", "active")
+      .textSearch("search_tsv", safe, {
+        type: "websearch",
+        config: "simple",
+      })
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
   const res = await withUnlockCreditsRetry(
     () =>
-      supabase
-        .from("listings")
-        .select(listingSelectWithUnlockCredits)
-        .eq("status", "active")
-        .textSearch("search_tsv", safe, {
-          type: "websearch",
-          config: "simple",
-        })
-        .order("created_at", { ascending: false })
-        .limit(limit),
+      qLen < 4
+        ? runIlike(listingSelectWithUnlockCredits)
+        : runText(listingSelectWithUnlockCredits),
     () =>
-      supabase
-        .from("listings")
-        .select(listingSelectNoUnlockCredits)
-        .eq("status", "active")
-        .textSearch("search_tsv", safe, {
-          type: "websearch",
-          config: "simple",
-        })
-        .order("created_at", { ascending: false })
-        .limit(limit),
+      qLen < 4
+        ? runIlike(listingSelectNoUnlockCredits)
+        : runText(listingSelectNoUnlockCredits),
   );
 
   if (res.error) {
     console.error("[searchListingsByText]", res.error.message);
     return [] as ListingWithRelations[];
   }
-  return (res.data ?? []).map((r) =>
-    normalizeListingRow(r as Record<string, unknown>),
-  );
+  return (res.data ?? [])
+    .map((r) => {
+      if (!r || typeof r !== "object") return null;
+      return normalizeListingRow(r as unknown as Record<string, unknown>);
+    })
+    .filter((x): x is ListingWithRelations => !!x);
 }
 
 export type ListingWithRelationsAndStatus = ListingWithRelations & {
