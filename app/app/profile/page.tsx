@@ -1,9 +1,8 @@
 import { signOut } from "@/app/auth/actions";
-import { ListingCard } from "@/components/listings/ListingCard";
 import { ApproxLocationCard } from "@/components/profile/ApproxLocationCard";
 import { fetchMyListings } from "@/lib/listings/queries";
 import { createClient } from "@/lib/supabase/server";
-import { Coins, Library, LogOut, Settings } from "lucide-react";
+import { Coins, Library, LogOut } from "lucide-react";
 import Link from "next/link";
 
 export default async function ProfilePage() {
@@ -58,51 +57,22 @@ export default async function ProfilePage() {
             <p className="text-[10px] text-base-content/50">Tap to buy credits (soon)</p>
           </div>
         </Link>
-        <div className="card bg-base-100 border border-base-300/80 shadow-sm">
+        <Link
+          href="/app/profile/listings"
+          className="card bg-base-100 border border-base-300/80 shadow-sm transition hover:border-secondary/35"
+        >
           <div className="card-body p-4 gap-1">
             <div className="flex items-center gap-2 text-secondary">
               <Library className="h-5 w-5" aria-hidden />
               <span className="text-xs font-semibold uppercase tracking-wide">Listings</span>
             </div>
             <p className="text-2xl font-bold">{myListings.length}</p>
-            <p className="text-[10px] text-base-content/50">active on your shelf</p>
+            <p className="text-[10px] text-base-content/50">Tap to manage your shelf</p>
           </div>
-        </div>
-      </div>
-
-      <ApproxLocationCard />
-
-      <div className="flex flex-col gap-2">
-        <button
-          type="button"
-          className="btn btn-ghost justify-start gap-3 border border-base-300/60 bg-base-100"
-          disabled
-        >
-          <Settings className="h-5 w-5 opacity-50" aria-hidden />
-          Settings
-          <span className="ml-auto text-[10px] uppercase text-base-content/40">Soon</span>
-        </button>
-        <Link
-          href="/app/sell"
-          className="btn btn-outline btn-primary justify-start gap-3 border-primary/30"
-        >
-          <Library className="h-5 w-5" aria-hidden />
-          New listing
         </Link>
       </div>
 
-      {myListings.length > 0 ? (
-        <section className="space-y-3">
-          <h2 className="shelfswap-heading text-lg font-semibold">Your listings</h2>
-          <ul className="flex flex-col gap-3">
-            {myListings.map((l) => (
-              <li key={l.id}>
-                <ListingCard listing={l} variant="row" />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+      <ApproxLocationCard />
 
       <form action={signOut} className="pt-4">
         <button type="submit" className="btn btn-ghost btn-block gap-2 text-base-content/70">

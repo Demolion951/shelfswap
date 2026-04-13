@@ -34,9 +34,10 @@ export function ListingCard({ listing, variant = "grid", compact = false }: Prop
   const cond = CONDITION_LABELS[listing.condition] ?? listing.condition;
   const credits = listing.unlock_credits === 2 ? 2 : 1;
   const km = listing.distance_km ?? null;
-  const distanceOnly =
+  const distLine =
     formatApproxDistanceKm(km) ?? approxDistanceAlwaysVisibleLine(km);
   const hasApproxKm = formatApproxDistanceKm(km) != null;
+  const town = listing.approx_area_text?.trim() || null;
 
   const inner = (
     <>
@@ -139,32 +140,28 @@ export function ListingCard({ listing, variant = "grid", compact = false }: Prop
         >
           @{seller}
         </p>
-        <div className={variant === "row" ? "mt-0.5 space-y-0.5" : "space-y-0.5"}>
-          {listing.approx_area_text?.trim() ? (
-            <p
-              className={
-                compact
-                  ? "text-[0.6rem] leading-snug text-base-content/55 line-clamp-2"
-                  : "text-[0.68rem] leading-snug text-base-content/55 line-clamp-2"
-              }
-            >
-              <span className="text-base-content/45">Area: </span>
-              {listing.approx_area_text.trim()} (approx.)
-            </p>
-          ) : null}
-          <p
-            className={
-              variant === "row"
-                ? `text-[0.68rem] leading-snug line-clamp-2 ${hasApproxKm ? "text-secondary" : "text-base-content/55"}`
-                : compact
-                  ? `text-[0.6rem] leading-snug line-clamp-2 ${hasApproxKm ? "text-secondary" : "text-base-content/55"}`
-                  : `text-[0.68rem] leading-snug line-clamp-2 ${hasApproxKm ? "text-secondary" : "text-base-content/55"}`
-            }
-          >
-            <span className="text-base-content/45">Distance: </span>
-            {distanceOnly}
-          </p>
-        </div>
+        <p
+          className={
+            variant === "row"
+              ? "mt-0.5 text-[0.68rem] leading-snug line-clamp-2 text-base-content/65"
+              : compact
+                ? "text-[0.6rem] leading-snug line-clamp-2 text-base-content/65"
+                : "text-[0.68rem] leading-snug line-clamp-2 text-base-content/65"
+          }
+        >
+          {town ? (
+            <>
+              <span>{town}</span>{" "}
+              <span className={hasApproxKm ? "text-secondary" : "text-base-content/50"}>
+                ({distLine})
+              </span>
+            </>
+          ) : (
+            <span className={hasApproxKm ? "text-secondary" : "text-base-content/50"}>
+              {distLine}
+            </span>
+          )}
+        </p>
       </div>
     </>
   );

@@ -53,6 +53,12 @@ export function ListingDetailView({
   const credits = listing.unlock_credits === 2 ? 2 : 1;
   const distanceLine =
     !isOwner && isSignedIn ? formatApproxDistanceKm(distanceKm) : null;
+  const town = listing.approx_area_text?.trim() || null;
+  const buyerDistanceText =
+    !isOwner && isSignedIn
+      ? distanceLine ?? approxDistanceAlwaysVisibleLine(distanceKm)
+      : null;
+  const buyerHasApproxKm = !isOwner && isSignedIn && distanceLine != null;
 
   return (
     <div className="space-y-4 pb-8">
@@ -123,22 +129,28 @@ export function ListingDetailView({
           <span>
             {!isSignedIn ? (
               "Sign in and save a rough area in Profile to see approximate distance."
-            ) : (
-              <span className="block space-y-1.5">
-                {listing.approx_area_text?.trim() ? (
-                  <span className="block text-base-content/85">
-                    <span className="text-base-content/55">Rough area: </span>
-                    {listing.approx_area_text.trim()} (approx.)
+            ) : buyerDistanceText ? (
+              <span className="block text-sm leading-snug text-base-content/80">
+                {town ? (
+                  <>
+                    {town}{" "}
+                    <span
+                      className={
+                        buyerHasApproxKm ? "text-secondary" : "text-base-content/65"
+                      }
+                    >
+                      ({buyerDistanceText})
+                    </span>
+                  </>
+                ) : (
+                  <span
+                    className={buyerHasApproxKm ? "text-secondary" : "text-base-content/70"}
+                  >
+                    {buyerDistanceText}
                   </span>
-                ) : null}
-                <span
-                  className={`block ${distanceLine ? "text-secondary" : "text-base-content/70"}`}
-                >
-                  <span className="text-base-content/55">Distance: </span>
-                  {distanceLine ?? approxDistanceAlwaysVisibleLine(distanceKm)}
-                </span>
+                )}
               </span>
-            )}
+            ) : null}
           </span>
         </div>
       ) : null}

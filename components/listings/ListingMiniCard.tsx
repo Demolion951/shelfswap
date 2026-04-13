@@ -27,6 +27,8 @@ export function ListingMiniCard({ listing, compact = false }: Props) {
   const km = listing.distance_km ?? null;
   const distLine =
     formatApproxDistanceKm(km) ?? approxDistanceAlwaysVisibleLine(km);
+  const hasApproxKm = formatApproxDistanceKm(km) != null;
+  const town = listing.approx_area_text?.trim() || null;
 
   return (
     <Link
@@ -91,24 +93,26 @@ export function ListingMiniCard({ listing, compact = false }: Props) {
               {formatUnlockCredits(credits)}
             </span>
           </div>
-          <div
+          <p
             className={
               compact
-                ? "space-y-0.5 text-[9px] leading-snug text-base-content/50"
-                : "space-y-0.5 text-[10px] leading-snug text-base-content/50"
+                ? "line-clamp-2 text-[9px] leading-snug text-base-content/60"
+                : "line-clamp-2 text-[10px] leading-snug text-base-content/60"
             }
           >
-            {listing.approx_area_text?.trim() ? (
-              <p className="line-clamp-2">
-                <span className="text-base-content/40">Area: </span>
-                {listing.approx_area_text.trim()}
-              </p>
-            ) : null}
-            <p className="line-clamp-2 text-base-content/55">
-              <span className="text-base-content/40">Dist: </span>
-              {distLine}
-            </p>
-          </div>
+            {town ? (
+              <>
+                <span>{town}</span>{" "}
+                <span className={hasApproxKm ? "text-secondary" : "text-base-content/50"}>
+                  ({distLine})
+                </span>
+              </>
+            ) : (
+              <span className={hasApproxKm ? "text-secondary" : "text-base-content/50"}>
+                {distLine}
+              </span>
+            )}
+          </p>
         </div>
       </div>
     </Link>

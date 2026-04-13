@@ -43,9 +43,10 @@ export async function setMyApproxLocationAction(
     };
   }
 
-  // Best-effort: store a human-friendly rough area label.
+  // Best-effort: store a human-friendly rough area label on profile, then align all active listings.
+  let areaText: string | null = null;
   try {
-    const areaText = await reverseGeocodeAreaText(lat, lng);
+    areaText = await reverseGeocodeAreaText(lat, lng);
     if (areaText) {
       const { error: upErr } = await supabase
         .from("profiles")
@@ -54,19 +55,19 @@ export async function setMyApproxLocationAction(
       if (upErr) {
         console.warn("[setMyApproxLocationAction] approx_area_text", upErr.message);
       }
-      // Backfill listing cards: older posts may lack approx_area_text while profile has it.
-      const { error: listErr } = await supabase
-        .from("listings")
-        .update({ approx_area_text: areaText })
-        .eq("user_id", user.id)
-        .eq("status", "active")
-        .is("approx_area_text", null);
-      if (listErr) {
-        console.warn("[setMyApproxLocationAction] listings approx_area_text", listErr.message);
-      }
     }
   } catch (e) {
     console.warn("[setMyApproxLocationAction] reverse geocode failed", e);
+  }
+
+  const { error: syncErr } = await supabase.rpc("sync_my_active_listings_location_from_profile", {
+    p_approx_area_text: areaText?.trim() || null,
+  });
+  if (syncErr) {
+    console.warn(
+      "[setMyApproxLocationAction] sync_my_active_listings_location_from_profile",
+      syncErr.message,
+    );
   }
 
   revalidatePath("/app/profile");
