@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { fetchOpenLibraryEnrichmentByIsbn } from "@/lib/books/openLibraryEnrichment";
+import { reverseGeocodeAreaText } from "@/lib/geo/reverseGeocode";
 import { isUnlockCreditsColumnMissing } from "@/lib/listings/unlockCreditsPostgrest";
 import { revalidatePath } from "next/cache";
 
@@ -33,8 +34,6 @@ export async function createListing(
   const unlockRaw = Number.parseInt(String(formData.get("unlock_credits") ?? "1"), 10);
   const unlockCredits = unlockRaw === 2 ? 2 : 1;
   const openToSwaps = formData.get("open_to_swaps") === "on";
-  const approxAreaTextRaw = String(formData.get("approx_area_text") ?? "").trim();
-  const approxAreaText = approxAreaTextRaw.length > 0 ? approxAreaTextRaw : null;
   const pickupInstructions = String(formData.get("pickup_instructions") ?? "").trim();
   const contactHintRaw = String(formData.get("contact_hint") ?? "").trim();
   const contactHint = contactHintRaw.length > 0 ? contactHintRaw : null;
@@ -61,7 +60,7 @@ export async function createListing(
     price_cents: 0,
     open_to_swaps: openToSwaps,
     description,
-    approx_area_text: approxAreaText,
+    approx_area_text: null as string | null,
     status: "active" as const,
   };
 
@@ -151,6 +150,18 @@ export async function createListing(
     });
     if (geoErr) {
       console.warn("[createListing] set_listing_approx_geo", geoErr.message);
+    } else {
+      try {
+        const areaText = await reverseGeocodeAreaText(approxLat, approxLng);
+        if (areaText) {
+          await supabase
+            .from("listings")
+            .update({ approx_area_text: areaText })
+            .eq("id", listingId);
+        }
+      } catch (e) {
+        console.warn("[createListing] reverse geocode listing area", e);
+      }
     }
   } else if (useProfileArea) {
     const { error: copyErr } = await supabase.rpc("copy_listing_geo_from_profile", {
@@ -158,6 +169,16 @@ export async function createListing(
     });
     if (copyErr) {
       console.warn("[createListing] copy_listing_geo_from_profile", copyErr.message);
+    } else {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("approx_area_text")
+        .eq("id", user.id)
+        .maybeSingle();
+      const at = (prof?.approx_area_text as string | null)?.trim();
+      if (at) {
+        await supabase.from("listings").update({ approx_area_text: at }).eq("id", listingId);
+      }
     }
   }
 

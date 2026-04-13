@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * Two-step listing flow: ISBN + catalogue cover (Open Library), optional real photos,
- * then condition/credits. Posts with cover_url only when no uploads — feeds use cover fallback.
+ * Two-step listing flow: ISBN lookup (Open Library cover), optional photos, then condition/credits.
+ * Approximate listing area comes from device/profile geo on the server, not a manual town field.
  * Location: components/sell/CreateListingWizard.tsx
  */
 import { createListing } from "@/app/app/sell/actions";
@@ -48,7 +48,6 @@ export function CreateListingWizard() {
   const [description, setDescription] = useState("");
   const [pickupInstructions, setPickupInstructions] = useState("");
   const [contactHint, setContactHint] = useState("");
-  const [approxAreaText, setApproxAreaText] = useState("");
   /** When true, skip device prompt on post and only use Profile rough area (if saved). */
   const [profileOnlyForListingGeo, setProfileOnlyForListingGeo] = useState(false);
   const [listingGeo, setListingGeo] = useState<{ lat: number; lng: number } | null>(null);
@@ -136,7 +135,6 @@ export function CreateListingWizard() {
       fd.append("isbn", isbnInput.replace(/\D/g, ""));
       fd.append("cover_url", coverUrl);
       fd.append("description", description);
-      fd.append("approx_area_text", approxAreaText);
       fd.append("pickup_instructions", pickupInstructions);
       fd.append("contact_hint", contactHint);
       fd.append("condition", condition);
@@ -194,9 +192,6 @@ export function CreateListingWizard() {
               <Barcode className="h-5 w-5" aria-hidden />
               Scan barcode with camera
             </button>
-            <p className="text-center text-[11px] text-base-content/50">
-              Fastest: point at the ISBN on the back cover. You can type the number if you prefer.
-            </p>
             <label className="form-control">
               <span className="label-text text-sm">ISBN (10 or 13 digits)</span>
               <div className="join w-full">
@@ -233,7 +228,7 @@ export function CreateListingWizard() {
                   ) : null}
                 </div>
                 {coverUrl ? (
-                  <div className="flex flex-col items-center gap-2 sm:flex-row sm:items-start sm:gap-4">
+                  <div className="flex justify-center sm:justify-start">
                     <div className="shrink-0 overflow-hidden rounded-lg border border-base-300/70 bg-base-100 shadow-sm">
                       <CatalogueCoverPreview
                         initialSrc={coverUrl}
@@ -241,28 +236,16 @@ export function CreateListingWizard() {
                         className="mx-auto block h-44 w-[7.25rem] object-cover sm:h-52 sm:w-[8.25rem]"
                       />
                     </div>
-                    <p className="max-w-sm text-center text-xs text-base-content/60 sm:text-left sm:pt-2">
-                      We&apos;ll use this catalogue cover on your listing (like major used-book
-                      sites). <span className="text-base-content/75">Condition</span> describes
-                      your copy; buyers can confirm details in chat after unlock.
-                    </p>
                   </div>
                 ) : (
                   <p className="text-xs text-base-content/55">
-                    No catalogue cover for this ISBN — your listing will show title only until you
-                    add optional photos below.
+                    No cover image for this ISBN — you can add photos below.
                   </p>
                 )}
                 <div className="border-t border-base-300/40 pt-4 space-y-3">
-                  <div>
-                    <p className="text-sm font-medium text-base-content">
-                      Optional: photos of your copy
-                    </p>
-                    <p className="text-xs text-base-content/55 mt-0.5">
-                      Helps buyers see wear, edition, or extras. Skip if you prefer a clean
-                      catalogue look.
-                    </p>
-                  </div>
+                  <p className="text-sm font-medium text-base-content">
+                    Optional: photos of your copy
+                  </p>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <button
                       type="button"
@@ -406,20 +389,14 @@ export function CreateListingWizard() {
               />
             </label>
             <div className="rounded-lg border border-primary/15 bg-primary/5 p-3 space-y-3">
-              <p className="text-sm font-medium text-base-content">
-                After unlock (private)
-              </p>
-              <p className="text-xs text-base-content/60 leading-snug">
-                Only buyers who spend credits on this listing see pickup and contact hints below.
-                The public description stays separate.
-              </p>
+              <p className="text-sm font-medium text-base-content">Pickup &amp; contact (optional)</p>
               <label className="form-control w-full">
                 <span className="label-text text-sm">Pickup instructions (optional)</span>
                 <textarea
                   className="textarea textarea-bordered min-h-20 w-full text-sm"
                   value={pickupInstructions}
                   onChange={(e) => setPickupInstructions(e.target.value)}
-                  placeholder="Area, how handoff works, shelf pickup…"
+                  placeholder="How handoff works, shelf pickup…"
                 />
               </label>
               <label className="form-control w-full">
@@ -436,25 +413,11 @@ export function CreateListingWizard() {
             <div className="rounded-lg border border-secondary/20 bg-secondary/5 p-3 space-y-3">
               <div className="flex items-center gap-2 text-secondary">
                 <MapPin className="h-4 w-4 shrink-0" aria-hidden />
-                <p className="text-sm font-medium">Area (shown to buyers)</p>
+                <p className="text-sm font-medium">Rough location</p>
               </div>
-              <label className="form-control w-full">
-                <span className="label-text text-sm">Town / area</span>
-                <input
-                  type="text"
-                  className="input input-bordered w-full text-sm"
-                  value={approxAreaText}
-                  onChange={(e) => setApproxAreaText(e.target.value)}
-                  placeholder="e.g. Ealing, London"
-                />
-              </label>
-              <p className="text-[11px] text-base-content/55 leading-snug">
-                Optional: allow device location so buyers can also see approximate km (never an
-                address).
-              </p>
               {listingGeo ? (
                 <p className="text-xs text-base-content/80">
-                  Using a preview point you set (overrides post-time location).
+                  Using the point you set here for this listing.
                   <button
                     type="button"
                     className="link link-secondary ml-2 align-baseline"
@@ -476,7 +439,7 @@ export function CreateListingWizard() {
                   }}
                 />
                 <span className="label-text text-sm">
-                  Don&apos;t use device when I post—only copy my Profile rough area (if I saved one)
+                  Use only my saved profile rough area when I post (no device location)
                 </span>
               </label>
               <button
@@ -502,7 +465,7 @@ export function CreateListingWizard() {
                   );
                 }}
               >
-                Preview location now (optional)
+                Use device location for this listing
               </button>
             </div>
           </div>
