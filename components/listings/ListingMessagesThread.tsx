@@ -49,11 +49,10 @@ export function ListingMessagesThread({ listingId, messages, currentUserId }: Pr
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="shelfswap-heading text-sm font-semibold text-primary">Messages</h3>
       <div className="max-h-64 space-y-2 overflow-y-auto rounded-lg border border-base-300/80 bg-base-200/30 p-3">
         {messages.length === 0 ? (
           <p className="text-center text-sm text-base-content/50 py-4">
-            No messages yet. Say hello to coordinate pickup.
+            No messages yet. Say hello to get started.
           </p>
         ) : (
           messages.map((m) => {

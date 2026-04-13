@@ -2,7 +2,7 @@
 
 /**
  * Two-step listing flow: ISBN lookup (Open Library cover), optional photos, then condition/credits.
- * Approximate listing area comes from device/profile geo on the server, not a manual town field.
+ * Listing rough location is copied from the seller profile on post (no per-listing location UI).
  * Location: components/sell/CreateListingWizard.tsx
  */
 import { createListing } from "@/app/app/sell/actions";
@@ -17,7 +17,6 @@ import {
   Camera,
   Images,
   Loader2,
-  MapPin,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
@@ -46,11 +45,6 @@ export function CreateListingWizard() {
   const [unlockCredits, setUnlockCredits] = useState<1 | 2>(1);
   const [openToSwaps, setOpenToSwaps] = useState(false);
   const [description, setDescription] = useState("");
-  const [pickupInstructions, setPickupInstructions] = useState("");
-  const [contactHint, setContactHint] = useState("");
-  /** When true, skip device prompt on post and only use Profile rough area (if saved). */
-  const [profileOnlyForListingGeo, setProfileOnlyForListingGeo] = useState(false);
-  const [listingGeo, setListingGeo] = useState<{ lat: number; lng: number } | null>(null);
 
   async function runLookup(overrideIsbn?: string) {
     setError(null);
@@ -110,42 +104,16 @@ export function CreateListingWizard() {
   function submit() {
     setError(null);
     startTransition(async () => {
-      let lat: number | undefined;
-      let lng: number | undefined;
-      if (listingGeo) {
-        lat = listingGeo.lat;
-        lng = listingGeo.lng;
-      } else if (!profileOnlyForListingGeo && typeof navigator !== "undefined" && navigator.geolocation) {
-        const pos = await new Promise<GeolocationPosition | null>((resolve) => {
-          navigator.geolocation.getCurrentPosition(
-            (p) => resolve(p),
-            () => resolve(null),
-            { enableHighAccuracy: false, maximumAge: 600_000, timeout: 12_000 },
-          );
-        });
-        if (pos) {
-          lat = Math.round(pos.coords.latitude * 100) / 100;
-          lng = Math.round(pos.coords.longitude * 100) / 100;
-        }
-      }
-
       const fd = new FormData();
       fd.append("title", title.trim());
       fd.append("author", author.trim());
       fd.append("isbn", isbnInput.replace(/\D/g, ""));
       fd.append("cover_url", coverUrl);
       fd.append("description", description);
-      fd.append("pickup_instructions", pickupInstructions);
-      fd.append("contact_hint", contactHint);
       fd.append("condition", condition);
       fd.append("unlock_credits", String(unlockCredits));
       if (openToSwaps) fd.append("open_to_swaps", "on");
-      if (lat !== undefined && lng !== undefined) {
-        fd.append("approx_lat", String(lat));
-        fd.append("approx_lng", String(lng));
-      } else {
-        fd.append("use_profile_area", "on");
-      }
+      fd.append("use_profile_area", "on");
       photos.forEach((p) => fd.append("photos", p.file));
 
       const res = await createListing(fd);
@@ -325,8 +293,8 @@ export function CreateListingWizard() {
               Condition & credits
             </h2>
             <p className="text-sm text-base-content/65">
-              Buyers use credits to unlock your listing (location + chat). There is no cash price
-              on the book — only how many credits it costs to unlock.
+              No cash price — buyers spend credits to unlock chat. Rough area comes from your
+              profile location if you have set it.
             </p>
             <div className="space-y-3">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,11rem)_minmax(0,20rem)] sm:items-center sm:gap-x-5">
@@ -361,9 +329,6 @@ export function CreateListingWizard() {
                     <option value="1">1 credit</option>
                     <option value="2">2 credits</option>
                   </select>
-                  <p className="text-xs text-base-content/50 leading-snug">
-                    You can change the rules later; for now pick 1 or 2.
-                  </p>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,11rem)_minmax(0,20rem)] sm:items-center sm:gap-x-5">
@@ -388,86 +353,6 @@ export function CreateListingWizard() {
                 placeholder="Edition notes, condition details…"
               />
             </label>
-            <div className="rounded-lg border border-primary/15 bg-primary/5 p-3 space-y-3">
-              <p className="text-sm font-medium text-base-content">Pickup &amp; contact (optional)</p>
-              <label className="form-control w-full">
-                <span className="label-text text-sm">Pickup instructions (optional)</span>
-                <textarea
-                  className="textarea textarea-bordered min-h-20 w-full text-sm"
-                  value={pickupInstructions}
-                  onChange={(e) => setPickupInstructions(e.target.value)}
-                  placeholder="How handoff works, shelf pickup…"
-                />
-              </label>
-              <label className="form-control w-full">
-                <span className="label-text text-sm">Contact hint (optional)</span>
-                <input
-                  type="text"
-                  className="input input-bordered w-full text-sm"
-                  value={contactHint}
-                  onChange={(e) => setContactHint(e.target.value)}
-                  placeholder="e.g. WhatsApp, preferred times"
-                />
-              </label>
-            </div>
-            <div className="rounded-lg border border-secondary/20 bg-secondary/5 p-3 space-y-3">
-              <div className="flex items-center gap-2 text-secondary">
-                <MapPin className="h-4 w-4 shrink-0" aria-hidden />
-                <p className="text-sm font-medium">Rough location</p>
-              </div>
-              {listingGeo ? (
-                <p className="text-xs text-base-content/80">
-                  Using the point you set here for this listing.
-                  <button
-                    type="button"
-                    className="link link-secondary ml-2 align-baseline"
-                    onClick={() => setListingGeo(null)}
-                  >
-                    Clear
-                  </button>
-                </p>
-              ) : null}
-              <label className="label cursor-pointer justify-start gap-3 py-0">
-                <input
-                  type="checkbox"
-                  className="checkbox checkbox-secondary checkbox-sm"
-                  checked={profileOnlyForListingGeo && !listingGeo}
-                  disabled={!!listingGeo}
-                  onChange={(e) => {
-                    setProfileOnlyForListingGeo(e.target.checked);
-                    if (e.target.checked) setListingGeo(null);
-                  }}
-                />
-                <span className="label-text text-sm">
-                  Use only my saved profile rough area when I post (no device location)
-                </span>
-              </label>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm gap-2"
-                disabled={pending}
-                onClick={() => {
-                  if (!navigator.geolocation) {
-                    setError("Location isn’t available in this browser.");
-                    return;
-                  }
-                  setError(null);
-                  navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                      setListingGeo({
-                        lat: Math.round(pos.coords.latitude * 100) / 100,
-                        lng: Math.round(pos.coords.longitude * 100) / 100,
-                      });
-                      setProfileOnlyForListingGeo(false);
-                    },
-                    () => setError("Couldn’t read your location. Check permissions."),
-                    { enableHighAccuracy: false, maximumAge: 600_000, timeout: 15_000 },
-                  );
-                }}
-              >
-                Use device location for this listing
-              </button>
-            </div>
           </div>
         </div>
       ) : null}

@@ -4,9 +4,7 @@ import { fetchDistanceKmForListing } from "@/lib/listings/distance";
 import {
   fetchListingById,
   fetchListingMessagesIfAllowed,
-  fetchListingPickupIfAllowed,
   type ListingMessageRow,
-  type ListingPickupRow,
 } from "@/lib/listings/queries";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
@@ -56,17 +54,11 @@ export default async function ListingPage({ params }: Props) {
     viewerSaved = !!saveRow;
   }
 
-  let pickup: ListingPickupRow | null = null;
   let messages: ListingMessageRow[] = [];
   let distanceKm: number | null = null;
   const blurb = listing.isbn ? await fetchOpenLibraryBlurbByIsbn(listing.isbn) : null;
   if (isOwner || viewerUnlocked) {
-    const [p, m] = await Promise.all([
-      fetchListingPickupIfAllowed(id),
-      fetchListingMessagesIfAllowed(id),
-    ]);
-    pickup = p;
-    messages = m;
+    messages = await fetchListingMessagesIfAllowed(id);
   }
 
   // Distance needs listings.approx_geo *and* viewer profiles.approx_location. Older listings
@@ -110,7 +102,6 @@ export default async function ListingPage({ params }: Props) {
       viewerUnlocked={viewerUnlocked}
       creditBalance={creditBalance}
       currentUserId={user?.id ?? null}
-      pickup={pickup}
       messages={messages}
       distanceKm={distanceKm}
       blurb={blurb}

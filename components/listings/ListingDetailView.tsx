@@ -4,22 +4,17 @@ import {
   formatApproxDistanceKm,
 } from "@/lib/geo/formatDistance";
 import { CONDITION_LABELS, formatUnlockCredits } from "@/lib/listings/format";
-import type {
-  ListingMessageRow,
-  ListingPickupRow,
-  ListingWithRelations,
-} from "@/lib/listings/queries";
+import type { ListingMessageRow, ListingWithRelations } from "@/lib/listings/queries";
 import type { OpenLibraryBlurb } from "@/lib/books/openLibraryBlurb";
 import { BookBlurb } from "@/components/listings/BookBlurb";
 import { ListingMessagesThread } from "@/components/listings/ListingMessagesThread";
-import { ListingPickupBlock } from "@/components/listings/ListingPickupBlock";
 import { ListingUnlockPanel } from "@/components/listings/ListingUnlockPanel";
 import { ListingViewTracker } from "@/components/listings/ListingViewTracker";
 import { MapPin } from "lucide-react";
 import Link from "next/link";
 
 /**
- * Book / listing detail: locked preview for buyers; pickup + messages after unlock (or for seller).
+ * Book / listing detail: locked preview for buyers; messages after unlock (or for seller).
  * Location: components/listings/ListingDetailView.tsx
  */
 type Props = {
@@ -30,7 +25,6 @@ type Props = {
   viewerSaved: boolean;
   creditBalance: number;
   currentUserId: string | null;
-  pickup: ListingPickupRow | null;
   messages: ListingMessageRow[];
   distanceKm: number | null;
   blurb: OpenLibraryBlurb | null;
@@ -49,7 +43,6 @@ export function ListingDetailView({
   viewerSaved,
   creditBalance,
   currentUserId,
-  pickup,
   messages,
   distanceKm,
   blurb,
@@ -124,36 +117,44 @@ export function ListingDetailView({
         ) : null}
       </div>
 
-      <div className="flex items-start gap-2 text-sm text-base-content/70">
-        <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-primary/80" aria-hidden />
-        <span>
-          {isOwner ? (
-            "Buyers see ~km away (approx.) when this listing has a rough area and they save one in Profile. Exact pickup shows after unlock."
-          ) : !isSignedIn ? (
-            "Sign in and save a rough area in Profile to see approximate distance."
-          ) : (
-            <span className="block space-y-1.5">
-              {listing.approx_area_text?.trim() ? (
-                <span className="block text-base-content/85">
-                  <span className="text-base-content/55">Rough area: </span>
-                  {listing.approx_area_text.trim()} (approx.)
+      {!isOwner ? (
+        <div className="flex items-start gap-2 text-sm text-base-content/70">
+          <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-primary/80" aria-hidden />
+          <span>
+            {!isSignedIn ? (
+              "Sign in and save a rough area in Profile to see approximate distance."
+            ) : (
+              <span className="block space-y-1.5">
+                {listing.approx_area_text?.trim() ? (
+                  <span className="block text-base-content/85">
+                    <span className="text-base-content/55">Rough area: </span>
+                    {listing.approx_area_text.trim()} (approx.)
+                  </span>
+                ) : null}
+                <span
+                  className={`block ${distanceLine ? "text-secondary" : "text-base-content/70"}`}
+                >
+                  <span className="text-base-content/55">Distance: </span>
+                  {distanceLine ?? approxDistanceAlwaysVisibleLine(distanceKm)}
                 </span>
-              ) : null}
-              <span
-                className={`block ${distanceLine ? "text-secondary" : "text-base-content/70"}`}
-              >
-                <span className="text-base-content/55">Distance: </span>
-                {distanceLine ?? approxDistanceAlwaysVisibleLine(distanceKm)}
               </span>
-            </span>
-          )}
-        </span>
-      </div>
+            )}
+          </span>
+        </div>
+      ) : null}
 
       {listing.description ? (
-        <div className="rounded-xl bg-base-100 border border-base-300/80 p-4 text-sm leading-relaxed">
-          {listing.description}
-        </div>
+        <section className="space-y-2" aria-labelledby="listing-seller-notes-heading">
+          <h2
+            id="listing-seller-notes-heading"
+            className="shelfswap-heading text-sm font-semibold text-primary"
+          >
+            Seller notes
+          </h2>
+          <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm leading-relaxed text-base-content">
+            {listing.description}
+          </div>
+        </section>
       ) : null}
 
       {blurb ? <BookBlurb text={blurb.text} sourceUrl={blurb.sourceUrl} /> : null}
@@ -165,25 +166,12 @@ export function ListingDetailView({
       {isOwner || viewerUnlocked ? (
         <div className="card bg-base-100 border border-base-300/80 shadow-sm">
           <div className="card-body gap-4">
-            <h2 className="shelfswap-heading text-lg font-semibold text-primary">
-              Pickup &amp; coordination
-            </h2>
-            {isOwner ? (
-              <p className="text-sm text-base-content/65">
-                Add pickup instructions and optional contact hints. Buyers only see this after they
-                spend credits to unlock.
-              </p>
-            ) : (
+            <h2 className="shelfswap-heading text-lg font-semibold text-primary">Messages</h2>
+            {!isOwner ? (
               <div className="alert alert-success text-sm py-2">
-                You&apos;ve unlocked this listing — use the details below to arrange handoff.
+                You&apos;ve unlocked this listing — chat below to arrange handoff.
               </div>
-            )}
-            <ListingPickupBlock
-              listingId={listing.id}
-              isOwner={isOwner}
-              initialPickup={pickup}
-            />
-            <div className="divider my-0" />
+            ) : null}
             <ListingMessagesThread
               listingId={listing.id}
               messages={messages}

@@ -34,9 +34,6 @@ export async function createListing(
   const unlockRaw = Number.parseInt(String(formData.get("unlock_credits") ?? "1"), 10);
   const unlockCredits = unlockRaw === 2 ? 2 : 1;
   const openToSwaps = formData.get("open_to_swaps") === "on";
-  const pickupInstructions = String(formData.get("pickup_instructions") ?? "").trim();
-  const contactHintRaw = String(formData.get("contact_hint") ?? "").trim();
-  const contactHint = contactHintRaw.length > 0 ? contactHintRaw : null;
 
   const files = formData.getAll("photos") as File[];
   const imageFiles = files.filter(
@@ -125,17 +122,6 @@ export async function createListing(
       console.error("[createListing] listing_photos", photoErr.message);
       await supabase.from("listings").delete().eq("id", listingId);
       return { error: "Could not save photo records." };
-    }
-  }
-
-  if (pickupInstructions.length > 0 || contactHint) {
-    const { error: pickupErr } = await supabase.from("listing_pickup").insert({
-      listing_id: listingId,
-      pickup_instructions: pickupInstructions,
-      contact_hint: contactHint,
-    });
-    if (pickupErr) {
-      console.warn("[createListing] listing_pickup", pickupErr.message);
     }
   }
 
