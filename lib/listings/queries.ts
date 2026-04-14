@@ -113,6 +113,12 @@ export function normalizeListingRow(
   return { ...row, unlock_credits } as ListingWithRelations;
 }
 
+/** Supabase occasionally returns sparse arrays; never pass null entries to normalizeListingRow. */
+function listingRowsFromQueryData(data: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(data)) return [];
+  return data.filter((r): r is Record<string, unknown> => r != null && typeof r === "object");
+}
+
 async function attachPublicProfilesToListings<T extends ListingWithRelations>(
   listings: T[],
 ): Promise<T[]> {
@@ -129,9 +135,13 @@ async function attachPublicProfilesToListings<T extends ListingWithRelations>(
     return listings;
   }
 
-  const rows = (data ?? []) as unknown as PublicProfileRow[];
+  const rows = (data ?? []) as unknown[];
   const byId = new Map<string, PublicProfileRow>();
-  for (const r of rows) byId.set(String(r.id), r);
+  for (const r of rows) {
+    if (!r || typeof r !== "object" || !("id" in r)) continue;
+    const row = r as PublicProfileRow;
+    byId.set(String(row.id), row);
+  }
 
   return listings.map((l) => {
     const r = byId.get(String(l.user_id));
@@ -186,7 +196,7 @@ export async function fetchRecentListings(
     console.error("[fetchRecentListings]", res.error.message);
     return [] as ListingWithRelations[];
   }
-  const rows = (res.data ?? []) as unknown as Record<string, unknown>[];
+  const rows = listingRowsFromQueryData(res.data);
   return attachPublicProfilesToListings(rows.map((r) => normalizeListingRow(r)));
 }
 
@@ -282,10 +292,8 @@ export async function fetchListingById(
     console.error("[fetchListingById]", res.error.message);
     return null;
   }
-  if (!res.data) return null;
-  const one = normalizeListingRow(
-    res.data as Record<string, unknown>,
-  ) as ListingWithRelationsAndStatus;
+  if (!res.data || typeof res.data !== "object") return null;
+  const one = normalizeListingRow(res.data as Record<string, unknown>) as ListingWithRelationsAndStatus;
   const [withProfile] = await attachPublicProfilesToListings([one]);
   return withProfile ?? one;
 }
@@ -379,7 +387,7 @@ export async function fetchSavedListings(
   }
 
   const byId = new Map<string, ListingWithRelations>();
-  for (const r of (res.data ?? []) as unknown as Record<string, unknown>[]) {
+  for (const r of listingRowsFromQueryData(res.data)) {
     const row = normalizeListingRow(r);
     byId.set(row.id, row);
   }
@@ -421,7 +429,7 @@ export async function fetchMyListings(
     console.error("[fetchMyListings]", res.error.message);
     return [] as ListingWithRelations[];
   }
-  const rows = (res.data ?? []) as unknown as Record<string, unknown>[];
+  const rows = listingRowsFromQueryData(res.data);
   const normalized = rows.map((r) => normalizeListingRow(r));
   return attachPublicProfilesToListings(normalized);
 }

@@ -1,8 +1,8 @@
-import { signOut } from "@/app/auth/actions";
+import { SignOutForm } from "@/components/auth/SignOutForm";
 import { SettingsRow } from "@/components/SettingsRow";
 import { fetchMyListings, getSavedListingsCount } from "@/lib/listings/queries";
 import { createClient } from "@/lib/supabase/server";
-import { Coins, Heart, Library, LogOut, Settings2 } from "lucide-react";
+import { Coins, Heart, Library, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -48,7 +48,7 @@ export default async function ProfilePage() {
           <h1 className="shelfswap-heading text-2xl font-semibold truncate">
             {profile?.display_name ?? "Reader"}
           </h1>
-          <p className="text-xs text-base-content/50 truncate">{user?.email}</p>
+          <p className="text-xs text-base-content/50 truncate">{user.email}</p>
         </div>
       </div>
 
@@ -115,12 +115,7 @@ export default async function ProfilePage() {
         </Link>
       </div>
 
-      <form action={signOut} className="pt-4">
-        <button type="submit" className="btn btn-ghost btn-block gap-2 text-base-content/70">
-          <LogOut className="h-4 w-4" aria-hidden />
-          Sign out
-        </button>
-      </form>
+      <SignOutForm className="pt-4" />
     </div>
   );
 }

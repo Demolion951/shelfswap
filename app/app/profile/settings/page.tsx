@@ -1,4 +1,4 @@
-import { signOut } from "@/app/auth/actions";
+import { SignOutForm } from "@/components/auth/SignOutForm";
 import { ProfileAvatarUploader } from "@/components/profile/ProfileAvatarUploader";
 import { SettingsRow } from "@/components/SettingsRow";
 import { createClient } from "@/lib/supabase/server";
@@ -120,11 +120,7 @@ export default async function ProfileSettingsPage() {
         </div>
       </div>
 
-      <form action={signOut} className="pt-2">
-        <button type="submit" className="btn btn-ghost btn-block text-base-content/70">
-          Sign out
-        </button>
-      </form>
+      <SignOutForm className="pt-2" />
     </div>
   );
 }
