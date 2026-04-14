@@ -11,10 +11,11 @@ import { useEffect, useRef, useState, useTransition } from "react";
 
 type Props = {
   initialAvatarUrl: string | null;
-  displayName: string;
+  /** Shown as initial on the avatar placeholder (avoid prop name `displayName` — reserved in React). */
+  accountLabel: string;
 };
 
-export function ProfileAvatarUploader({ initialAvatarUrl, displayName }: Props) {
+export function ProfileAvatarUploader({ initialAvatarUrl, accountLabel }: Props) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(initialAvatarUrl);
@@ -58,7 +59,7 @@ export function ProfileAvatarUploader({ initialAvatarUrl, displayName }: Props) 
     });
   }
 
-  const initial = displayName.trim().charAt(0).toUpperCase() || "?";
+  const initial = accountLabel.trim().charAt(0).toUpperCase() || "?";
 
   return (
     <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">

@@ -1,5 +1,5 @@
 import { signOut } from "@/app/auth/actions";
-import { ProfileAvatarUploader } from "@/components/profile/ProfileAvatarUploader";
+import { SettingsProfilePhotoSection } from "@/components/profile/SettingsProfilePhotoSection";
 import { SettingsRow } from "@/components/SettingsRow";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -10,10 +10,11 @@ import {
   Heart,
   KeyRound,
   MessageCircle,
-  Settings,
+  Settings2,
   UserRound,
 } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 /**
  * App settings entry from the header gear (placeholders until preferences ship).
@@ -21,9 +22,11 @@ import Link from "next/link";
  */
 export default async function ProfileSettingsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  const user = authData?.user ?? null;
+  if (authError || !user) {
+    redirect("/auth/sign-in?next=%2Fapp%2Fprofile%2Fsettings");
+  }
 
   const { data: profile } = user
     ? await supabase
@@ -42,7 +45,7 @@ export default async function ProfileSettingsPage() {
 
       <div className="space-y-1">
         <div className="flex items-center gap-2 text-primary">
-          <Settings className="h-7 w-7 shrink-0" aria-hidden />
+          <Settings2 className="h-7 w-7 shrink-0" aria-hidden />
           <h1 className="shelfswap-heading text-2xl font-semibold">Settings</h1>
         </div>
         <p className="text-sm text-base-content/65">Photo, shortcuts, and account options.</p>
@@ -54,15 +57,15 @@ export default async function ProfileSettingsPage() {
             <UserRound className="h-5 w-5" aria-hidden />
             <span className="text-xs font-semibold uppercase tracking-wide">Account</span>
           </div>
-          <ProfileAvatarUploader
+          <SettingsProfilePhotoSection
             initialAvatarUrl={(profile?.avatar_url as string | null) ?? null}
-            displayName={profile?.display_name?.trim() || user?.email || "Reader"}
+            accountLabel={profile?.display_name?.trim() || user.email || "Reader"}
           />
           <div className="border-t border-base-300/60 pt-3 space-y-1">
             <p className="text-sm font-medium text-base-content">
               {profile?.display_name?.trim() || "Reader"}
             </p>
-            <p className="text-xs text-base-content/50 truncate">{user?.email ?? ""}</p>
+            <p className="text-xs text-base-content/50 truncate">{user.email}</p>
           </div>
         </div>
       </div>
