@@ -40,7 +40,7 @@ export function ActivityBellButton({ unreadCount }: Props) {
       type="button"
       onClick={() => void onNavigate()}
       disabled={busy}
-      className={`btn btn-ghost btn-circle btn-sm indicator -mr-1 ${
+      className={`btn btn-ghost btn-circle btn-sm indicator ${
         activityActive ? "text-primary" : "text-base-content/55 hover:text-base-content"
       }`}
       aria-label={

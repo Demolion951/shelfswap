@@ -1,7 +1,8 @@
 import { signOut } from "@/app/auth/actions";
 import { fetchMyListings, getSavedListingsCount } from "@/lib/listings/queries";
 import { createClient } from "@/lib/supabase/server";
-import { Coins, Heart, Library, LogOut } from "lucide-react";
+import { SettingsRow } from "@/components/SettingsRow";
+import { Coins, Heart, Library, LogOut, Settings } from "lucide-react";
 import Link from "next/link";
 
 export default async function ProfilePage() {
@@ -25,10 +26,21 @@ export default async function ProfilePage() {
     <div className="space-y-6 pt-2">
       <div className="flex items-start gap-4">
         <div className="avatar placeholder shrink-0">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/15 text-primary">
-            <span className="w-full text-center text-2xl font-serif leading-none select-none">
-              {(profile?.display_name ?? user?.email ?? "?").charAt(0).toUpperCase()}
-            </span>
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/15 text-primary ring-1 ring-base-300/60">
+            {profile?.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={profile.avatar_url}
+                alt=""
+                className="h-full w-full object-cover"
+                width={64}
+                height={64}
+              />
+            ) : (
+              <span className="w-full text-center text-2xl font-serif leading-none select-none">
+                {(profile?.display_name ?? user?.email ?? "?").charAt(0).toUpperCase()}
+              </span>
+            )}
           </div>
         </div>
         <div className="min-w-0 flex-1">
@@ -37,6 +49,17 @@ export default async function ProfilePage() {
           </h1>
           <p className="text-xs text-base-content/50 truncate">{user?.email}</p>
         </div>
+      </div>
+
+      <div className="card bg-base-100 border border-base-300/80 shadow-sm">
+        <ul className="divide-y divide-base-300/60">
+          <SettingsRow
+            href="/app/profile/settings"
+            Icon={Settings}
+            title="App settings"
+            description="Profile photo, password link, and shortcuts"
+          />
+        </ul>
       </div>
 
       <div className="grid grid-cols-3 gap-2 sm:gap-3">

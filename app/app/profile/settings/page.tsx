@@ -1,4 +1,5 @@
 import { signOut } from "@/app/auth/actions";
+import { ProfileAvatarUploader } from "@/components/profile/ProfileAvatarUploader";
 import { SettingsRow } from "@/components/SettingsRow";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -9,6 +10,7 @@ import {
   Heart,
   KeyRound,
   MessageCircle,
+  Settings,
   UserRound,
 } from "lucide-react";
 import Link from "next/link";
@@ -26,7 +28,7 @@ export default async function ProfileSettingsPage() {
   const { data: profile } = user
     ? await supabase
         .from("profiles")
-        .select("display_name")
+        .select("display_name, avatar_url")
         .eq("id", user.id)
         .maybeSingle()
     : { data: null };
@@ -39,20 +41,29 @@ export default async function ProfileSettingsPage() {
       </Link>
 
       <div className="space-y-1">
-        <h1 className="shelfswap-heading text-2xl font-semibold text-primary">Settings</h1>
-        <p className="text-sm text-base-content/65">Shortcuts and account options.</p>
+        <div className="flex items-center gap-2 text-primary">
+          <Settings className="h-7 w-7 shrink-0" aria-hidden />
+          <h1 className="shelfswap-heading text-2xl font-semibold">Settings</h1>
+        </div>
+        <p className="text-sm text-base-content/65">Photo, shortcuts, and account options.</p>
       </div>
 
       <div className="card bg-base-100 border border-base-300/80 shadow-sm">
-        <div className="card-body p-4 gap-1">
+        <div className="card-body p-4 gap-4">
           <div className="flex items-center gap-2 text-primary">
             <UserRound className="h-5 w-5" aria-hidden />
             <span className="text-xs font-semibold uppercase tracking-wide">Account</span>
           </div>
-          <p className="text-sm text-base-content/80">
-            {profile?.display_name?.trim() || "Reader"}
-          </p>
-          <p className="text-xs text-base-content/50 truncate">{user?.email ?? ""}</p>
+          <ProfileAvatarUploader
+            initialAvatarUrl={(profile?.avatar_url as string | null) ?? null}
+            displayName={profile?.display_name?.trim() || user?.email || "Reader"}
+          />
+          <div className="border-t border-base-300/60 pt-3 space-y-1">
+            <p className="text-sm font-medium text-base-content">
+              {profile?.display_name?.trim() || "Reader"}
+            </p>
+            <p className="text-xs text-base-content/50 truncate">{user?.email ?? ""}</p>
+          </div>
         </div>
       </div>
 

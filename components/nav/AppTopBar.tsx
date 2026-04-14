@@ -23,18 +23,20 @@ export function AppTopBar({ unreadCount }: Props) {
         <Link href="/app/home" className="shelfswap-heading text-lg font-semibold text-primary">
           ShelfSwap
         </Link>
-        <div className="flex items-center gap-0.5">
+        <div className="relative flex items-center gap-2 pr-0.5">
           <Link
             href="/app/profile/settings"
             prefetch={true}
-            className={`btn btn-ghost btn-circle btn-sm ${
+            className={`relative z-[25] btn btn-ghost btn-circle btn-sm shrink-0 ${
               settingsActive ? "text-primary" : "text-base-content/55 hover:text-base-content"
             }`}
             aria-label="Settings"
           >
             <Settings className="h-5 w-5" strokeWidth={settingsActive ? 2.25 : 1.75} aria-hidden />
           </Link>
-          <ActivityBellButton unreadCount={unreadCount} />
+          <span className="relative z-[24] shrink-0">
+            <ActivityBellButton unreadCount={unreadCount} />
+          </span>
         </div>
       </div>
     </header>

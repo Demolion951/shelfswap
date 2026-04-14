@@ -144,16 +144,29 @@ export async function ensureProfileRow(): Promise<{ ok: true } | { error: string
     user.email?.split("@")[0] ||
     "New user";
 
-  const { error } = await supabase.from("profiles").upsert(
-    {
-      id: user.id,
-      display_name: displayName,
-      avatar_url: null,
-    },
-    { onConflict: "id" },
-  );
+  const { data: existing, error: selErr } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (selErr) {
+    return { error: selErr.message };
+  }
+  if (existing) {
+    return { ok: true };
+  }
+
+  const { error } = await supabase.from("profiles").insert({
+    id: user.id,
+    display_name: displayName,
+    avatar_url: null,
+  });
 
   if (error) {
+    if (error.code === "23505") {
+      return { ok: true };
+    }
     return { error: error.message };
   }
   return { ok: true };
