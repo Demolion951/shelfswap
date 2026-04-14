@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Standalone save control (heart) for listing detail when the unlock panel is hidden (e.g. after unlock).
+ * Save (heart) control for listing detail: placed beside the title for visibility.
  * Location: components/listings/ListingSaveHeart.tsx
  */
 import { toggleSaveListingAction } from "@/app/app/saves/actions";
@@ -38,13 +38,15 @@ export function ListingSaveHeart({ listingId, initiallySaved }: Props) {
   }
 
   return (
-    <div className="flex flex-col items-end gap-1">
+    <div className="flex flex-col items-center gap-1 sm:items-end">
       <button
         type="button"
         onClick={() => onToggle()}
         disabled={pending}
-        className={`btn btn-circle btn-ghost btn-sm border border-base-300/50 ${
-          saved ? "border-red-200/80 bg-red-50/90 text-red-600 hover:bg-red-100" : "text-base-content/50"
+        className={`btn btn-circle btn-ghost h-11 w-11 min-h-11 min-w-11 border ${
+          saved
+            ? "border-red-200/90 bg-red-50/95 text-red-600 hover:bg-red-100"
+            : "border-base-300/60 text-base-content/45 hover:border-base-300 hover:text-base-content/70"
         }`}
         aria-label={saved ? "Remove from saved" : "Save listing"}
         aria-pressed={saved}
@@ -53,14 +55,18 @@ export function ListingSaveHeart({ listingId, initiallySaved }: Props) {
           <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
         ) : (
           <Heart
-            className="h-5 w-5"
+            className="h-6 w-6"
             strokeWidth={saved ? 2 : 1.75}
             fill={saved ? "currentColor" : "none"}
             aria-hidden
           />
         )}
       </button>
-      {error ? <span className="text-[10px] text-error max-w-[10rem] text-right">{error}</span> : null}
+      {error ? (
+        <span className="text-[10px] text-error max-w-[8rem] text-center sm:text-right leading-tight">
+          {error}
+        </span>
+      ) : null}
     </div>
   );
 }

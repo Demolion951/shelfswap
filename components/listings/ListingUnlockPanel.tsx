@@ -1,13 +1,13 @@
 "use client";
 
 /**
- * Unlock CTA for listing detail: sign-in gate, balance check, RPC unlock, unlocked state.
+ * Unlock CTA for listing detail: sign-in gate, balance check, and credit-hold request flow.
+ * Save uses the heart beside the title on the detail page.
  * Location: components/listings/ListingUnlockPanel.tsx
  */
 import { cancelUnlockHoldAction, requestUnlockHoldAction } from "@/app/app/listings/actions";
-import { toggleSaveListingAction } from "@/app/app/saves/actions";
 import { formatUnlockCredits } from "@/lib/listings/format";
-import { Heart, Lock, Loader2 } from "lucide-react";
+import { Lock, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -20,7 +20,6 @@ type Props = {
   initiallyPending?: boolean;
   isSignedIn: boolean;
   initiallyUnlocked: boolean;
-  initiallySaved: boolean;
 };
 
 export function ListingUnlockPanel({
@@ -31,13 +30,11 @@ export function ListingUnlockPanel({
   initiallyPending = false,
   isSignedIn,
   initiallyUnlocked,
-  initiallySaved,
 }: Props) {
   const router = useRouter();
   const [unlocked, setUnlocked] = useState(initiallyUnlocked);
   const [pendingRequest, setPendingRequest] = useState(initiallyPending);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(initiallySaved);
   const [pending, startTransition] = useTransition();
 
   const nextPath = `/app/listings/${listingId}`;
@@ -69,19 +66,6 @@ export function ListingUnlockPanel({
         return;
       }
       setPendingRequest(false);
-      router.refresh();
-    });
-  }
-
-  function onToggleSave() {
-    setError(null);
-    startTransition(async () => {
-      const res = await toggleSaveListingAction(listingId);
-      if (!res.ok) {
-        setError(res.error);
-        return;
-      }
-      setSaved(res.saved);
       router.refresh();
     });
   }
@@ -177,24 +161,6 @@ export function ListingUnlockPanel({
               Buy credits
             </Link>
           ) : null}
-          <button
-            type="button"
-            className={`btn btn-ghost btn-sm gap-1.5 border border-base-300/40 ${
-              saved ? "border-red-200/90 bg-red-50/90 text-red-600 hover:bg-red-100" : "text-base-content/60"
-            }`}
-            onClick={() => onToggleSave()}
-            disabled={pending}
-            aria-pressed={saved}
-            aria-label={saved ? "Saved — tap to remove" : "Save listing"}
-          >
-            <Heart
-              className="h-4 w-4"
-              strokeWidth={saved ? 2.25 : 1.75}
-              fill={saved ? "currentColor" : "none"}
-              aria-hidden
-            />
-            <span className="text-xs font-medium">{saved ? "Saved" : "Save"}</span>
-          </button>
         </div>
       </div>
     </div>

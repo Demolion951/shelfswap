@@ -121,15 +121,22 @@ export function ListingDetailView({
         ) : null}
       </div>
 
-      <div className="space-y-1">
-        <h1 className="shelfswap-heading text-2xl font-semibold leading-tight">
-          {listing.title}
-        </h1>
-        {listing.author ? (
-          <p className="text-base-content/70">{listing.author}</p>
-        ) : null}
-        {listing.isbn ? (
-          <p className="font-mono text-xs text-base-content/50">ISBN {listing.isbn}</p>
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1 space-y-1">
+          <h1 className="shelfswap-heading text-2xl font-semibold leading-tight">
+            {listing.title}
+          </h1>
+          {listing.author ? (
+            <p className="text-base-content/70">{listing.author}</p>
+          ) : null}
+          {listing.isbn ? (
+            <p className="font-mono text-xs text-base-content/50">ISBN {listing.isbn}</p>
+          ) : null}
+        </div>
+        {!isOwner && isSignedIn ? (
+          <div className="shrink-0 pt-0.5">
+            <ListingSaveHeart listingId={listing.id} initiallySaved={viewerSaved} />
+          </div>
         ) : null}
       </div>
 
@@ -146,39 +153,34 @@ export function ListingDetailView({
       </div>
 
       {!isOwner ? (
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 flex-1 items-start gap-2 text-sm text-base-content/70">
-            <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-primary/80" aria-hidden />
-            <span>
-              {!isSignedIn ? (
-                "Sign in and allow approximate location to see distance hints."
-              ) : buyerDistanceText ? (
-                <span className="block text-sm leading-snug text-base-content/80">
-                  {town ? (
-                    <>
-                      {town}{" "}
-                      <span
-                        className={
-                          buyerHasApproxKm ? "text-secondary" : "text-base-content/65"
-                        }
-                      >
-                        ({buyerDistanceText})
-                      </span>
-                    </>
-                  ) : (
+        <div className="flex items-start gap-2 text-sm text-base-content/70">
+          <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-primary/80" aria-hidden />
+          <span>
+            {!isSignedIn ? (
+              "Sign in and allow approximate location to see distance hints."
+            ) : buyerDistanceText ? (
+              <span className="block text-sm leading-snug text-base-content/80">
+                {town ? (
+                  <>
+                    {town}{" "}
                     <span
-                      className={buyerHasApproxKm ? "text-secondary" : "text-base-content/70"}
+                      className={
+                        buyerHasApproxKm ? "text-secondary" : "text-base-content/65"
+                      }
                     >
-                      {buyerDistanceText}
+                      ({buyerDistanceText})
                     </span>
-                  )}
-                </span>
-              ) : null}
-            </span>
-          </div>
-          {isSignedIn && viewerUnlocked ? (
-            <ListingSaveHeart listingId={listing.id} initiallySaved={viewerSaved} />
-          ) : null}
+                  </>
+                ) : (
+                  <span
+                    className={buyerHasApproxKm ? "text-secondary" : "text-base-content/70"}
+                  >
+                    {buyerDistanceText}
+                  </span>
+                )}
+              </span>
+            ) : null}
+          </span>
         </div>
       ) : null}
 
@@ -248,7 +250,6 @@ export function ListingDetailView({
           initiallyPending={viewerPendingUnlock}
           isSignedIn={isSignedIn}
           initiallyUnlocked={viewerUnlocked}
-          initiallySaved={viewerSaved}
         />
       ) : null}
 
