@@ -1,4 +1,5 @@
 import { ListingCard } from "@/components/listings/ListingCard";
+import { ProfileListingRowMenu } from "@/components/listings/ProfileListingRowMenu";
 import { fetchMyListings } from "@/lib/listings/queries";
 import { createClient } from "@/lib/supabase/server";
 import { ArrowLeft, Library } from "lucide-react";
@@ -41,7 +42,8 @@ export default async function ProfileListingsPage() {
       ) : (
         <ul className="flex flex-col gap-3">
           {myListings.map((l) => (
-            <li key={l.id}>
+            <li key={l.id} className="relative">
+              <ProfileListingRowMenu listingId={l.id} />
               <ListingCard listing={l} variant="row" />
             </li>
           ))}

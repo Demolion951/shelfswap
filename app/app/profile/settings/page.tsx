@@ -6,8 +6,8 @@ import {
   Bell,
   BookMarked,
   CreditCard,
+  Heart,
   KeyRound,
-  MapPin,
   MessageCircle,
   UserRound,
 } from "lucide-react";
@@ -60,12 +60,6 @@ export default async function ProfileSettingsPage() {
         <div className="card-body p-0">
           <ul className="divide-y divide-base-300/60">
             <SettingsRow
-              href="/app/profile"
-              Icon={MapPin}
-              title="Rough location"
-              description="Improve distance accuracy (no address stored)"
-            />
-            <SettingsRow
               href="/app/credits"
               Icon={CreditCard}
               title="Wallet"
@@ -76,6 +70,12 @@ export default async function ProfileSettingsPage() {
               Icon={BookMarked}
               title="Your listings"
               description="Manage your shelf"
+            />
+            <SettingsRow
+              href="/app/profile/saved"
+              Icon={Heart}
+              title="Saved"
+              description="Listings you have bookmarked"
             />
             <SettingsRow
               href="/app/messages"

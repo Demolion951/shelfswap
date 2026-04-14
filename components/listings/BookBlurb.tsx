@@ -2,6 +2,7 @@
 
 /**
  * Displays Open Library catalogue copy on the listing detail page (not seller-written).
+ * Full synopsis text is shown (no truncation in the UI).
  * Location: components/listings/BookBlurb.tsx
  */
 type Props = {
@@ -20,8 +21,8 @@ export function BookBlurb({ text }: Props) {
       >
         About this book
       </h2>
-      <div className="rounded-xl border border-base-300/80 bg-base-100 p-4 text-sm leading-relaxed text-base-content">
-        <p className="whitespace-pre-wrap">{text}</p>
+      <div className="rounded-xl border border-base-300/80 bg-base-100 p-4 text-sm leading-relaxed text-base-content max-w-none">
+        <p className="whitespace-pre-wrap break-words">{text}</p>
         <p className="mt-3 text-[11px] text-base-content/50">Source: Open Library</p>
       </div>
     </section>

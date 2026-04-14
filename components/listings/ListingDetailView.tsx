@@ -7,6 +7,7 @@ import { CONDITION_LABELS, formatUnlockCredits } from "@/lib/listings/format";
 import type { ListingMessageRow, ListingWithRelations } from "@/lib/listings/queries";
 import type { OpenLibraryBlurb } from "@/lib/books/openLibraryBlurb";
 import { BookBlurb } from "@/components/listings/BookBlurb";
+import { ListingSaveHeart } from "@/components/listings/ListingSaveHeart";
 import { DealPanel } from "@/components/listings/DealPanel";
 import { ListingMessagesThread } from "@/components/listings/ListingMessagesThread";
 import { ListingUnlockPanel } from "@/components/listings/ListingUnlockPanel";
@@ -145,34 +146,39 @@ export function ListingDetailView({
       </div>
 
       {!isOwner ? (
-        <div className="flex items-start gap-2 text-sm text-base-content/70">
-          <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-primary/80" aria-hidden />
-          <span>
-            {!isSignedIn ? (
-              "Sign in and save a rough area in Profile to see approximate distance."
-            ) : buyerDistanceText ? (
-              <span className="block text-sm leading-snug text-base-content/80">
-                {town ? (
-                  <>
-                    {town}{" "}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 flex-1 items-start gap-2 text-sm text-base-content/70">
+            <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-primary/80" aria-hidden />
+            <span>
+              {!isSignedIn ? (
+                "Sign in and allow approximate location to see distance hints."
+              ) : buyerDistanceText ? (
+                <span className="block text-sm leading-snug text-base-content/80">
+                  {town ? (
+                    <>
+                      {town}{" "}
+                      <span
+                        className={
+                          buyerHasApproxKm ? "text-secondary" : "text-base-content/65"
+                        }
+                      >
+                        ({buyerDistanceText})
+                      </span>
+                    </>
+                  ) : (
                     <span
-                      className={
-                        buyerHasApproxKm ? "text-secondary" : "text-base-content/65"
-                      }
+                      className={buyerHasApproxKm ? "text-secondary" : "text-base-content/70"}
                     >
-                      ({buyerDistanceText})
+                      {buyerDistanceText}
                     </span>
-                  </>
-                ) : (
-                  <span
-                    className={buyerHasApproxKm ? "text-secondary" : "text-base-content/70"}
-                  >
-                    {buyerDistanceText}
-                  </span>
-                )}
-              </span>
-            ) : null}
-          </span>
+                  )}
+                </span>
+              ) : null}
+            </span>
+          </div>
+          {isSignedIn && viewerUnlocked ? (
+            <ListingSaveHeart listingId={listing.id} initiallySaved={viewerSaved} />
+          ) : null}
         </div>
       ) : null}
 
@@ -184,7 +190,7 @@ export function ListingDetailView({
           >
             Seller notes
           </h2>
-          <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm leading-relaxed text-base-content">
+          <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm leading-relaxed text-base-content whitespace-pre-wrap">
             {listing.description}
           </div>
         </section>

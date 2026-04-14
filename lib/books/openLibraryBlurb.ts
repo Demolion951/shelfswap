@@ -1,6 +1,6 @@
 /**
  * Fetches a book blurb (description) from Open Library by ISBN.
- * Returns a trimmed paragraph-length blurb and a source URL for attribution.
+ * Returns the full catalogue description (sanitised whitespace) and a source URL for attribution.
  * Location: lib/books/openLibraryBlurb.ts
  */
 
@@ -28,13 +28,11 @@ function normalizeWhitespace(s: string): string {
   return s.replace(/\s+/g, " ").trim();
 }
 
-function clampBlurb(s: string, maxChars = 520): string {
+/** Full synopsis for listing detail (cap only to protect against pathological payloads). */
+function fullDescriptionText(s: string, maxChars = 50_000): string {
   const cleaned = normalizeWhitespace(s);
   if (cleaned.length <= maxChars) return cleaned;
-  const sliced = cleaned.slice(0, maxChars - 1);
-  const lastSpace = sliced.lastIndexOf(" ");
-  const safe = lastSpace > 180 ? sliced.slice(0, lastSpace) : sliced;
-  return `${safe}…`;
+  return `${cleaned.slice(0, maxChars - 1)}…`;
 }
 
 async function fetchJson<T>(url: string, revalidateSeconds: number): Promise<T | null> {
@@ -88,7 +86,7 @@ export async function fetchOpenLibraryBlurbByIsbn(rawIsbn: string): Promise<Open
   const rawDesc = descriptionText(workJson?.description);
   if (!rawDesc) return null;
 
-  const text = clampBlurb(rawDesc, 520);
+  const text = fullDescriptionText(rawDesc);
   if (text.length < 40) return null;
 
   return { text, sourceUrl: `https://openlibrary.org${workKey}` };

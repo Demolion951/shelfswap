@@ -179,12 +179,21 @@ export function ListingUnlockPanel({
           ) : null}
           <button
             type="button"
-            className={`btn btn-ghost btn-sm gap-1 ${saved ? "text-primary" : ""}`}
+            className={`btn btn-ghost btn-sm gap-1.5 border border-base-300/40 ${
+              saved ? "border-red-200/90 bg-red-50/90 text-red-600 hover:bg-red-100" : "text-base-content/60"
+            }`}
             onClick={() => onToggleSave()}
             disabled={pending}
+            aria-pressed={saved}
+            aria-label={saved ? "Saved — tap to remove" : "Save listing"}
           >
-            <Heart className="h-4 w-4" aria-hidden />
-            {saved ? "Saved" : "Save"}
+            <Heart
+              className="h-4 w-4"
+              strokeWidth={saved ? 2.25 : 1.75}
+              fill={saved ? "currentColor" : "none"}
+              aria-hidden
+            />
+            <span className="text-xs font-medium">{saved ? "Saved" : "Save"}</span>
           </button>
         </div>
       </div>

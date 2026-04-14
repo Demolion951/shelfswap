@@ -12,6 +12,12 @@ export type CreateListingResult =
   | { error: string }
   | { ok: true; listingId: string };
 
+export type UpdateListingResult =
+  | { error: string }
+  | { ok: true; listingId: string };
+
+export type DeleteListingResult = { error: string } | { ok: true };
+
 export async function createListing(
   formData: FormData,
 ): Promise<CreateListingResult> {
@@ -207,4 +213,188 @@ export async function createListing(
   revalidatePath("/app/profile");
   revalidatePath("/app/activity");
   return { ok: true, listingId };
+}
+
+export async function updateListing(formData: FormData): Promise<UpdateListingResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: userErr,
+  } = await supabase.auth.getUser();
+  if (userErr || !user) {
+    return { error: "You must be signed in to edit a listing." };
+  }
+
+  const listingId = String(formData.get("listing_id") ?? "").trim();
+  if (!listingId) {
+    return { error: "Missing listing." };
+  }
+
+  const { data: existing, error: exErr } = await supabase
+    .from("listings")
+    .select("id, user_id")
+    .eq("id", listingId)
+    .maybeSingle();
+
+  if (exErr || !existing || (existing.user_id as string) !== user.id) {
+    return { error: "You can only edit your own listings." };
+  }
+
+  const title = String(formData.get("title") ?? "").trim();
+  const author = String(formData.get("author") ?? "").trim() || null;
+  const isbnDigits = String(formData.get("isbn") ?? "").replace(/\D/g, "");
+  const isbn = isbnDigits.length > 0 ? isbnDigits : null;
+  const coverUrl = String(formData.get("cover_url") ?? "").trim() || null;
+  const description = String(formData.get("description") ?? "").trim() || null;
+  const condition = String(formData.get("condition") ?? "");
+  const unlockRaw = Number.parseInt(String(formData.get("unlock_credits") ?? "1"), 10);
+  const unlockCredits = unlockRaw === 2 ? 2 : 1;
+  const openToSwaps = formData.get("open_to_swaps") === "on";
+
+  const files = formData.getAll("photos") as File[];
+  const imageFiles = files.filter(
+    (f) => f instanceof File && f.size > 0 && f.type.startsWith("image/"),
+  );
+
+  if (!title) {
+    return { error: "Title is required." };
+  }
+  if (!CONDITIONS.has(condition)) {
+    return { error: "Pick a condition." };
+  }
+
+  const patch = {
+    title,
+    author,
+    isbn,
+    cover_url: coverUrl,
+    condition,
+    open_to_swaps: openToSwaps,
+    description,
+    unlock_credits: unlockCredits,
+  };
+
+  let upRes = await supabase.from("listings").update(patch).eq("id", listingId).eq("user_id", user.id);
+
+  if (isUnlockCreditsColumnMissing(upRes.error?.message)) {
+    const { unlock_credits: _u, ...withoutUnlock } = patch;
+    upRes = await supabase.from("listings").update(withoutUnlock).eq("id", listingId).eq("user_id", user.id);
+  }
+
+  if (upRes.error) {
+    console.error("[updateListing]", upRes.error.message);
+    return { error: upRes.error.message ?? "Could not update listing." };
+  }
+
+  if (imageFiles.length > 0) {
+    const { data: maxRow } = await supabase
+      .from("listing_photos")
+      .select("sort")
+      .eq("listing_id", listingId)
+      .order("sort", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    let sortBase = typeof maxRow?.sort === "number" ? maxRow.sort + 1 : 0;
+    const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+
+    for (let i = 0; i < imageFiles.length; i++) {
+      const file = imageFiles[i];
+      const ext =
+        file.type === "image/png"
+          ? "png"
+          : file.type === "image/webp"
+            ? "webp"
+            : "jpg";
+      const path = `${user.id}/${listingId}/${crypto.randomUUID()}.${ext}`;
+
+      const { error: upErr } = await supabase.storage
+        .from("listing-photos")
+        .upload(path, file, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: file.type || "image/jpeg",
+        });
+
+      if (upErr) {
+        console.error("[updateListing] upload", upErr.message);
+        return { error: `Photo upload failed: ${upErr.message}` };
+      }
+
+      const publicUrl = `${baseUrl}/storage/v1/object/public/listing-photos/${path}`;
+      const { error: photoErr } = await supabase.from("listing_photos").insert({
+        listing_id: listingId,
+        url: publicUrl,
+        sort: sortBase + i,
+      });
+
+      if (photoErr) {
+        console.error("[updateListing] listing_photos", photoErr.message);
+        return { error: "Could not save new photo records." };
+      }
+    }
+  }
+
+  if (isbn) {
+    const enrich = await fetchOpenLibraryEnrichmentByIsbn(isbn);
+    if (enrich && enrich.subjects.length > 0) {
+      const { data: row, error: metaErr } = await supabase
+        .from("listings")
+        .select("metadata")
+        .eq("id", listingId)
+        .maybeSingle();
+      if (metaErr) {
+        console.warn("[updateListing] fetch metadata", metaErr.message);
+      }
+      const prev = (row?.metadata as Record<string, unknown> | null) ?? {};
+      const nextMeta = {
+        ...prev,
+        openlibrary: { workKey: enrich.workKey, sourceUrl: enrich.sourceUrl },
+        subjects: enrich.subjects,
+      };
+      const { error: upMetaErr } = await supabase
+        .from("listings")
+        .update({ metadata: nextMeta })
+        .eq("id", listingId);
+      if (upMetaErr) {
+        console.warn("[updateListing] update metadata subjects", upMetaErr.message);
+      }
+    }
+  }
+
+  revalidatePath("/app/home");
+  revalidatePath("/app/search");
+  revalidatePath("/app/profile");
+  revalidatePath("/app/profile/listings");
+  revalidatePath(`/app/listings/${listingId}`);
+  revalidatePath(`/app/sell/edit/${listingId}`);
+  revalidatePath("/app/activity");
+  return { ok: true, listingId };
+}
+
+export async function deleteMyListing(listingId: string): Promise<DeleteListingResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: userErr,
+  } = await supabase.auth.getUser();
+  if (userErr || !user) {
+    return { error: "You must be signed in." };
+  }
+
+  const { error } = await supabase.from("listings").delete().eq("id", listingId).eq("user_id", user.id);
+
+  if (error) {
+    console.error("[deleteMyListing]", error.message);
+    return { error: error.message };
+  }
+
+  revalidatePath("/app/home");
+  revalidatePath("/app/search");
+  revalidatePath("/app/browse");
+  revalidatePath("/app/profile");
+  revalidatePath("/app/profile/listings");
+  revalidatePath("/app/profile/saved");
+  revalidatePath(`/app/listings/${listingId}`);
+  revalidatePath("/app/activity");
+  return { ok: true };
 }

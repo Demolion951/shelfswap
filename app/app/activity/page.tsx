@@ -63,7 +63,7 @@ function listingTitle(
 
 /**
  * Activity feed: notifications (e.g. new conversation), listing events, and unlocks.
- * Opening this page marks in-app notifications as read (bell badge clears on next load).
+ * Opening this page also marks in-app notifications read (bell may already be cleared when opened from the header).
  * Location: app/app/activity/page.tsx
  */
 export default async function ActivityPage() {

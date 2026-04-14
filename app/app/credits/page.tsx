@@ -46,7 +46,7 @@ export default async function CreditsPage({ searchParams }: PageProps) {
         <h1 className="shelfswap-heading text-2xl font-semibold text-primary">Credits</h1>
         <p className="mt-1 text-sm text-base-content/65">
           Spend credits to unlock a listing so you can message the seller. Approximate distance uses
-          rough areas from your profiles when available.
+          your saved approximate location when the browser is allowed to refresh it.
         </p>
       </div>
 

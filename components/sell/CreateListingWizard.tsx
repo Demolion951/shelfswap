@@ -5,7 +5,7 @@
  * Listing rough location is copied from the seller profile on post (no per-listing location UI).
  * Location: components/sell/CreateListingWizard.tsx
  */
-import { createListing } from "@/app/app/sell/actions";
+import { createListing, updateListing } from "@/app/app/sell/actions";
 import { lookupIsbnAction } from "@/app/app/sell/lookup-action";
 import { BarcodeScannerModal } from "@/components/sell/BarcodeScannerModal";
 import { CatalogueCoverPreview } from "@/components/sell/CatalogueCoverPreview";
@@ -19,11 +19,30 @@ import {
   Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 const STEPS = ["Book", "Details"] as const;
+const CONDITIONS = new Set(["new", "like_new", "good", "acceptable"]);
 
-export function CreateListingWizard() {
+/** Prefill when editing an existing listing (server-loaded). */
+export type EditListingInitial = {
+  id: string;
+  title: string;
+  author: string | null;
+  isbn: string | null;
+  cover_url: string | null;
+  condition: string;
+  unlock_credits: 1 | 2;
+  open_to_swaps: boolean;
+  description: string | null;
+  photos: { id: string; url: string; sort: number }[];
+};
+
+type WizardProps = {
+  editListing?: EditListingInitial | null;
+};
+
+export function CreateListingWizard({ editListing = null }: WizardProps) {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [pending, startTransition] = useTransition();
@@ -45,6 +64,24 @@ export function CreateListingWizard() {
   const [unlockCredits, setUnlockCredits] = useState<1 | 2>(1);
   const [openToSwaps, setOpenToSwaps] = useState(false);
   const [description, setDescription] = useState("");
+  const [existingServerPhotos, setExistingServerPhotos] = useState<{ id: string; url: string }[]>(
+    [],
+  );
+
+  useEffect(() => {
+    if (!editListing) return;
+    setTitle(editListing.title);
+    setAuthor(editListing.author ?? "");
+    setIsbnInput(editListing.isbn?.replace(/\D/g, "") ?? "");
+    setCoverUrl(editListing.cover_url ?? "");
+    setCondition(CONDITIONS.has(editListing.condition) ? editListing.condition : "good");
+    setUnlockCredits(editListing.unlock_credits === 2 ? 2 : 1);
+    setOpenToSwaps(editListing.open_to_swaps);
+    setDescription(editListing.description ?? "");
+    setExistingServerPhotos(
+      [...editListing.photos].sort((a, b) => a.sort - b.sort).map((p) => ({ id: p.id, url: p.url })),
+    );
+  }, [editListing]);
 
   async function runLookup(overrideIsbn?: string) {
     setError(null);
@@ -116,6 +153,17 @@ export function CreateListingWizard() {
       fd.append("use_profile_area", "on");
       photos.forEach((p) => fd.append("photos", p.file));
 
+      if (editListing) {
+        fd.append("listing_id", editListing.id);
+        const res = await updateListing(fd);
+        if ("error" in res) {
+          setError(res.error);
+          return;
+        }
+        router.push(`/app/listings/${res.listingId}`);
+        return;
+      }
+
       const res = await createListing(fd);
       if ("error" in res) {
         setError(res.error);
@@ -148,6 +196,11 @@ export function CreateListingWizard() {
       {step === 0 ? (
         <div className="card bg-base-100 border border-base-300/80 shadow-sm">
           <div className="card-body gap-4">
+            {editListing ? (
+              <div className="rounded-lg border border-secondary/25 bg-secondary/5 px-3 py-2 text-sm text-base-content/80">
+                Editing your listing — changes apply when you save on the last step.
+              </div>
+            ) : null}
             <div className="flex items-center gap-2 text-primary">
               <BookMarked className="h-5 w-5" aria-hidden />
               <h2 className="shelfswap-heading text-lg font-semibold">Find your book</h2>
@@ -275,6 +328,22 @@ export function CreateListingWizard() {
                       ))}
                     </ul>
                   ) : null}
+                  {existingServerPhotos.length > 0 ? (
+                    <div className="space-y-2 border-t border-base-300/40 pt-4">
+                      <p className="text-xs font-medium text-base-content/70">Photos on this listing</p>
+                      <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                        {existingServerPhotos.map((p) => (
+                          <li key={p.id} className="aspect-square overflow-hidden rounded-lg border border-base-300/80">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={p.url} alt="" className="h-full w-full object-cover" />
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="text-[11px] text-base-content/50">
+                        Add more photos below; existing ones stay on the listing.
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             ) : (
@@ -293,8 +362,8 @@ export function CreateListingWizard() {
               Condition & credits
             </h2>
             <p className="text-sm text-base-content/65">
-              No cash price — buyers spend credits to unlock chat. Rough area comes from your
-              profile location if you have set it.
+              No cash price — buyers spend credits to unlock chat. Approximate distance uses your
+              saved approximate location when the browser is allowed to refresh it.
             </p>
             <div className="space-y-3">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,11rem)_minmax(0,20rem)] sm:items-center sm:gap-x-5">
@@ -387,7 +456,13 @@ export function CreateListingWizard() {
             disabled={!canAdvance() || pending}
             onClick={() => submit()}
           >
-            {pending ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden /> : "Post listing"}
+            {pending ? (
+              <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+            ) : editListing ? (
+              "Save changes"
+            ) : (
+              "Post listing"
+            )}
           </button>
         )}
       </div>

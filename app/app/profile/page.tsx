@@ -1,8 +1,7 @@
 import { signOut } from "@/app/auth/actions";
-import { ApproxLocationCard } from "@/components/profile/ApproxLocationCard";
-import { fetchMyListings } from "@/lib/listings/queries";
+import { fetchMyListings, getSavedListingsCount } from "@/lib/listings/queries";
 import { createClient } from "@/lib/supabase/server";
-import { Coins, Library, LogOut } from "lucide-react";
+import { Coins, Heart, Library, LogOut } from "lucide-react";
 import Link from "next/link";
 
 export default async function ProfilePage() {
@@ -20,6 +19,7 @@ export default async function ProfilePage() {
     : { data: null };
 
   const myListings = user ? await fetchMyListings(user.id) : [];
+  const savedCount = user ? await getSavedListingsCount(user.id) : 0;
 
   return (
     <div className="space-y-6 pt-2">
@@ -39,40 +39,57 @@ export default async function ProfilePage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <Link
           href="/app/credits"
           className="card bg-base-100 border border-base-300/80 shadow-sm transition hover:border-primary/35"
         >
-          <div className="card-body p-4 gap-1">
-            <div className="flex items-center gap-2 text-primary">
-              <Coins className="h-5 w-5" aria-hidden />
-              <span className="text-xs font-semibold uppercase tracking-wide">Wallet</span>
+          <div className="card-body p-3 sm:p-4 gap-1">
+            <div className="flex items-center gap-1.5 text-primary">
+              <Coins className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" aria-hidden />
+              <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide leading-tight">
+                Wallet
+              </span>
             </div>
-            <p className="text-2xl font-bold tabular-nums">
+            <p className="text-xl sm:text-2xl font-bold tabular-nums">
               {typeof profile?.credit_balance === "number"
                 ? profile.credit_balance
                 : Number(profile?.credit_balance ?? 0) || 0}
             </p>
-            <p className="text-[10px] text-base-content/50">Tap to buy credits (soon)</p>
+            <p className="text-[9px] sm:text-[10px] text-base-content/50 leading-snug">Credits</p>
           </div>
         </Link>
         <Link
           href="/app/profile/listings"
           className="card bg-base-100 border border-base-300/80 shadow-sm transition hover:border-secondary/35"
         >
-          <div className="card-body p-4 gap-1">
-            <div className="flex items-center gap-2 text-secondary">
-              <Library className="h-5 w-5" aria-hidden />
-              <span className="text-xs font-semibold uppercase tracking-wide">Listings</span>
+          <div className="card-body p-3 sm:p-4 gap-1">
+            <div className="flex items-center gap-1.5 text-secondary">
+              <Library className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" aria-hidden />
+              <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide leading-tight">
+                Listings
+              </span>
             </div>
-            <p className="text-2xl font-bold">{myListings.length}</p>
-            <p className="text-[10px] text-base-content/50">Tap to manage your shelf</p>
+            <p className="text-xl sm:text-2xl font-bold">{myListings.length}</p>
+            <p className="text-[9px] sm:text-[10px] text-base-content/50 leading-snug">Yours</p>
+          </div>
+        </Link>
+        <Link
+          href="/app/profile/saved"
+          className="card bg-base-100 border border-base-300/80 shadow-sm transition hover:border-error/35"
+        >
+          <div className="card-body p-3 sm:p-4 gap-1">
+            <div className="flex items-center gap-1.5 text-error">
+              <Heart className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 fill-current" aria-hidden />
+              <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide leading-tight">
+                Saved
+              </span>
+            </div>
+            <p className="text-xl sm:text-2xl font-bold">{savedCount}</p>
+            <p className="text-[9px] sm:text-[10px] text-base-content/50 leading-snug">Bookmarks</p>
           </div>
         </Link>
       </div>
-
-      <ApproxLocationCard />
 
       <form action={signOut} className="pt-4">
         <button type="submit" className="btn btn-ghost btn-block gap-2 text-base-content/70">

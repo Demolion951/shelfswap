@@ -318,6 +318,81 @@ export async function fetchListingMessagesIfAllowed(
   return (data ?? []) as ListingMessageRow[];
 }
 
+export async function getSavedListingsCount(userId: string): Promise<number> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("saved_listings")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId);
+
+  if (error) {
+    const msg = error.message.toLowerCase();
+    if (!msg.includes("relation") && !msg.includes("does not exist") && !msg.includes("schema cache")) {
+      console.error("[getSavedListingsCount]", error.message);
+    }
+    return 0;
+  }
+  return count ?? 0;
+}
+
+export async function fetchSavedListings(
+  userId: string,
+  limit = 80,
+): Promise<ListingWithRelations[]> {
+  const supabase = await createClient();
+  const { data: saves, error: sErr } = await supabase
+    .from("saved_listings")
+    .select("listing_id, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (sErr) {
+    const msg = sErr.message.toLowerCase();
+    if (!msg.includes("relation") && !msg.includes("does not exist") && !msg.includes("schema cache")) {
+      console.error("[fetchSavedListings] saves", sErr.message);
+    }
+    return [] as ListingWithRelations[];
+  }
+
+  const ids = [...new Set((saves ?? []).map((r) => r.listing_id as string))];
+  if (ids.length === 0) return [] as ListingWithRelations[];
+
+  const res = await withUnlockCreditsRetry(
+    () =>
+      supabase
+        .from("listings")
+        .select(listingSelectWithUnlockCredits)
+        .in("id", ids)
+        .eq("status", "active"),
+    () =>
+      supabase
+        .from("listings")
+        .select(listingSelectNoUnlockCredits)
+        .in("id", ids)
+        .eq("status", "active"),
+  );
+
+  if (res.error) {
+    console.error("[fetchSavedListings] listings", res.error.message);
+    return [] as ListingWithRelations[];
+  }
+
+  const byId = new Map<string, ListingWithRelations>();
+  for (const r of (res.data ?? []) as unknown as Record<string, unknown>[]) {
+    const row = normalizeListingRow(r);
+    byId.set(row.id, row);
+  }
+
+  const ordered: ListingWithRelations[] = [];
+  for (const id of ids) {
+    const row = byId.get(id);
+    if (row) ordered.push(row);
+  }
+
+  return attachPublicProfilesToListings(ordered);
+}
+
 export async function fetchMyListings(
   userId: string,
   limit = 50,

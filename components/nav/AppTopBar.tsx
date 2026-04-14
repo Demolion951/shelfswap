@@ -2,10 +2,11 @@
 
 /**
  * Branded top bar: Settings (gear) and Activity (bell) on the right; bottom nav for primary tabs.
- * Bell shows unread notification count from server.
+ * Activity bell marks notifications read when tapped, then opens the feed; badge uses server count.
  * Location: components/nav/AppTopBar.tsx
  */
-import { Bell, Settings } from "lucide-react";
+import { ActivityBellButton } from "@/components/nav/ActivityBellButton";
+import { Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -16,10 +17,6 @@ type Props = {
 export function AppTopBar({ unreadCount }: Props) {
   const pathname = usePathname();
   const settingsActive = pathname.startsWith("/app/profile/settings");
-  const activityActive = pathname.startsWith("/app/activity");
-  const badge =
-    unreadCount > 9 ? "9+" : unreadCount > 0 ? String(unreadCount) : null;
-
   return (
     <header className="sticky top-0 z-40 border-b border-base-300/80 bg-base-100/90 backdrop-blur-md">
       <div className="mx-auto flex h-12 max-w-lg items-center justify-between px-4">
@@ -37,25 +34,7 @@ export function AppTopBar({ unreadCount }: Props) {
           >
             <Settings className="h-5 w-5" strokeWidth={settingsActive ? 2.25 : 1.75} aria-hidden />
           </Link>
-          <Link
-            href="/app/activity"
-            prefetch={true}
-            className={`btn btn-ghost btn-circle btn-sm indicator -mr-1 ${
-              activityActive ? "text-primary" : "text-base-content/55 hover:text-base-content"
-            }`}
-            aria-label={
-              unreadCount > 0
-                ? `Activity, ${unreadCount} unread notification${unreadCount === 1 ? "" : "s"}`
-                : "Activity"
-            }
-          >
-            {badge ? (
-              <span className="indicator-item badge badge-primary badge-sm min-w-[1.25rem] px-1">
-                {badge}
-              </span>
-            ) : null}
-            <Bell className="h-5 w-5" strokeWidth={activityActive ? 2.25 : 1.75} aria-hidden />
-          </Link>
+          <ActivityBellButton unreadCount={unreadCount} />
         </div>
       </div>
     </header>
