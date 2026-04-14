@@ -2,7 +2,7 @@ import { SignOutForm } from "@/components/auth/SignOutForm";
 import { SettingsRow } from "@/components/SettingsRow";
 import { fetchMyListings, getSavedListingsCount } from "@/lib/listings/queries";
 import { createClient } from "@/lib/supabase/server";
-import { Coins, Heart, Library, Settings2 } from "lucide-react";
+import { ChevronRight, Coins, Heart, Library, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -63,54 +63,87 @@ export default async function ProfilePage() {
         </ul>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+      <div className="flex w-full min-w-0 flex-col gap-2 sm:gap-3">
         <Link
           href="/app/credits"
-          className="card bg-base-100 border border-base-300/80 shadow-sm transition hover:border-primary/35"
+          className="card bg-base-100 border border-base-300/80 shadow-sm transition hover:border-primary/35 w-full"
         >
-          <div className="card-body p-3 sm:p-4 gap-1">
-            <div className="flex items-center gap-1.5 text-primary">
-              <Coins className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" aria-hidden />
-              <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide leading-tight">
-                Wallet
-              </span>
+          <div className="card-body flex flex-row items-center justify-between gap-3 p-4 sm:p-5">
+            <div className="flex min-w-0 items-center gap-3">
+              <Coins
+                className="h-5 w-5 shrink-0 text-primary sm:h-6 sm:w-6"
+                aria-hidden
+              />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                  Wallet
+                </p>
+                <p className="text-xs text-base-content/55">Credits</p>
+              </div>
             </div>
-            <p className="text-xl sm:text-2xl font-bold tabular-nums">
-              {typeof profile?.credit_balance === "number"
-                ? profile.credit_balance
-                : Number(profile?.credit_balance ?? 0) || 0}
-            </p>
-            <p className="text-[9px] sm:text-[10px] text-base-content/50 leading-snug">Credits</p>
+            <div className="flex shrink-0 items-center gap-1">
+              <p className="text-2xl font-bold tabular-nums sm:text-3xl">
+                {typeof profile?.credit_balance === "number"
+                  ? profile.credit_balance
+                  : Number(profile?.credit_balance ?? 0) || 0}
+              </p>
+              <ChevronRight
+                className="h-4 w-4 text-base-content/35"
+                aria-hidden
+              />
+            </div>
           </div>
         </Link>
         <Link
           href="/app/profile/listings"
-          className="card bg-base-100 border border-base-300/80 shadow-sm transition hover:border-secondary/35"
+          className="card bg-base-100 border border-base-300/80 shadow-sm transition hover:border-secondary/35 w-full"
         >
-          <div className="card-body p-3 sm:p-4 gap-1">
-            <div className="flex items-center gap-1.5 text-secondary">
-              <Library className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" aria-hidden />
-              <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide leading-tight">
-                Listings
-              </span>
+          <div className="card-body flex flex-row items-center justify-between gap-3 p-4 sm:p-5">
+            <div className="flex min-w-0 items-center gap-3">
+              <Library
+                className="h-5 w-5 shrink-0 text-secondary sm:h-6 sm:w-6"
+                aria-hidden
+              />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-wide text-secondary">
+                  Listings
+                </p>
+                <p className="text-xs text-base-content/55">Yours</p>
+              </div>
             </div>
-            <p className="text-xl sm:text-2xl font-bold">{myListings.length}</p>
-            <p className="text-[9px] sm:text-[10px] text-base-content/50 leading-snug">Yours</p>
+            <div className="flex shrink-0 items-center gap-1">
+              <p className="text-2xl font-bold sm:text-3xl">{myListings.length}</p>
+              <ChevronRight
+                className="h-4 w-4 text-base-content/35"
+                aria-hidden
+              />
+            </div>
           </div>
         </Link>
         <Link
           href="/app/profile/saved"
-          className="card bg-base-100 border border-base-300/80 shadow-sm transition hover:border-error/35"
+          className="card bg-base-100 border border-base-300/80 shadow-sm transition hover:border-error/35 w-full"
         >
-          <div className="card-body p-3 sm:p-4 gap-1">
-            <div className="flex items-center gap-1.5 text-error">
-              <Heart className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 fill-current" aria-hidden />
-              <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide leading-tight">
-                Saved
-              </span>
+          <div className="card-body flex flex-row items-center justify-between gap-3 p-4 sm:p-5">
+            <div className="flex min-w-0 items-center gap-3">
+              <Heart
+                className="h-5 w-5 shrink-0 fill-current text-error sm:h-6 sm:w-6"
+                aria-hidden
+              />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-wide text-error">
+                  Saved
+                </p>
+                <p className="text-xs text-base-content/55">Bookmarks</p>
+              </div>
             </div>
-            <p className="text-xl sm:text-2xl font-bold">{savedCount}</p>
-            <p className="text-[9px] sm:text-[10px] text-base-content/50 leading-snug">Bookmarks</p>
+            <div className="flex shrink-0 items-center gap-1">
+              <p className="text-2xl font-bold sm:text-3xl">{savedCount}</p>
+              <ChevronRight
+                className="h-4 w-4 text-base-content/35"
+                aria-hidden
+              />
+            </div>
           </div>
         </Link>
       </div>
