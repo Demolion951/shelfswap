@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { Bell, Library, Lock, MessageCircle, Sparkles } from "lucide-react";
+import { Bell, Library, Lock, MessageCircle, Sparkles, Timer } from "lucide-react";
 import Link from "next/link";
 
 type EventRow = {
@@ -48,6 +48,15 @@ type TimelineItem =
       listingId: string;
       payload: Record<string, unknown>;
       wasUnread: boolean;
+    }
+  | {
+      key: string;
+      createdAt: string;
+      kind: "unlock_request";
+      listingId: string;
+      buyerId: string;
+      credits: number;
+      wasUnread: boolean;
     };
 
 function listingTitle(
@@ -62,7 +71,7 @@ function listingTitle(
 }
 
 /**
- * Activity feed: notifications (e.g. new conversation), listing events, and unlocks.
+ * Activity feed: notifications (messages, unlock requests), listing events, and unlocks.
  * Opening this page also marks in-app notifications read (bell may already be cleared when opened from the header).
  * Location: app/app/activity/page.tsx
  */
@@ -231,11 +240,50 @@ export default async function ActivityPage() {
         wasUnread: n.read_at == null,
       });
     }
+    if (n.type === "unlock_request") {
+      const buyerRaw = payload.buyer_id;
+      const buyerId = typeof buyerRaw === "string" ? buyerRaw : "";
+      const credits = Number(payload.credits ?? 1);
+      items.push({
+        key: `notif-unlock-req-${n.id}`,
+        createdAt: n.created_at,
+        kind: "unlock_request",
+        listingId: n.listing_id,
+        buyerId,
+        credits: Number.isFinite(credits) ? credits : 1,
+        wasUnread: n.read_at == null,
+      });
+    }
   }
 
   items.sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
+
+  const unlockRequestBuyerIds = [
+    ...new Set(
+      items
+        .filter((i): i is Extract<TimelineItem, { kind: "unlock_request" }> => i.kind === "unlock_request")
+        .map((i) => i.buyerId)
+        .filter((id) => id.length > 0),
+    ),
+  ];
+
+  const buyerDisplayById: Record<string, string> = {};
+  if (unlockRequestBuyerIds.length > 0) {
+    const { data: publicProfiles, error: ppErr } = await supabase.rpc("profiles_public_batch", {
+      p_user_ids: unlockRequestBuyerIds,
+    });
+    if (ppErr) {
+      console.error("[ActivityPage] profiles_public_batch", ppErr.message);
+    } else {
+      for (const row of publicProfiles ?? []) {
+        const id = row.id as string;
+        const dn = (row.display_name as string | null)?.trim();
+        buyerDisplayById[id] = dn && dn.length > 0 ? dn : "A reader";
+      }
+    }
+  }
 
   const { error: markReadErr } = await supabase
     .from("notifications")
@@ -334,6 +382,49 @@ export default async function ActivityPage() {
                           className="link link-primary text-xs mt-2 inline-block"
                         >
                           Open listing
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            );
+          }
+
+          if (item.kind === "unlock_request") {
+            const title = listingTitle(item.listingId, titleById, null);
+            const who =
+              item.buyerId && buyerDisplayById[item.buyerId]
+                ? buyerDisplayById[item.buyerId]
+                : "Someone";
+            return (
+              <li key={item.key}>
+                <div
+                  className={`card card-border bg-base-100 shadow-sm ${
+                    item.wasUnread ? "border-primary/35" : "border-base-300/80"
+                  }`}
+                >
+                  <div className="card-body gap-1 py-4">
+                    <div className="flex items-start gap-2">
+                      <Timer className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm text-base-content">
+                            <span className="font-medium">{who}</span> requested to unlock{" "}
+                            <span className="font-medium">{title}</span>
+                            {" — "}
+                            {item.credits} credit{item.credits === 1 ? "" : "s"} on hold for 24h.
+                          </p>
+                          {item.wasUnread ? (
+                            <span className="badge badge-primary badge-xs">New</span>
+                          ) : null}
+                        </div>
+                        <p className="text-xs text-base-content/50 mt-1">{when}</p>
+                        <Link
+                          href={`/app/listings/${item.listingId}`}
+                          className="link link-primary text-xs mt-2 inline-block"
+                        >
+                          Open listing to accept or decline
                         </Link>
                       </div>
                     </div>
