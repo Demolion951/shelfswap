@@ -4,11 +4,13 @@ import { fetchDistanceKmForListing } from "@/lib/listings/distance";
 import {
   fetchListingById,
   fetchListingMessagesIfAllowed,
+  fetchMyListings,
   type ListingMessageRow,
 } from "@/lib/listings/queries";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import type { PendingUnlockRequest } from "@/components/listings/UnlockRequestsPanel";
+import type { ListingWithRelations } from "@/lib/listings/queries";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -32,6 +34,17 @@ export default async function ListingPage({ params }: Props) {
   let viewerSaved = false;
   let viewerPendingUnlock = false;
   let pendingRequestsForSeller: PendingUnlockRequest[] = [];
+  let unlockDeal: {
+    buyerId: string;
+    dealType: "pickup" | "swap";
+    swapStatus: "proposed" | "accepted" | "declined" | null;
+    offeredListingId: string | null;
+    offeredTitle: string | null;
+    buyerConfirmedAt: string | null;
+    sellerConfirmedAt: string | null;
+    completedAt: string | null;
+  } | null = null;
+  let buyerOfferOptions: Array<{ id: string; title: string }> = [];
   if (user) {
     const { data: prof } = await supabase
       .from("profiles")
@@ -77,6 +90,73 @@ export default async function ListingPage({ params }: Props) {
       .eq("listing_id", id)
       .maybeSingle();
     viewerSaved = !!saveRow;
+  }
+
+  // Deal state: once unlocked, there should be only one buyer per listing.
+  if ((isOwner || viewerUnlocked) && user) {
+    if (isOwner) {
+      const { data: u } = await supabase
+        .from("listing_unlocks")
+        .select("buyer_id, deal_type, swap_status, offered_listing_id, buyer_confirmed_at, seller_confirmed_at, completed_at")
+        .eq("listing_id", id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (u) {
+        let offeredTitle: string | null = null;
+        if (u.offered_listing_id) {
+          const { data: ol } = await supabase
+            .from("listings")
+            .select("title")
+            .eq("id", u.offered_listing_id)
+            .maybeSingle();
+          offeredTitle = (ol?.title as string | null) ?? null;
+        }
+        unlockDeal = {
+          buyerId: String(u.buyer_id),
+          dealType: (u.deal_type as any) === "swap" ? "swap" : "pickup",
+          swapStatus: (u.swap_status as any) ?? null,
+          offeredListingId: (u.offered_listing_id as any) ?? null,
+          offeredTitle,
+          buyerConfirmedAt: (u.buyer_confirmed_at as any) ?? null,
+          sellerConfirmedAt: (u.seller_confirmed_at as any) ?? null,
+          completedAt: (u.completed_at as any) ?? null,
+        };
+      }
+    } else if (viewerUnlocked) {
+      const { data: u } = await supabase
+        .from("listing_unlocks")
+        .select("buyer_id, deal_type, swap_status, offered_listing_id, buyer_confirmed_at, seller_confirmed_at, completed_at")
+        .eq("listing_id", id)
+        .eq("buyer_id", user.id)
+        .maybeSingle();
+      if (u) {
+        let offeredTitle: string | null = null;
+        if (u.offered_listing_id) {
+          const { data: ol } = await supabase
+            .from("listings")
+            .select("title")
+            .eq("id", u.offered_listing_id)
+            .maybeSingle();
+          offeredTitle = (ol?.title as string | null) ?? null;
+        }
+        unlockDeal = {
+          buyerId: String(u.buyer_id),
+          dealType: (u.deal_type as any) === "swap" ? "swap" : "pickup",
+          swapStatus: (u.swap_status as any) ?? null,
+          offeredListingId: (u.offered_listing_id as any) ?? null,
+          offeredTitle,
+          buyerConfirmedAt: (u.buyer_confirmed_at as any) ?? null,
+          sellerConfirmedAt: (u.seller_confirmed_at as any) ?? null,
+          completedAt: (u.completed_at as any) ?? null,
+        };
+      }
+
+      const mine = await fetchMyListings(user.id, 50);
+      buyerOfferOptions = (mine ?? [])
+        .filter((l: ListingWithRelations) => l.id !== id)
+        .map((l: ListingWithRelations) => ({ id: l.id, title: l.title }));
+    }
   }
 
   if (isOwner && user) {
@@ -163,6 +243,8 @@ export default async function ListingPage({ params }: Props) {
       heldCredits={heldCredits}
       viewerPendingUnlock={viewerPendingUnlock}
       pendingRequestsForSeller={pendingRequestsForSeller}
+      unlockDeal={unlockDeal}
+      buyerOfferOptions={buyerOfferOptions}
       currentUserId={user?.id ?? null}
       messages={messages}
       distanceKm={distanceKm}

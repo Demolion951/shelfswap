@@ -200,3 +200,57 @@ export async function respondUnlockHoldAction(requestId: string, accept: boolean
   revalidatePath("/app/activity");
   return { ok: true, accepted: !!p.accepted, declined: !!p.declined, expired: !!p.expired };
 }
+
+export type ProposeSwapResult = { ok: true } | { ok: false; error: string };
+export async function proposeSwapAction(listingId: string, offeredListingId: string): Promise<ProposeSwapResult> {
+  const supabase = await createClient();
+  const { data: { user }, error: userErr } = await supabase.auth.getUser();
+  if (userErr || !user) return { ok: false, error: "Sign in to propose swaps." };
+  const { data, error } = await supabase.rpc("propose_swap", {
+    p_listing_id: listingId,
+    p_offered_listing_id: offeredListingId,
+  });
+  if (error) {
+    console.error("[proposeSwapAction]", error.message);
+    return { ok: false, error: error.message };
+  }
+  const ok = (data as any)?.ok;
+  if (ok !== true) return { ok: false, error: (data as any)?.error ?? "Could not propose swap." };
+  revalidatePath(`/app/listings/${listingId}`);
+  revalidatePath("/app/activity");
+  return { ok: true };
+}
+
+export type RespondSwapResult = { ok: true } | { ok: false; error: string };
+export async function respondSwapAction(listingId: string, accept: boolean): Promise<RespondSwapResult> {
+  const supabase = await createClient();
+  const { data: { user }, error: userErr } = await supabase.auth.getUser();
+  if (userErr || !user) return { ok: false, error: "Sign in to respond." };
+  const { data, error } = await supabase.rpc("respond_swap", { p_listing_id: listingId, p_accept: accept });
+  if (error) {
+    console.error("[respondSwapAction]", error.message);
+    return { ok: false, error: error.message };
+  }
+  const ok = (data as any)?.ok;
+  if (ok !== true) return { ok: false, error: (data as any)?.error ?? "Could not respond." };
+  revalidatePath(`/app/listings/${listingId}`);
+  revalidatePath("/app/activity");
+  return { ok: true };
+}
+
+export type ConfirmDealResult = { ok: true } | { ok: false; error: string };
+export async function confirmDealCompleteAction(listingId: string): Promise<ConfirmDealResult> {
+  const supabase = await createClient();
+  const { data: { user }, error: userErr } = await supabase.auth.getUser();
+  if (userErr || !user) return { ok: false, error: "Sign in to confirm." };
+  const { data, error } = await supabase.rpc("confirm_deal_complete", { p_listing_id: listingId });
+  if (error) {
+    console.error("[confirmDealCompleteAction]", error.message);
+    return { ok: false, error: error.message };
+  }
+  const ok = (data as any)?.ok;
+  if (ok !== true) return { ok: false, error: (data as any)?.error ?? "Could not confirm." };
+  revalidatePath(`/app/listings/${listingId}`);
+  revalidatePath("/app/activity");
+  return { ok: true };
+}

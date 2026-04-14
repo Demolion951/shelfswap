@@ -7,6 +7,7 @@ import { CONDITION_LABELS, formatUnlockCredits } from "@/lib/listings/format";
 import type { ListingMessageRow, ListingWithRelations } from "@/lib/listings/queries";
 import type { OpenLibraryBlurb } from "@/lib/books/openLibraryBlurb";
 import { BookBlurb } from "@/components/listings/BookBlurb";
+import { DealPanel } from "@/components/listings/DealPanel";
 import { ListingMessagesThread } from "@/components/listings/ListingMessagesThread";
 import { ListingUnlockPanel } from "@/components/listings/ListingUnlockPanel";
 import { ListingViewTracker } from "@/components/listings/ListingViewTracker";
@@ -28,6 +29,17 @@ type Props = {
   heldCredits: number;
   viewerPendingUnlock: boolean;
   pendingRequestsForSeller: PendingUnlockRequest[];
+  unlockDeal: {
+    buyerId: string;
+    dealType: "pickup" | "swap";
+    swapStatus: "proposed" | "accepted" | "declined" | null;
+    offeredListingId: string | null;
+    offeredTitle: string | null;
+    buyerConfirmedAt: string | null;
+    sellerConfirmedAt: string | null;
+    completedAt: string | null;
+  } | null;
+  buyerOfferOptions: Array<{ id: string; title: string }>;
   currentUserId: string | null;
   messages: ListingMessageRow[];
   distanceKm: number | null;
@@ -49,6 +61,8 @@ export function ListingDetailView({
   heldCredits,
   viewerPendingUnlock,
   pendingRequestsForSeller,
+  unlockDeal,
+  buyerOfferOptions,
   currentUserId,
   messages,
   distanceKm,
@@ -190,6 +204,16 @@ export function ListingDetailView({
         <>
           {isOwner ? (
             <UnlockRequestsPanel listingId={listing.id} requests={pendingRequestsForSeller} />
+          ) : null}
+          {unlockDeal ? (
+            <DealPanel
+              listingId={listing.id}
+              isOwner={isOwner}
+              currentUserId={currentUserId}
+              listingOpenToSwaps={!!listing.open_to_swaps}
+              deal={unlockDeal}
+              myOfferOptions={buyerOfferOptions}
+            />
           ) : null}
         <div className="card bg-base-100 border border-base-300/80 shadow-sm">
           <div className="card-body gap-4">
