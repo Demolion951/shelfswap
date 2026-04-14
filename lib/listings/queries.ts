@@ -122,30 +122,33 @@ export async function fetchRecentListings(
   limit = 24,
 ): Promise<ListingWithRelations[]> {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const myUserId = user?.id ?? null;
+
+  const run = (selectClause: string) => {
+    let q = supabase
+      .from("listings")
+      .select(selectClause)
+      .eq("status", "active");
+    if (myUserId) q = q.neq("user_id", myUserId);
+    return q.order("created_at", { ascending: false }).limit(limit);
+  };
+
   const res = await withUnlockCreditsRetry(
     () =>
-      supabase
-        .from("listings")
-        .select(listingSelectWithUnlockCredits)
-        .eq("status", "active")
-        .order("created_at", { ascending: false })
-        .limit(limit),
+      run(listingSelectWithUnlockCredits),
     () =>
-      supabase
-        .from("listings")
-        .select(listingSelectNoUnlockCredits)
-        .eq("status", "active")
-        .order("created_at", { ascending: false })
-        .limit(limit),
+      run(listingSelectNoUnlockCredits),
   );
 
   if (res.error) {
     console.error("[fetchRecentListings]", res.error.message);
     return [] as ListingWithRelations[];
   }
-  return (res.data ?? []).map((r) =>
-    normalizeListingRow(r as Record<string, unknown>),
-  );
+  const rows = (res.data ?? []) as unknown as Record<string, unknown>[];
+  return rows.map((r) => normalizeListingRow(r));
 }
 
 export async function searchListingsByText(
@@ -153,6 +156,11 @@ export async function searchListingsByText(
   limit = 30,
 ): Promise<ListingWithRelations[]> {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const myUserId = user?.id ?? null;
+
   const safe = q.trim().replace(/[^\w\s-]/g, "").trim();
   if (!safe) return [] as ListingWithRelations[];
 
@@ -161,26 +169,28 @@ export async function searchListingsByText(
   const qLen = safe.replace(/\s+/g, " ").length;
   const like = `%${safe}%`;
 
-  const runIlike = (selectClause: string) =>
-    supabase
+  const runIlike = (selectClause: string) => {
+    let q = supabase
       .from("listings")
       .select(selectClause)
       .eq("status", "active")
-      .or(`title.ilike.${like},author.ilike.${like},isbn.ilike.${like}`)
-      .order("created_at", { ascending: false })
-      .limit(limit);
+      .or(`title.ilike.${like},author.ilike.${like},isbn.ilike.${like}`);
+    if (myUserId) q = q.neq("user_id", myUserId);
+    return q.order("created_at", { ascending: false }).limit(limit);
+  };
 
-  const runText = (selectClause: string) =>
-    supabase
+  const runText = (selectClause: string) => {
+    let q = supabase
       .from("listings")
       .select(selectClause)
       .eq("status", "active")
       .textSearch("search_tsv", safe, {
         type: "websearch",
         config: "simple",
-      })
-      .order("created_at", { ascending: false })
-      .limit(limit);
+      });
+    if (myUserId) q = q.neq("user_id", myUserId);
+    return q.order("created_at", { ascending: false }).limit(limit);
+  };
 
   const res = await withUnlockCreditsRetry(
     () =>
