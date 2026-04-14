@@ -48,7 +48,7 @@ export function ListingDetailView({
   blurb,
 }: Props) {
   const photos = sortPhotos(listing);
-  const seller = listing.profiles?.display_name ?? "Seller";
+  const seller = listing.profiles?.display_name?.trim() || "member";
   const cond = CONDITION_LABELS[listing.condition] ?? listing.condition;
   const credits = listing.unlock_credits === 2 ? 2 : 1;
   const distanceLine =

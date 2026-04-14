@@ -30,7 +30,7 @@ export function ListingCard({ listing, variant = "grid", compact = false }: Prop
   const photos = sortedPhotos(listing);
   const thumbRaw = photos[0]?.url ?? listing.cover_url;
   const thumb = thumbRaw ? coverImageSrcForDisplay(thumbRaw) ?? thumbRaw : null;
-  const seller = listing.profiles?.display_name ?? "Seller";
+  const seller = listing.profiles?.display_name?.trim() || "member";
   const cond = CONDITION_LABELS[listing.condition] ?? listing.condition;
   const credits = listing.unlock_credits === 2 ? 2 : 1;
   const km = listing.distance_km ?? null;
