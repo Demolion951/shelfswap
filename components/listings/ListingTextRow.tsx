@@ -33,9 +33,6 @@ export function ListingTextRow({ listing }: Props) {
             {formatUnlockCredits(credits)}
           </span>
         </div>
-        <p className="text-[11px] text-base-content/45">
-          @{listing.profiles?.display_name?.trim() || "member"}
-        </p>
       </div>
     </Link>
   );

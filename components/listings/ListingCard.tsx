@@ -30,7 +30,6 @@ export function ListingCard({ listing, variant = "grid", compact = false }: Prop
   const photos = sortedPhotos(listing);
   const thumbRaw = photos[0]?.url ?? listing.cover_url;
   const thumb = thumbRaw ? coverImageSrcForDisplay(thumbRaw) ?? thumbRaw : null;
-  const seller = listing.profiles?.display_name?.trim() || "member";
   const cond = CONDITION_LABELS[listing.condition] ?? listing.condition;
   const credits = listing.unlock_credits === 2 ? 2 : 1;
   const km = listing.distance_km ?? null;
@@ -132,18 +131,7 @@ export function ListingCard({ listing, variant = "grid", compact = false }: Prop
         <p
           className={
             variant === "row"
-              ? "mt-auto text-[0.68rem] leading-snug text-base-content/45"
-              : compact
-                ? "text-[0.62rem] leading-snug text-base-content/50"
-                : "text-[0.7rem] leading-snug text-base-content/50"
-          }
-        >
-          @{seller}
-        </p>
-        <p
-          className={
-            variant === "row"
-              ? "mt-0.5 text-[0.68rem] leading-snug line-clamp-2 text-base-content/65"
+              ? "mt-auto text-[0.68rem] leading-snug line-clamp-2 text-base-content/65"
               : compact
                 ? "text-[0.6rem] leading-snug line-clamp-2 text-base-content/65"
                 : "text-[0.68rem] leading-snug line-clamp-2 text-base-content/65"

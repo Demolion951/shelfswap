@@ -171,9 +171,13 @@ export function ListingDetailView({
 
       {blurb ? <BookBlurb text={blurb.text} /> : null}
 
-      <p className="text-sm text-base-content/60">
-        Listed by <span className="font-medium text-base-content">@{seller}</span>
-      </p>
+      {isOwner || viewerUnlocked ? (
+        <p className="text-sm text-base-content/60">
+          Listed by <span className="font-medium text-base-content">@{seller}</span>
+        </p>
+      ) : (
+        <p className="text-sm text-base-content/50">Seller name hidden until unlock</p>
+      )}
 
       {isOwner || viewerUnlocked ? (
         <div className="card bg-base-100 border border-base-300/80 shadow-sm">
