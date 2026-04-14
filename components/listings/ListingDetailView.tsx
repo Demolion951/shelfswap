@@ -10,6 +10,7 @@ import { BookBlurb } from "@/components/listings/BookBlurb";
 import { ListingMessagesThread } from "@/components/listings/ListingMessagesThread";
 import { ListingUnlockPanel } from "@/components/listings/ListingUnlockPanel";
 import { ListingViewTracker } from "@/components/listings/ListingViewTracker";
+import { UnlockRequestsPanel, type PendingUnlockRequest } from "@/components/listings/UnlockRequestsPanel";
 import { MapPin } from "lucide-react";
 import Link from "next/link";
 
@@ -24,6 +25,9 @@ type Props = {
   viewerUnlocked: boolean;
   viewerSaved: boolean;
   creditBalance: number;
+  heldCredits: number;
+  viewerPendingUnlock: boolean;
+  pendingRequestsForSeller: PendingUnlockRequest[];
   currentUserId: string | null;
   messages: ListingMessageRow[];
   distanceKm: number | null;
@@ -42,6 +46,9 @@ export function ListingDetailView({
   viewerUnlocked,
   viewerSaved,
   creditBalance,
+  heldCredits,
+  viewerPendingUnlock,
+  pendingRequestsForSeller,
   currentUserId,
   messages,
   distanceKm,
@@ -180,6 +187,10 @@ export function ListingDetailView({
       )}
 
       {isOwner || viewerUnlocked ? (
+        <>
+          {isOwner ? (
+            <UnlockRequestsPanel listingId={listing.id} requests={pendingRequestsForSeller} />
+          ) : null}
         <div className="card bg-base-100 border border-base-300/80 shadow-sm">
           <div className="card-body gap-4">
             <h2 className="shelfswap-heading text-lg font-semibold text-primary">Messages</h2>
@@ -195,6 +206,7 @@ export function ListingDetailView({
             />
           </div>
         </div>
+        </>
       ) : null}
 
       {!isOwner ? (
@@ -202,6 +214,8 @@ export function ListingDetailView({
           listingId={listing.id}
           creditsRequired={credits}
           creditBalance={creditBalance}
+          heldCredits={heldCredits}
+          initiallyPending={viewerPendingUnlock}
           isSignedIn={isSignedIn}
           initiallyUnlocked={viewerUnlocked}
           initiallySaved={viewerSaved}

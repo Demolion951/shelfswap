@@ -8,6 +8,7 @@ import {
 } from "@/lib/listings/queries";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
+import type { PendingUnlockRequest } from "@/components/listings/UnlockRequestsPanel";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -26,16 +27,29 @@ export default async function ListingPage({ params }: Props) {
   const isSignedIn = !!user;
 
   let creditBalance = 0;
+  let heldCredits = 0;
   let viewerUnlocked = false;
   let viewerSaved = false;
+  let viewerPendingUnlock = false;
+  let pendingRequestsForSeller: PendingUnlockRequest[] = [];
   if (user) {
     const { data: prof } = await supabase
       .from("profiles")
-      .select("credit_balance")
+      .select("credit_balance, held_credits")
       .eq("id", user.id)
       .maybeSingle();
     const bal = prof?.credit_balance;
     creditBalance = typeof bal === "number" ? bal : Number(bal ?? 0) || 0;
+    const held = (prof as any)?.held_credits;
+    heldCredits = typeof held === "number" ? held : Number(held ?? 0) || 0;
+
+    // Best-effort: release expired holds for this listing on page load.
+    const { error: expErr } = await supabase.rpc("expire_my_unlock_requests", {
+      p_listing_id: id,
+    });
+    if (expErr) {
+      console.warn("[ListingPage] expire_my_unlock_requests", expErr.message);
+    }
 
     const { data: unlockRow } = await supabase
       .from("listing_unlocks")
@@ -45,6 +59,17 @@ export default async function ListingPage({ params }: Props) {
       .maybeSingle();
     viewerUnlocked = !!unlockRow;
 
+    if (!viewerUnlocked && !isOwner) {
+      const { data: reqRow } = await supabase
+        .from("listing_unlock_requests")
+        .select("id")
+        .eq("buyer_id", user.id)
+        .eq("listing_id", id)
+        .eq("status", "pending")
+        .maybeSingle();
+      viewerPendingUnlock = !!reqRow;
+    }
+
     const { data: saveRow } = await supabase
       .from("saved_listings")
       .select("listing_id")
@@ -52,6 +77,40 @@ export default async function ListingPage({ params }: Props) {
       .eq("listing_id", id)
       .maybeSingle();
     viewerSaved = !!saveRow;
+  }
+
+  if (isOwner && user) {
+    const { data: reqs, error } = await supabase
+      .from("listing_unlock_requests")
+      .select("id, buyer_id, credits_held, created_at")
+      .eq("listing_id", id)
+      .eq("status", "pending")
+      .order("created_at", { ascending: true });
+    if (error) {
+      console.warn("[ListingPage] listing_unlock_requests", error.message);
+    }
+    const rows = (reqs ?? []) as Array<{
+      id: string;
+      buyer_id: string;
+      credits_held: number;
+      created_at: string;
+    }>;
+    const buyerIds = rows.map((r) => r.buyer_id);
+    let buyerMap = new Map<string, string>();
+    if (buyerIds.length > 0) {
+      const { data: profs } = await supabase.rpc("profiles_public_batch", {
+        p_user_ids: buyerIds,
+      });
+      const pr = (profs ?? []) as Array<{ id: string; display_name: string | null }>;
+      buyerMap = new Map(pr.map((p) => [String(p.id), (p.display_name ?? "").trim() || "member"]));
+    }
+    pendingRequestsForSeller = rows.map((r) => ({
+      id: r.id,
+      buyerId: r.buyer_id,
+      buyerHandle: buyerMap.get(r.buyer_id) ?? "member",
+      creditsHeld: r.credits_held,
+      createdAt: r.created_at,
+    }));
   }
 
   let messages: ListingMessageRow[] = [];
@@ -101,6 +160,9 @@ export default async function ListingPage({ params }: Props) {
       isSignedIn={isSignedIn}
       viewerUnlocked={viewerUnlocked}
       creditBalance={creditBalance}
+      heldCredits={heldCredits}
+      viewerPendingUnlock={viewerPendingUnlock}
+      pendingRequestsForSeller={pendingRequestsForSeller}
       currentUserId={user?.id ?? null}
       messages={messages}
       distanceKm={distanceKm}
