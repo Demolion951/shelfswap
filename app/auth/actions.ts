@@ -131,10 +131,8 @@ export async function signUpWithPassword(
  */
 export async function ensureProfileRow(): Promise<{ ok: true } | { error: string }> {
   const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+  const { data: authData, error: userError } = await supabase.auth.getUser();
+  const user = authData?.user ?? null;
   if (userError || !user) {
     return { error: "Not signed in." };
   }

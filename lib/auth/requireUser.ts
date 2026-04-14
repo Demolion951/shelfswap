@@ -16,10 +16,8 @@ export type RequireUserOptions = {
 export async function requireUser(options?: RequireUserOptions): Promise<User> {
   const loginPath = options?.loginPath ?? "/auth/sign-in";
   const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  const { data: authData, error } = await supabase.auth.getUser();
+  const user = authData?.user ?? null;
 
   if (error || !user) {
     const next = options?.returnTo;
@@ -38,8 +36,6 @@ export async function requireUser(options?: RequireUserOptions): Promise<User> {
  */
 export async function getOptionalUser() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
+  const { data: authData } = await supabase.auth.getUser();
+  return authData?.user ?? null;
 }

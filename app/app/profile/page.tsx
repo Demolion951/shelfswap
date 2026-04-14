@@ -1,26 +1,27 @@
 import { signOut } from "@/app/auth/actions";
+import { SettingsRow } from "@/components/SettingsRow";
 import { fetchMyListings, getSavedListingsCount } from "@/lib/listings/queries";
 import { createClient } from "@/lib/supabase/server";
-import { SettingsRow } from "@/components/SettingsRow";
-import { Coins, Heart, Library, LogOut, Settings } from "lucide-react";
+import { Coins, Heart, Library, LogOut, Settings2 } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 export default async function ProfilePage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: authData } = await supabase.auth.getUser();
+  const user = authData?.user ?? null;
+  if (!user) {
+    redirect("/auth/sign-in?next=%2Fapp%2Fprofile");
+  }
 
-  const { data: profile } = user
-    ? await supabase
-        .from("profiles")
-        .select("display_name, avatar_url, credit_balance")
-        .eq("id", user.id)
-        .maybeSingle()
-    : { data: null };
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("display_name, avatar_url, credit_balance")
+    .eq("id", user.id)
+    .maybeSingle();
 
-  const myListings = user ? await fetchMyListings(user.id) : [];
-  const savedCount = user ? await getSavedListingsCount(user.id) : 0;
+  const myListings = await fetchMyListings(user.id);
+  const savedCount = await getSavedListingsCount(user.id);
 
   return (
     <div className="space-y-6 pt-2">
@@ -38,7 +39,7 @@ export default async function ProfilePage() {
               />
             ) : (
               <span className="w-full text-center text-2xl font-serif leading-none select-none">
-                {(profile?.display_name ?? user?.email ?? "?").charAt(0).toUpperCase()}
+                {(profile?.display_name ?? user.email ?? "?").charAt(0).toUpperCase()}
               </span>
             )}
           </div>
@@ -55,7 +56,7 @@ export default async function ProfilePage() {
         <ul className="divide-y divide-base-300/60">
           <SettingsRow
             href="/app/profile/settings"
-            Icon={Settings}
+            Icon={Settings2}
             title="App settings"
             description="Profile photo, password link, and shortcuts"
           />
