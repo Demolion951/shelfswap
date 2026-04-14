@@ -6,7 +6,7 @@
  * Location: components/nav/AppTopBar.tsx
  */
 import { ActivityBellButton } from "@/components/nav/ActivityBellButton";
-import { Settings2 } from "lucide-react";
+import { Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -32,7 +32,7 @@ export function AppTopBar({ unreadCount }: Props) {
             }`}
             aria-label="Settings"
           >
-            <Settings2 className="h-5 w-5" strokeWidth={settingsActive ? 2.25 : 1.75} aria-hidden />
+            <Settings className="h-5 w-5" strokeWidth={settingsActive ? 2.25 : 1.75} aria-hidden />
           </Link>
           <span className="relative z-[24] shrink-0">
             <ActivityBellButton unreadCount={unreadCount} />
