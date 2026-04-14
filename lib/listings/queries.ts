@@ -27,6 +27,12 @@ export type ListingWithRelations = {
   distance_km?: number | null;
 };
 
+type PublicProfileRow = {
+  id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+};
+
 const listingSelectNoUnlockCredits = `
       id,
       user_id,
@@ -107,6 +113,39 @@ export function normalizeListingRow(
   return { ...row, unlock_credits } as ListingWithRelations;
 }
 
+async function attachPublicProfilesToListings<T extends ListingWithRelations>(
+  listings: T[],
+): Promise<T[]> {
+  if (listings.length === 0) return listings;
+  const supabase = await createClient();
+  const ids = Array.from(new Set(listings.map((l) => l.user_id).filter(Boolean)));
+  if (ids.length === 0) return listings;
+
+  const { data, error } = await supabase.rpc("profiles_public_batch", {
+    p_user_ids: ids,
+  });
+  if (error) {
+    console.warn("[attachPublicProfilesToListings] profiles_public_batch", error.message);
+    return listings;
+  }
+
+  const rows = (data ?? []) as unknown as PublicProfileRow[];
+  const byId = new Map<string, PublicProfileRow>();
+  for (const r of rows) byId.set(String(r.id), r);
+
+  return listings.map((l) => {
+    const r = byId.get(String(l.user_id));
+    if (!r) return l;
+    return {
+      ...l,
+      profiles: {
+        display_name: (r.display_name ?? "").trim(),
+        avatar_url: r.avatar_url ?? null,
+      },
+    };
+  });
+}
+
 async function withUnlockCreditsRetry<T>(
   primary: () => PromiseLike<{ data: T; error: { message: string } | null }>,
   fallback: () => PromiseLike<{ data: T; error: { message: string } | null }>,
@@ -148,7 +187,7 @@ export async function fetchRecentListings(
     return [] as ListingWithRelations[];
   }
   const rows = (res.data ?? []) as unknown as Record<string, unknown>[];
-  return rows.map((r) => normalizeListingRow(r));
+  return attachPublicProfilesToListings(rows.map((r) => normalizeListingRow(r)));
 }
 
 export async function searchListingsByText(
@@ -207,12 +246,13 @@ export async function searchListingsByText(
     console.error("[searchListingsByText]", res.error.message);
     return [] as ListingWithRelations[];
   }
-  return (res.data ?? [])
+  const normalized = (res.data ?? [])
     .map((r) => {
       if (!r || typeof r !== "object") return null;
       return normalizeListingRow(r as unknown as Record<string, unknown>);
     })
     .filter((x): x is ListingWithRelations => !!x);
+  return attachPublicProfilesToListings(normalized);
 }
 
 export type ListingWithRelationsAndStatus = ListingWithRelations & {
@@ -243,9 +283,11 @@ export async function fetchListingById(
     return null;
   }
   if (!res.data) return null;
-  return normalizeListingRow(
+  const one = normalizeListingRow(
     res.data as Record<string, unknown>,
   ) as ListingWithRelationsAndStatus;
+  const [withProfile] = await attachPublicProfilesToListings([one]);
+  return withProfile ?? one;
 }
 
 export type ListingMessageRow = {
@@ -304,7 +346,7 @@ export async function fetchMyListings(
     console.error("[fetchMyListings]", res.error.message);
     return [] as ListingWithRelations[];
   }
-  return (res.data ?? []).map((r) =>
-    normalizeListingRow(r as Record<string, unknown>),
-  );
+  const rows = (res.data ?? []) as unknown as Record<string, unknown>[];
+  const normalized = rows.map((r) => normalizeListingRow(r));
+  return attachPublicProfilesToListings(normalized);
 }
