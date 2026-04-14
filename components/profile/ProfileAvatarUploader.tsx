@@ -1,17 +1,16 @@
 "use client";
 
 /**
- * Settings / profile: upload or clear the signed-in user’s profile photo (profiles.avatar_url).
+ * Profile photo upload/clear — uses POST /api/profile/avatar (Route Handler) to avoid server-action bundling issues on Vercel.
  * Location: components/profile/ProfileAvatarUploader.tsx
  */
-import { clearProfileAvatarAction, updateProfileAvatarAction } from "@/app/app/profile/avatar-actions";
 import { Camera, Loader2, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 type Props = {
   initialAvatarUrl: string | null;
-  /** Shown as initial on the avatar placeholder (avoid prop name `displayName` — reserved in React). */
+  /** Initial on avatar placeholder (not React’s displayName). */
   accountLabel: string;
 };
 
@@ -38,9 +37,14 @@ export function ProfileAvatarUploader({ initialAvatarUrl, accountLabel }: Props)
     const fd = new FormData();
     fd.set("avatar", file);
     startTransition(async () => {
-      const res = await updateProfileAvatarAction(fd);
-      if (!res.ok) {
-        setError(res.error);
+      const res = await fetch("/api/profile/avatar", {
+        method: "POST",
+        body: fd,
+        credentials: "same-origin",
+      });
+      const json = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!res.ok || !json.ok) {
+        setError(json.error ?? "Upload failed.");
         return;
       }
       router.refresh();
@@ -50,9 +54,15 @@ export function ProfileAvatarUploader({ initialAvatarUrl, accountLabel }: Props)
   function onClear() {
     setError(null);
     startTransition(async () => {
-      const res = await clearProfileAvatarAction();
-      if (!res.ok) {
-        setError(res.error);
+      const res = await fetch("/api/profile/avatar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clear: true }),
+        credentials: "same-origin",
+      });
+      const json = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!res.ok || !json.ok) {
+        setError(json.error ?? "Could not remove photo.");
         return;
       }
       router.refresh();

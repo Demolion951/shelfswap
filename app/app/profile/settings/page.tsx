@@ -1,5 +1,5 @@
 import { signOut } from "@/app/auth/actions";
-import { SettingsProfilePhotoSection } from "@/components/profile/SettingsProfilePhotoSection";
+import { ProfileAvatarUploader } from "@/components/profile/ProfileAvatarUploader";
 import { SettingsRow } from "@/components/SettingsRow";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -57,7 +57,7 @@ export default async function ProfileSettingsPage() {
             <UserRound className="h-5 w-5" aria-hidden />
             <span className="text-xs font-semibold uppercase tracking-wide">Account</span>
           </div>
-          <SettingsProfilePhotoSection
+          <ProfileAvatarUploader
             initialAvatarUrl={(profile?.avatar_url as string | null) ?? null}
             accountLabel={profile?.display_name?.trim() || user.email || "Reader"}
           />
