@@ -14,6 +14,8 @@ type PermissionStateLike = "granted" | "prompt" | "denied";
 
 const LS_LAST_SYNC = "ss_last_loc_sync_ms";
 const LS_DISMISSED = "ss_loc_banner_dismissed";
+const LS_LAST_LAT = "ss_last_loc_lat";
+const LS_LAST_LNG = "ss_last_loc_lng";
 
 function nowMs() {
   return Date.now();
@@ -76,7 +78,8 @@ function getCoarseCoords(): Promise<{ lat: number; lng: number } | null> {
         resolve({ lat: rLat, lng: rLng });
       },
       () => resolve(null),
-      { enableHighAccuracy: false, maximumAge: 86_400_000, timeout: 10_000 },
+      // Prefer a fresh-ish reading so we don't get stuck on yesterday's cached position.
+      { enableHighAccuracy: false, maximumAge: 300_000, timeout: 10_000 },
     );
   });
 }
@@ -89,8 +92,9 @@ export function AutoApproxLocationUpdater() {
 
   const shouldAttemptAutoSync = useMemo(() => {
     const last = readNumber(LS_LAST_SYNC) ?? 0;
-    // Refresh at most once every 7 days to avoid unnecessary prompts/requests.
-    return nowMs() - last > 7 * 24 * 60 * 60 * 1000;
+    // If permission is already granted, a coarse refresh is silent.
+    // Keep it fairly fresh so returning users don't get stuck on an old area.
+    return nowMs() - last > 6 * 60 * 60 * 1000; // 6 hours
   }, []);
 
   useEffect(() => {
@@ -105,9 +109,19 @@ export function AutoApproxLocationUpdater() {
     startTransition(async () => {
       const coords = await getCoarseCoords();
       if (!coords) return;
+      const lastLat = readNumber(LS_LAST_LAT);
+      const lastLng = readNumber(LS_LAST_LNG);
+      const moved =
+        lastLat == null ||
+        lastLng == null ||
+        Math.abs(coords.lat - lastLat) >= 0.02 ||
+        Math.abs(coords.lng - lastLng) >= 0.02;
+      if (!moved && !shouldAttemptAutoSync) return;
       const res = await setMyApproxLocationAction(coords.lat, coords.lng);
       if (!res.ok) return;
       writeNumber(LS_LAST_SYNC, nowMs());
+      writeNumber(LS_LAST_LAT, coords.lat);
+      writeNumber(LS_LAST_LNG, coords.lng);
     });
   }, [perm, shouldAttemptAutoSync]);
 
@@ -125,6 +139,8 @@ export function AutoApproxLocationUpdater() {
         return;
       }
       writeNumber(LS_LAST_SYNC, nowMs());
+      writeNumber(LS_LAST_LAT, coords.lat);
+      writeNumber(LS_LAST_LNG, coords.lng);
       setPerm("granted");
       setDismissed(true);
       writeBool(LS_DISMISSED, true);
