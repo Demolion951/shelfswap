@@ -89,6 +89,8 @@ export function AutoApproxLocationUpdater() {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
+  /** Avoid SSR vs client mismatch: navigator / geolocation only exist in the browser. */
+  const [mounted, setMounted] = useState(false);
 
   const shouldAttemptAutoSync = useMemo(() => {
     const last = readNumber(LS_LAST_SYNC) ?? 0;
@@ -98,6 +100,7 @@ export function AutoApproxLocationUpdater() {
   }, []);
 
   useEffect(() => {
+    setMounted(true);
     setDismissed(readBool(LS_DISMISSED));
     void getGeoPermissionState().then((s) => setPerm(s));
   }, []);
@@ -153,6 +156,7 @@ export function AutoApproxLocationUpdater() {
   }
 
   const showBanner =
+    mounted &&
     !dismissed &&
     shouldAttemptAutoSync &&
     (perm === "prompt" || perm === null) &&
