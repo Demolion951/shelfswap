@@ -1,3 +1,4 @@
+import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { createClient } from "@/lib/supabase/server";
 import { BookOpen, ArrowRight } from "lucide-react";
 import Link from "next/link";
@@ -35,6 +36,7 @@ export default async function LandingPage() {
             Sign in
           </Link>
         </div>
+        <MarketingFooter />
       </div>
     </div>
   );

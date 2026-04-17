@@ -7,10 +7,15 @@ import {
   Bell,
   BookMarked,
   CreditCard,
+  FileText,
   Heart,
   KeyRound,
+  ListOrdered,
+  Mail,
   MessageCircle,
+  Scale,
   Settings2,
+  Shield,
   UserRound,
 } from "lucide-react";
 import Link from "next/link";
@@ -116,6 +121,23 @@ export default async function ProfileSettingsPage() {
               title="Change password"
               description="Send a reset link to your email"
             />
+          </ul>
+        </div>
+      </div>
+
+      <div className="card bg-base-100 border border-base-300/80 shadow-sm">
+        <div className="card-body p-4 pb-2">
+          <div className="flex items-center gap-2 text-primary">
+            <Scale className="h-5 w-5 shrink-0" aria-hidden />
+            <span className="text-xs font-semibold uppercase tracking-wide">Help & legal</span>
+          </div>
+        </div>
+        <div className="card-body p-0 pt-0">
+          <ul className="divide-y divide-base-300/60">
+            <SettingsRow href="/faq" Icon={ListOrdered} title="FAQ" description="How ShelfSwap works" />
+            <SettingsRow href="/contact" Icon={Mail} title="Contact" description="Support email" />
+            <SettingsRow href="/terms" Icon={FileText} title="Terms of service" />
+            <SettingsRow href="/privacy" Icon={Shield} title="Privacy policy" />
           </ul>
         </div>
       </div>
