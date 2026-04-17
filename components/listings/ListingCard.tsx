@@ -28,7 +28,10 @@ function sortedPhotos(listing: ListingWithRelations) {
 
 export function ListingCard({ listing, variant = "grid", compact = false }: Props) {
   const photos = sortedPhotos(listing);
-  const thumbRaw = photos[0]?.url ?? listing.cover_url;
+  const coverFromIsbn = listing.isbn
+    ? `/api/openlibrary-cover?isbn=${encodeURIComponent(listing.isbn.replace(/\D/g, ""))}&size=M`
+    : null;
+  const thumbRaw = photos[0]?.url ?? listing.cover_url ?? coverFromIsbn;
   const thumb = thumbRaw ? coverImageSrcForDisplay(thumbRaw) ?? thumbRaw : null;
   const cond = CONDITION_LABELS[listing.condition] ?? listing.condition;
   const credits = listing.unlock_credits === 2 ? 2 : 1;
@@ -55,6 +58,13 @@ export function ListingCard({ listing, variant = "grid", compact = false }: Prop
             className="h-full w-full object-cover"
             loading="lazy"
             referrerPolicy="no-referrer"
+            onError={(e) => {
+              if (!coverFromIsbn) return;
+              const img = e.currentTarget;
+              if (img.dataset.fallbackApplied === "1") return;
+              img.dataset.fallbackApplied = "1";
+              img.src = coverFromIsbn;
+            }}
           />
         ) : (
           <div

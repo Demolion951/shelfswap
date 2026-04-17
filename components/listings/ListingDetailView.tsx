@@ -111,12 +111,35 @@ export function ListingDetailView({
               alt=""
               className="max-h-80 w-full rounded-lg object-contain"
               referrerPolicy="no-referrer"
+              onError={(e) => {
+                if (!listing.isbn) return;
+                const b = listing.isbn.replace(/\D/g, "");
+                if (b.length !== 10 && b.length !== 13) return;
+                const img = e.currentTarget;
+                if (img.dataset.fallbackApplied === "1") return;
+                img.dataset.fallbackApplied = "1";
+                img.src = `/api/openlibrary-cover?isbn=${encodeURIComponent(b)}&size=L`;
+              }}
             />
           </div>
         ) : null}
         {photos.length === 0 && !listing.cover_url ? (
           <div className="carousel-item flex min-h-[14rem] w-full items-center justify-center rounded-lg bg-base-300/40 text-sm text-base-content/45">
-            No cover image for this listing
+            {listing.isbn ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={`/api/openlibrary-cover?isbn=${encodeURIComponent(listing.isbn.replace(/\D/g, ""))}&size=L`}
+                alt=""
+                className="max-h-80 w-full rounded-lg object-contain"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  const img = e.currentTarget;
+                  img.style.display = "none";
+                }}
+              />
+            ) : (
+              "No cover image for this listing"
+            )}
           </div>
         ) : null}
       </div>

@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 /**
- * iOS / PWA home-screen icon — open book on brand background.
+ * iOS / PWA home-screen icon — ShelfSwap monogram on brand background.
  * Location: app/apple-icon.tsx
  */
 export const size = { width: 180, height: 180 };
@@ -26,39 +26,25 @@ export default function AppleIcon() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            width: 112,
-            height: 112,
+            width: 120,
+            height: 120,
+            borderRadius: 28,
+            background: "rgba(248,245,240,0.08)",
+            boxShadow: "inset 0 0 0 2px rgba(248,245,240,0.12)",
           }}
         >
-          {/* Open book mark-up via flex (ImageResponse-friendly) */}
-          <div style={{ display: "flex", alignItems: "stretch", height: 88, gap: 0 }}>
-            <div
-              style={{
-                width: 44,
-                height: 88,
-                background: "#f8f5f0",
-                borderRadius: "6px 0 0 6px",
-                boxShadow: "inset 0 0 0 2px rgba(90,64,48,0.12)",
-              }}
-            />
-            <div
-              style={{
-                width: 6,
-                height: 88,
-                background: "#5a4030",
-                marginLeft: -1,
-                marginRight: -1,
-              }}
-            />
-            <div
-              style={{
-                width: 44,
-                height: 88,
-                background: "#ebe3d9",
-                borderRadius: "0 6px 6px 0",
-                boxShadow: "inset 0 0 0 2px rgba(90,64,48,0.08)",
-              }}
-            />
+          <div
+            style={{
+              fontSize: 84,
+              fontWeight: 800,
+              letterSpacing: -4,
+              color: "#f8f5f0",
+              fontFamily:
+                "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial",
+              lineHeight: 1,
+            }}
+          >
+            SS
           </div>
         </div>
       </div>
