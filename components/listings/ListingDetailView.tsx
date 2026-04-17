@@ -73,6 +73,11 @@ export function ListingDetailView({
   const seller = listing.profiles?.display_name?.trim() || "member";
   const cond = CONDITION_LABELS[listing.condition] ?? listing.condition;
   const credits = listing.unlock_credits === 2 ? 2 : 1;
+  const isbnDigits = listing.isbn ? listing.isbn.replace(/\D/g, "") : "";
+  const isbnCoverUrl =
+    isbnDigits.length === 10 || isbnDigits.length === 13
+      ? `/api/openlibrary-cover?isbn=${encodeURIComponent(isbnDigits)}&size=L`
+      : null;
   const distanceLine =
     !isOwner && isSignedIn ? formatApproxDistanceKm(distanceKm) : null;
   const town = listing.approx_area_text?.trim() || null;
@@ -107,35 +112,27 @@ export function ListingDetailView({
           <div className="carousel-item w-full">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={coverImageSrcForDisplay(listing.cover_url) ?? listing.cover_url}
+              src={
+                // Prefer the ISBN proxy when available (most reliable), otherwise use stored cover_url.
+                isbnCoverUrl ??
+                coverImageSrcForDisplay(listing.cover_url) ??
+                listing.cover_url
+              }
               alt=""
               className="max-h-80 w-full rounded-lg object-contain"
               referrerPolicy="no-referrer"
-              onError={(e) => {
-                if (!listing.isbn) return;
-                const b = listing.isbn.replace(/\D/g, "");
-                if (b.length !== 10 && b.length !== 13) return;
-                const img = e.currentTarget;
-                if (img.dataset.fallbackApplied === "1") return;
-                img.dataset.fallbackApplied = "1";
-                img.src = `/api/openlibrary-cover?isbn=${encodeURIComponent(b)}&size=L`;
-              }}
             />
           </div>
         ) : null}
         {photos.length === 0 && !listing.cover_url ? (
           <div className="carousel-item flex min-h-[14rem] w-full items-center justify-center rounded-lg bg-base-300/40 text-sm text-base-content/45">
-            {listing.isbn ? (
+            {isbnCoverUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={`/api/openlibrary-cover?isbn=${encodeURIComponent(listing.isbn.replace(/\D/g, ""))}&size=L`}
+                src={isbnCoverUrl}
                 alt=""
                 className="max-h-80 w-full rounded-lg object-contain"
                 referrerPolicy="no-referrer"
-                onError={(e) => {
-                  const img = e.currentTarget;
-                  img.style.display = "none";
-                }}
               />
             ) : (
               "No cover image for this listing"
