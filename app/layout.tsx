@@ -24,6 +24,10 @@ export const metadata: Metadata = {
   },
   description: "Local book marketplace — list, discover, and swap near you.",
   applicationName: "ShelfSwap",
+  icons: {
+    icon: [{ url: "/brand/icon.png", type: "image/png" }],
+    apple: [{ url: "/brand/icon.png", type: "image/png" }],
+  },
 };
 
 export const viewport: Viewport = {

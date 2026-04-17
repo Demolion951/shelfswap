@@ -23,12 +23,12 @@ export function AppTopBar({ unreadCount }: Props) {
       <div className="mx-auto flex h-12 max-w-lg items-center justify-between px-4">
         <Link href="/app/home" className="flex items-center">
           <Image
-            src="/logo.png"
+            src="/brand/logo.png"
             alt="ShelfSwap"
             width={140}
             height={28}
             priority={true}
-            className="h-6 w-auto"
+            className="h-6 w-auto opacity-90 mix-blend-multiply"
           />
         </Link>
         <div className="relative flex items-center gap-2 pr-0.5">
