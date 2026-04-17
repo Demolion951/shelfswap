@@ -5,7 +5,12 @@
  * Assumes only one buyer can unlock a listing at a time.
  * Location: components/listings/DealPanel.tsx
  */
-import { confirmDealCompleteAction, proposeSwapAction, respondSwapAction } from "@/app/app/listings/actions";
+import {
+  confirmDealCompleteAction,
+  proposeSwapAction,
+  respondSwapAction,
+  unconfirmDealCompleteAction,
+} from "@/app/app/listings/actions";
 import { Check, Loader2, RefreshCw, Shuffle, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
@@ -92,16 +97,28 @@ export function DealPanel({
     });
   }
 
-  const completeText =
-    deal.completedAt
-      ? "Completed"
-      : isBuyer
-        ? deal.buyerConfirmedAt
-          ? "Waiting for seller to confirm…"
-          : "Mark completed"
-        : deal.sellerConfirmedAt
-          ? "Waiting for buyer to confirm…"
-          : "Mark completed";
+  function onUnconfirmComplete() {
+    setError(null);
+    startTransition(async () => {
+      const res = await unconfirmDealCompleteAction(listingId);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  const iConfirmed = isBuyer ? !!deal.buyerConfirmedAt : !!deal.sellerConfirmedAt;
+  const completeText = deal.completedAt
+    ? "Completed"
+    : isBuyer
+      ? iConfirmed
+        ? "Received"
+        : "Mark received"
+      : iConfirmed
+        ? "Handed over"
+        : "Mark handed over";
 
   return (
     <div className="card bg-base-100 border border-base-300/80 shadow-sm">
@@ -209,15 +226,31 @@ export function DealPanel({
           </div>
         ) : null}
 
-        <button
-          type="button"
-          className="btn btn-primary btn-sm self-end gap-2"
-          disabled={pending || !!deal.completedAt || (isBuyer ? !!deal.buyerConfirmedAt : !!deal.sellerConfirmedAt)}
-          onClick={() => onConfirmComplete()}
-        >
-          {pending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
-          {completeText}
-        </button>
+        <div className="flex items-center justify-end gap-2">
+          {iConfirmed && !deal.completedAt ? (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              disabled={pending}
+              onClick={() => onUnconfirmComplete()}
+            >
+              Undo
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="btn btn-primary btn-sm gap-2"
+            disabled={pending || !!deal.completedAt || iConfirmed}
+            onClick={() => onConfirmComplete()}
+          >
+            {pending ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            ) : (
+              <Check className="h-4 w-4" aria-hidden />
+            )}
+            {completeText}
+          </button>
+        </div>
       </div>
     </div>
   );

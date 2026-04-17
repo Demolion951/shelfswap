@@ -254,3 +254,20 @@ export async function confirmDealCompleteAction(listingId: string): Promise<Conf
   revalidatePath("/app/activity");
   return { ok: true };
 }
+
+export type UnconfirmDealResult = { ok: true } | { ok: false; error: string };
+export async function unconfirmDealCompleteAction(listingId: string): Promise<UnconfirmDealResult> {
+  const supabase = await createClient();
+  const { data: { user }, error: userErr } = await supabase.auth.getUser();
+  if (userErr || !user) return { ok: false, error: "Sign in to update." };
+  const { data, error } = await supabase.rpc("unconfirm_deal_complete", { p_listing_id: listingId });
+  if (error) {
+    console.error("[unconfirmDealCompleteAction]", error.message);
+    return { ok: false, error: error.message };
+  }
+  const ok = (data as any)?.ok;
+  if (ok !== true) return { ok: false, error: (data as any)?.error ?? "Could not update." };
+  revalidatePath(`/app/listings/${listingId}`);
+  revalidatePath("/app/activity");
+  return { ok: true };
+}
