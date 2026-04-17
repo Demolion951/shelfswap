@@ -109,10 +109,16 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
 
   function onPickPhotos(files: FileList | null) {
     if (!files?.length) return;
+    setError(null);
     const next = [...photos];
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
       if (f.type.startsWith("image/")) {
+        // Keep uploads reliable on mobile + Vercel/server-actions limits.
+        if (f.size > 8 * 1024 * 1024) {
+          setError("That photo is too large. Please pick a smaller image.");
+          continue;
+        }
         next.push({ file: f, url: URL.createObjectURL(f) });
       }
     }
