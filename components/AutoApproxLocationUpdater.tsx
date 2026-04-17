@@ -57,12 +57,14 @@ function writeBool(key: string, value: boolean) {
 }
 
 async function getGeoPermissionState(): Promise<PermissionStateLike | null> {
-  const anyNav = navigator as any;
-  const perms = anyNav?.permissions;
+  if (typeof navigator === "undefined") return null;
+  const perms = navigator.permissions;
   if (!perms?.query) return null;
   try {
-    const res = await perms.query({ name: "geolocation" });
-    return res?.state ?? null;
+    const res = await perms.query({ name: "geolocation" as PermissionName });
+    const state = res?.state;
+    if (state === "granted" || state === "prompt" || state === "denied") return state;
+    return null;
   } catch {
     return null;
   }
@@ -100,9 +102,12 @@ export function AutoApproxLocationUpdater() {
   }, []);
 
   useEffect(() => {
-    setMounted(true);
-    setDismissed(readBool(LS_DISMISSED));
+    const id = window.setTimeout(() => {
+      setMounted(true);
+      setDismissed(readBool(LS_DISMISSED));
+    }, 0);
     void getGeoPermissionState().then((s) => setPerm(s));
+    return () => window.clearTimeout(id);
   }, []);
 
   useEffect(() => {

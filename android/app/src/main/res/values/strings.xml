@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ShelfSwap</string>
+    <string name="title_activity_main">ShelfSwap</string>
+    <string name="package_name">net.shelfswap.app</string>
+    <string name="custom_url_scheme">net.shelfswap.app</string>
+</resources>

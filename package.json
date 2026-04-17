@@ -7,7 +7,11 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "db:sync-migrations": "node scripts/sync-supabase-migrations.mjs"
+    "db:sync-migrations": "node scripts/sync-supabase-migrations.mjs",
+    "cap:sync": "cap sync",
+    "cap:copy": "cap copy",
+    "cap:open:android": "cap open android",
+    "cap:open:ios": "cap open ios"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",
@@ -20,6 +24,10 @@
     "stripe": "^22.0.1"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/cli": "^8.3.1",
+    "@capacitor/core": "^8.3.1",
+    "@capacitor/ios": "^8.3.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
