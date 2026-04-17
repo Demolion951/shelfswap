@@ -18,6 +18,8 @@ const INPUT_ICON = path.join(ROOT, "app", "icon.png");
 const OUT_DIR = path.join(ROOT, "public", "brand");
 const OUT_LOGO = path.join(OUT_DIR, "logo.png");
 const OUT_ICON = path.join(OUT_DIR, "icon.png");
+const OUT_FAVICON_32 = path.join(OUT_DIR, "favicon-32.png");
+const OUT_FAVICON_16 = path.join(OUT_DIR, "favicon-16.png");
 
 // Your images have a very consistent beige background; use it as the key color.
 const KEY = { r: 248, g: 245, b: 240 }; // ~ #f8f5f0
@@ -99,8 +101,36 @@ async function run() {
   // Icon: slightly more aggressive removal.
   await makeTransparent({ inputPath: INPUT_ICON, outPath: OUT_ICON, trim: true, t0: 6, t1: 30 });
 
+  // Favicons should be square and readable at tiny sizes.
+  // We take the trimmed icon and center it on a transparent square canvas.
+  const iconBuf = await sharp(OUT_ICON).ensureAlpha().trim().png().toBuffer();
+  const iconMeta = await sharp(iconBuf).metadata();
+  const maxSide = Math.max(iconMeta.width ?? 0, iconMeta.height ?? 0) || 512;
+
+  const squared = await sharp({
+    create: {
+      width: maxSide,
+      height: maxSide,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  })
+    .composite([{ input: iconBuf, gravity: "center" }])
+    .png()
+    .toBuffer();
+
+  await sharp(squared)
+    .resize(32, 32, { fit: "contain" })
+    .png({ compressionLevel: 9 })
+    .toFile(OUT_FAVICON_32);
+
+  await sharp(squared)
+    .resize(16, 16, { fit: "contain" })
+    .png({ compressionLevel: 9 })
+    .toFile(OUT_FAVICON_16);
+
   // eslint-disable-next-line no-console
-  console.log("Wrote:", OUT_LOGO, OUT_ICON);
+  console.log("Wrote:", OUT_LOGO, OUT_ICON, OUT_FAVICON_32, OUT_FAVICON_16);
 }
 
 run().catch((e) => {
