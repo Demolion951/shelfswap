@@ -205,10 +205,8 @@ export async function searchListingsByText(
   limit = 30,
 ): Promise<ListingWithRelations[]> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const myUserId = user?.id ?? null;
+  // Search should include your own listings (useful for sanity-checking that a book is live).
+  // Home feed and recommendations still hide your own listings.
 
   const safe = q.trim().replace(/[^\w\s-]/g, "").trim();
   if (!safe) return [] as ListingWithRelations[];
@@ -224,7 +222,6 @@ export async function searchListingsByText(
       .select(selectClause)
       .eq("status", "active")
       .or(`title.ilike.${like},author.ilike.${like},isbn.ilike.${like}`);
-    if (myUserId) q = q.neq("user_id", myUserId);
     return q.order("created_at", { ascending: false }).limit(limit);
   };
 
@@ -237,7 +234,6 @@ export async function searchListingsByText(
         type: "websearch",
         config: "simple",
       });
-    if (myUserId) q = q.neq("user_id", myUserId);
     return q.order("created_at", { ascending: false }).limit(limit);
   };
 
