@@ -8,6 +8,7 @@
 import { ActivityBellButton } from "@/components/nav/ActivityBellButton";
 import { Settings } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 type Props = {
@@ -20,8 +21,15 @@ export function AppTopBar({ unreadCount }: Props) {
   return (
     <header className="sticky top-0 z-40 border-b border-base-300/80 bg-base-100/90 backdrop-blur-md">
       <div className="mx-auto flex h-12 max-w-lg items-center justify-between px-4">
-        <Link href="/app/home" className="shelfswap-heading text-lg font-semibold text-primary">
-          ShelfSwap
+        <Link href="/app/home" className="flex items-center">
+          <Image
+            src="/logo.png"
+            alt="ShelfSwap"
+            width={140}
+            height={28}
+            priority={true}
+            className="h-6 w-auto"
+          />
         </Link>
         <div className="relative flex items-center gap-2 pr-0.5">
           <Link
