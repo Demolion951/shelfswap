@@ -25,10 +25,10 @@ export function AppTopBar({ unreadCount }: Props) {
           <Image
             src="/brand/logo.png"
             alt="ShelfSwap"
-            width={140}
-            height={28}
+            width={640}
+            height={159}
             priority={true}
-            className="h-6 w-auto opacity-90 mix-blend-multiply"
+            className="h-6 w-auto"
           />
         </Link>
         <div className="relative flex items-center gap-2 pr-0.5">
