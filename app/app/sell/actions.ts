@@ -118,16 +118,32 @@ export async function createListing(
     }
 
     const publicUrl = `${baseUrl}/storage/v1/object/public/listing-photos/${path}`;
-    const { error: photoErr } = await supabase.from("listing_photos").insert({
-      listing_id: listingId,
-      url: publicUrl,
-      sort: i,
+    const { data: photoRpc, error: photoErr } = await supabase.rpc("add_my_listing_photo", {
+      p_listing_id: listingId,
+      p_url: publicUrl,
+      p_sort: i,
     });
 
     if (photoErr) {
-      console.error("[createListing] listing_photos", photoErr.message);
+      console.error("[createListing] add_my_listing_photo", photoErr.message);
+      try {
+        await supabase.storage.from("listing-photos").remove([path]);
+      } catch {
+        // ignore cleanup failures
+      }
       await supabase.from("listings").delete().eq("id", listingId);
-      return { error: "Could not save photo records." };
+      return { error: `Could not save photo records: ${photoErr.message}` };
+    }
+    const pr = photoRpc as { ok?: boolean; error?: string } | null;
+    if (!pr || pr.ok !== true) {
+      console.error("[createListing] add_my_listing_photo rpc", photoRpc);
+      try {
+        await supabase.storage.from("listing-photos").remove([path]);
+      } catch {
+        // ignore cleanup failures
+      }
+      await supabase.from("listings").delete().eq("id", listingId);
+      return { error: `Could not save photo records: ${pr?.error ?? "rpc_failed"}` };
     }
   }
 
@@ -321,15 +337,30 @@ export async function updateListing(formData: FormData): Promise<UpdateListingRe
       }
 
       const publicUrl = `${baseUrl}/storage/v1/object/public/listing-photos/${path}`;
-      const { error: photoErr } = await supabase.from("listing_photos").insert({
-        listing_id: listingId,
-        url: publicUrl,
-        sort: sortBase + i,
+      const { data: photoRpc, error: photoErr } = await supabase.rpc("add_my_listing_photo", {
+        p_listing_id: listingId,
+        p_url: publicUrl,
+        p_sort: sortBase + i,
       });
 
       if (photoErr) {
-        console.error("[updateListing] listing_photos", photoErr.message);
-        return { error: "Could not save new photo records." };
+        console.error("[updateListing] add_my_listing_photo", photoErr.message);
+        try {
+          await supabase.storage.from("listing-photos").remove([path]);
+        } catch {
+          // ignore cleanup failures
+        }
+        return { error: `Could not save new photo records: ${photoErr.message}` };
+      }
+      const pr = photoRpc as { ok?: boolean; error?: string } | null;
+      if (!pr || pr.ok !== true) {
+        console.error("[updateListing] add_my_listing_photo rpc", photoRpc);
+        try {
+          await supabase.storage.from("listing-photos").remove([path]);
+        } catch {
+          // ignore cleanup failures
+        }
+        return { error: `Could not save new photo records: ${pr?.error ?? "rpc_failed"}` };
       }
     }
   }

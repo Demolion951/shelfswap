@@ -367,10 +367,6 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
             <h2 className="shelfswap-heading text-lg font-semibold text-primary">
               Condition & credits
             </h2>
-            <p className="text-sm text-base-content/65">
-              No cash price — buyers spend credits to unlock chat. Approximate distance uses your
-              saved approximate location when the browser is allowed to refresh it.
-            </p>
             <div className="space-y-3">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,11rem)_minmax(0,20rem)] sm:items-center sm:gap-x-5">
                 <span className="text-sm font-medium text-base-content sm:text-end">

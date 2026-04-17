@@ -17,10 +17,6 @@ export default async function MessagesPage() {
         <MessageCircle className="h-6 w-6 text-primary" aria-hidden />
         <h1 className="shelfswap-heading text-xl font-semibold">Messages</h1>
       </div>
-      <p className="text-sm text-base-content/65 -mt-2">
-        Each book has one thread. If several buyers unlock your listing, they share the same chat so
-        everyone stays aligned.
-      </p>
       <MessagesInboxList threads={threads} />
     </div>
   );
