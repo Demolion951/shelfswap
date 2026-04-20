@@ -1,6 +1,8 @@
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
+import { shelfswapLogoSrc } from "@/lib/brand/logo";
 import { createClient } from "@/lib/supabase/server";
-import { BookOpen, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -17,11 +19,18 @@ export default async function LandingPage() {
     <div className="flex min-h-dvh flex-col bg-base-200">
       <div className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center gap-10 px-6 py-16">
         <div className="space-y-4 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <BookOpen className="h-9 w-9" strokeWidth={1.5} aria-hidden />
-          </div>
-          <h1 className="shelfswap-heading text-4xl font-semibold text-primary">
-            ShelfSwap
+          <h1 className="flex flex-col items-center justify-center gap-0">
+            <span className="sr-only">ShelfSwap</span>
+            <Image
+              src={shelfswapLogoSrc()}
+              alt=""
+              width={857}
+              height={220}
+              priority
+              unoptimized
+              aria-hidden
+              className="h-14 w-auto max-w-full sm:h-[4.5rem]"
+            />
           </h1>
           <p className="text-base text-base-content/70 leading-relaxed">
             List and discover books near you. Browse for free — unlock to meet up and chat.

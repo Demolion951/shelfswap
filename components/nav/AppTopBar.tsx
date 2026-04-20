@@ -5,10 +5,11 @@
  * Activity bell marks notifications read when tapped, then opens the feed; badge uses server count.
  * Location: components/nav/AppTopBar.tsx
  */
+import { shelfswapLogoSrc } from "@/lib/brand/logo";
 import { ActivityBellButton } from "@/components/nav/ActivityBellButton";
 import { Settings } from "lucide-react";
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 type Props = {
@@ -21,14 +22,15 @@ export function AppTopBar({ unreadCount }: Props) {
   return (
     <header className="sticky top-0 z-40 border-b border-base-300/80 bg-base-100/90 backdrop-blur-md">
       <div className="mx-auto flex h-12 max-w-lg items-center justify-between px-4">
-        <Link href="/app/home" className="flex items-center">
+        <Link href="/app/home" className="flex min-w-0 items-center py-1" aria-label="ShelfSwap home">
           <Image
-            src="/brand/logo.png"
-            alt="ShelfSwap"
-            width={640}
-            height={159}
-            priority={true}
-            className="h-6 w-auto"
+            src={shelfswapLogoSrc()}
+            alt=""
+            width={857}
+            height={220}
+            priority
+            unoptimized
+            className="h-[1.35rem] w-auto max-w-[13.5rem] sm:h-6 sm:max-w-none"
           />
         </Link>
         <div className="relative flex items-center gap-2 pr-0.5">

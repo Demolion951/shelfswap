@@ -11,7 +11,8 @@
     "cap:sync": "cap sync",
     "cap:copy": "cap copy",
     "cap:open:android": "cap open android",
-    "cap:open:ios": "cap open ios"
+    "cap:open:ios": "cap open ios",
+    "brand:logo-transparent": "node scripts/remove-logo-background.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",
