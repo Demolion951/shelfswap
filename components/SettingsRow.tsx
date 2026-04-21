@@ -1,5 +1,5 @@
 /**
- * Reusable row for the Settings page (icon, title, helper text, right chevron).
+ * Reusable row for the Settings page (icon, title, optional subtitle, right chevron).
  * Server Component: parents pass Lucide icon components; do not mark "use client"
  * or RSC parents cannot pass Icon (non-serializable across the server/client boundary).
  * Location: components/SettingsRow.tsx

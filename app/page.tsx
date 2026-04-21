@@ -29,7 +29,7 @@ export default async function LandingPage() {
               priority
               unoptimized
               aria-hidden
-              className="h-14 w-auto max-w-full sm:h-[4.5rem]"
+              className="h-16 w-auto max-w-full sm:h-28"
             />
           </h1>
           <p className="text-base text-base-content/70 leading-relaxed">

@@ -72,8 +72,8 @@ export function ProfileAvatarUploader({ initialAvatarUrl, accountLabel }: Props)
   const initial = accountLabel.trim().charAt(0).toUpperCase() || "?";
 
   return (
-    <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
-      <div className="avatar placeholder">
+    <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-stretch sm:gap-4">
+      <div className="avatar placeholder shrink-0">
         <div className="w-24 rounded-full border-2 border-base-300/80 bg-base-200 ring ring-base-100 ring-offset-2 ring-offset-base-100">
           {preview ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -91,8 +91,7 @@ export function ProfileAvatarUploader({ initialAvatarUrl, accountLabel }: Props)
           )}
         </div>
       </div>
-      <div className="flex w-full max-w-xs flex-col gap-2 text-center sm:text-left">
-        <p className="text-sm text-base-content/70">Profile photo (optional)</p>
+      <div className="flex w-full max-w-xs flex-col gap-2 text-center sm:min-w-0 sm:flex-1 sm:justify-end sm:text-left">
         <input
           ref={inputRef}
           type="file"
@@ -102,7 +101,8 @@ export function ProfileAvatarUploader({ initialAvatarUrl, accountLabel }: Props)
           tabIndex={-1}
           onChange={onFile}
         />
-        <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
+        <span className="sr-only">Profile photo: JPEG, PNG, or WebP, max 2MB.</span>
+        <div className="flex flex-wrap justify-center gap-2 sm:justify-start sm:pb-0.5">
           <button
             type="button"
             className="btn btn-primary btn-sm gap-2"
@@ -124,7 +124,6 @@ export function ProfileAvatarUploader({ initialAvatarUrl, accountLabel }: Props)
             </button>
           ) : null}
         </div>
-        <p className="text-[11px] text-base-content/50">JPG, PNG or WebP — max 2MB.</p>
         {error ? (
           <div role="alert" className="alert alert-error text-xs py-2">
             {error}

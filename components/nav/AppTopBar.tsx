@@ -30,7 +30,7 @@ export function AppTopBar({ unreadCount }: Props) {
             height={220}
             priority
             unoptimized
-            className="h-[1.35rem] w-auto max-w-[13.5rem] sm:h-6 sm:max-w-none"
+            className="h-8 w-auto max-w-[min(100%,21rem)] sm:h-9 sm:max-w-none"
           />
         </Link>
         <div className="relative flex items-center gap-2 pr-0.5">

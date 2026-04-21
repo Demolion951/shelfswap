@@ -48,12 +48,9 @@ export default async function ProfileSettingsPage() {
         Profile
       </Link>
 
-      <div className="space-y-1">
-        <div className="flex items-center gap-2 text-primary">
-          <Settings2 className="h-7 w-7 shrink-0" aria-hidden />
-          <h1 className="shelfswap-heading text-2xl font-semibold">Settings</h1>
-        </div>
-        <p className="text-sm text-base-content/65">Photo, shortcuts, and account options.</p>
+      <div className="flex items-center gap-2 text-primary">
+        <Settings2 className="h-7 w-7 shrink-0" aria-hidden />
+        <h1 className="shelfswap-heading text-2xl font-semibold">Settings</h1>
       </div>
 
       <div className="card bg-base-100 border border-base-300/80 shadow-sm">
@@ -66,7 +63,7 @@ export default async function ProfileSettingsPage() {
             initialAvatarUrl={(profile?.avatar_url as string | null) ?? null}
             accountLabel={profile?.display_name?.trim() || user.email || "Reader"}
           />
-          <div className="border-t border-base-300/60 pt-3 space-y-1">
+          <div className="border-t border-base-300/60 pt-3 space-y-0.5">
             <p className="text-sm font-medium text-base-content">
               {profile?.display_name?.trim() || "Reader"}
             </p>
@@ -78,36 +75,11 @@ export default async function ProfileSettingsPage() {
       <div className="card bg-base-100 border border-base-300/80 shadow-sm">
         <div className="card-body p-0">
           <ul className="divide-y divide-base-300/60">
-            <SettingsRow
-              href="/app/credits"
-              Icon={CreditCard}
-              title="Wallet"
-              description="View credits and purchase history"
-            />
-            <SettingsRow
-              href="/app/profile/listings"
-              Icon={BookMarked}
-              title="Your listings"
-              description="Manage your shelf"
-            />
-            <SettingsRow
-              href="/app/profile/saved"
-              Icon={Heart}
-              title="Saved"
-              description="Listings you have bookmarked"
-            />
-            <SettingsRow
-              href="/app/messages"
-              Icon={MessageCircle}
-              title="Messages"
-              description="Chats with unlocked listings"
-            />
-            <SettingsRow
-              href="/app/activity"
-              Icon={Bell}
-              title="Activity"
-              description="Notifications and recent events"
-            />
+            <SettingsRow href="/app/credits" Icon={CreditCard} title="Wallet" />
+            <SettingsRow href="/app/profile/listings" Icon={BookMarked} title="Your listings" />
+            <SettingsRow href="/app/profile/saved" Icon={Heart} title="Saved" />
+            <SettingsRow href="/app/messages" Icon={MessageCircle} title="Messages" />
+            <SettingsRow href="/app/activity" Icon={Bell} title="Activity" />
           </ul>
         </div>
       </div>
@@ -115,12 +87,7 @@ export default async function ProfileSettingsPage() {
       <div className="card bg-base-100 border border-base-300/80 shadow-sm">
         <div className="card-body p-0">
           <ul className="divide-y divide-base-300/60">
-            <SettingsRow
-              href="/auth/forgot-password"
-              Icon={KeyRound}
-              title="Change password"
-              description="Send a reset link to your email"
-            />
+            <SettingsRow href="/auth/forgot-password" Icon={KeyRound} title="Change password" />
           </ul>
         </div>
       </div>
@@ -134,8 +101,8 @@ export default async function ProfileSettingsPage() {
         </div>
         <div className="card-body p-0 pt-0">
           <ul className="divide-y divide-base-300/60">
-            <SettingsRow href="/faq" Icon={ListOrdered} title="FAQ" description="How ShelfSwap works" />
-            <SettingsRow href="/contact" Icon={Mail} title="Contact" description="Support email" />
+            <SettingsRow href="/faq" Icon={ListOrdered} title="FAQ" />
+            <SettingsRow href="/contact" Icon={Mail} title="Contact" />
             <SettingsRow href="/terms" Icon={FileText} title="Terms of service" />
             <SettingsRow href="/privacy" Icon={Shield} title="Privacy policy" />
           </ul>
