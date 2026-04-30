@@ -8,6 +8,7 @@ import type { ListingMessageRow, ListingWithRelations } from "@/lib/listings/que
 import type { OpenLibraryBlurb } from "@/lib/books/openLibraryBlurb";
 import { BookBlurb } from "@/components/listings/BookBlurb";
 import { ListingSaveHeart } from "@/components/listings/ListingSaveHeart";
+import { DealHandoffPanel } from "@/components/listings/DealHandoffPanel";
 import { DealPanel } from "@/components/listings/DealPanel";
 import { ListingMessagesThread } from "@/components/listings/ListingMessagesThread";
 import { ListingUnlockPanel } from "@/components/listings/ListingUnlockPanel";
@@ -221,9 +222,14 @@ export function ListingDetailView({
       {blurb ? <BookBlurb text={blurb.text} /> : null}
 
       {isOwner || viewerUnlocked ? (
-        <p className="text-sm text-base-content/60">
-          Listed by <span className="font-medium text-base-content">@{seller}</span>
-        </p>
+        <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
+          <p className="text-sm text-base-content/60 min-w-0">
+            Listed by <span className="font-medium text-base-content">@{seller}</span>
+          </p>
+          {unlockDeal ? (
+            <DealHandoffPanel listingId={listing.id} currentUserId={currentUserId} deal={unlockDeal} />
+          ) : null}
+        </div>
       ) : (
         <p className="text-sm text-base-content/50">Seller name hidden until unlock</p>
       )}

@@ -56,12 +56,12 @@ export default async function ListingPage({ params }: Props) {
     const held = (prof as any)?.held_credits;
     heldCredits = typeof held === "number" ? held : Number(held ?? 0) || 0;
 
-    // Best-effort: release expired holds for this listing on page load.
-    const { error: expErr } = await supabase.rpc("expire_my_unlock_requests", {
+    // Best-effort: release expired holds for this listing (works for buyer or seller).
+    const { error: expErr } = await supabase.rpc("expire_listing_unlock_requests", {
       p_listing_id: id,
     });
     if (expErr) {
-      console.warn("[ListingPage] expire_my_unlock_requests", expErr.message);
+      console.warn("[ListingPage] expire_listing_unlock_requests", expErr.message);
     }
 
     const { data: unlockRow } = await supabase

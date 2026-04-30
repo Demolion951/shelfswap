@@ -1,21 +1,16 @@
 "use client";
 
 /**
- * Deal controls shown after unlock: swap offer + both-party completion confirmation.
- * Assumes only one buyer can unlock a listing at a time.
+ * Swap-related deal UI after unlock (offer / accept swap). Handoff confirmation is rendered in
+ * ListingDetailView next to “Listed by” (DealHandoffPanel).
  * Location: components/listings/DealPanel.tsx
  */
-import {
-  confirmDealCompleteAction,
-  proposeSwapAction,
-  respondSwapAction,
-  unconfirmDealCompleteAction,
-} from "@/app/app/listings/actions";
+import { proposeSwapAction, respondSwapAction } from "@/app/app/listings/actions";
 import { Check, Loader2, RefreshCw, Shuffle, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
-type UnlockDeal = {
+export type UnlockDeal = {
   buyerId: string;
   dealType: "pickup" | "swap";
   swapStatus: "proposed" | "accepted" | "declined" | null;
@@ -85,41 +80,6 @@ export function DealPanel({
     });
   }
 
-  function onConfirmComplete() {
-    setError(null);
-    startTransition(async () => {
-      const res = await confirmDealCompleteAction(listingId);
-      if (!res.ok) {
-        setError(res.error);
-        return;
-      }
-      router.refresh();
-    });
-  }
-
-  function onUnconfirmComplete() {
-    setError(null);
-    startTransition(async () => {
-      const res = await unconfirmDealCompleteAction(listingId);
-      if (!res.ok) {
-        setError(res.error);
-        return;
-      }
-      router.refresh();
-    });
-  }
-
-  const iConfirmed = isBuyer ? !!deal.buyerConfirmedAt : !!deal.sellerConfirmedAt;
-  const completeText = deal.completedAt
-    ? "Completed"
-    : isBuyer
-      ? iConfirmed
-        ? "Received"
-        : "Mark received"
-      : iConfirmed
-        ? "Handed over"
-        : "Mark handed over";
-
   return (
     <div className="card bg-base-100 border border-base-300/80 shadow-sm">
       <div className="card-body gap-3">
@@ -128,9 +88,6 @@ export function DealPanel({
             <h2 className="shelfswap-heading text-lg font-semibold text-primary">
               Deal
             </h2>
-            <p className="text-xs text-base-content/55">
-              Confirm in-app when you’ve swapped / handed off the book.
-            </p>
           </div>
           <button
             type="button"
@@ -225,32 +182,6 @@ export function DealPanel({
             </div>
           </div>
         ) : null}
-
-        <div className="flex items-center justify-end gap-2">
-          {iConfirmed && !deal.completedAt ? (
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              disabled={pending}
-              onClick={() => onUnconfirmComplete()}
-            >
-              Undo
-            </button>
-          ) : null}
-          <button
-            type="button"
-            className="btn btn-primary btn-sm gap-2"
-            disabled={pending || !!deal.completedAt || iConfirmed}
-            onClick={() => onConfirmComplete()}
-          >
-            {pending ? (
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-            ) : (
-              <Check className="h-4 w-4" aria-hidden />
-            )}
-            {completeText}
-          </button>
-        </div>
       </div>
     </div>
   );
