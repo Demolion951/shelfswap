@@ -50,7 +50,9 @@ export function ActivityBellButton({ unreadCount }: Props) {
       }
     >
       {badge ? (
-        <span className="indicator-item badge badge-primary badge-sm min-w-[1.25rem] px-1">{badge}</span>
+        <span className="indicator-item badge badge-primary badge-xs min-h-[1rem] min-w-[1rem] px-0.5 py-0 text-[0.65rem] leading-none">
+          {badge}
+        </span>
       ) : null}
       <Bell className="h-5 w-5" strokeWidth={activityActive ? 2.25 : 1.75} aria-hidden />
     </button>

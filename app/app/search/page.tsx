@@ -17,7 +17,6 @@ export default async function SearchPage({ searchParams }: Props) {
     <div className="space-y-5 pt-2">
       <div>
         <h1 className="shelfswap-heading text-2xl font-semibold text-primary">Search</h1>
-        <p className="text-sm text-base-content/60">Title, author, or ISBN</p>
       </div>
 
       <Suspense
@@ -30,7 +29,7 @@ export default async function SearchPage({ searchParams }: Props) {
 
       {!query ? (
         <p className="text-center text-sm text-base-content/55 py-8">
-          Type to search the shelf.
+          Find books nearby.
         </p>
       ) : results.length === 0 ? (
         <div className="card bg-base-100 border border-base-300/60">

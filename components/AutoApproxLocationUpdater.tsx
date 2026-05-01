@@ -1,14 +1,15 @@
 "use client";
 
 /**
- * Passive rough-location updater for the authenticated app shell.
- * If location permission is already granted, refresh the saved rough area in the background.
- * If permission isn't granted, show a small opt-in banner (no repeated nagging).
+ * Rough-location updater for the authenticated app shell.
+ * If geolocation is already allowed, refreshes approx coordinates on app load and when the tab/app
+ * becomes visible again (throttled). Browsers still require a prior grant — first-time users see
+ * an opt-in banner so we can trigger the permission prompt from a tap (“Enable”).
  * Location: components/AutoApproxLocationUpdater.tsx
  */
 import { setMyApproxLocationAction } from "@/app/app/profile/location-actions";
 import { Loader2, MapPin } from "lucide-react";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 type PermissionStateLike = "granted" | "prompt" | "denied";
 
@@ -70,6 +71,9 @@ async function getGeoPermissionState(): Promise<PermissionStateLike | null> {
   }
 }
 
+/** Minimum time between automatic server syncs (Strict Mode + rapid visibility events). */
+const AUTO_SYNC_THROTTLE_MS = 45_000;
+
 function getCoarseCoords(): Promise<{ lat: number; lng: number } | null> {
   return new Promise((resolve) => {
     if (!navigator.geolocation) return resolve(null);
@@ -91,13 +95,13 @@ export function AutoApproxLocationUpdater() {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
+  const syncInFlight = useRef(false);
   /** Avoid SSR vs client mismatch: navigator / geolocation only exist in the browser. */
   const [mounted, setMounted] = useState(false);
 
-  const shouldAttemptAutoSync = useMemo(() => {
+  /** Used only for the opt-in banner: don’t re-prompt constantly after a recent sync attempt. */
+  const shouldOfferBannerByCooldown = useMemo(() => {
     const last = readNumber(LS_LAST_SYNC) ?? 0;
-    // If permission is already granted, a coarse refresh is silent.
-    // Keep it fairly fresh so returning users don't get stuck on an old area.
     return nowMs() - last > 6 * 60 * 60 * 1000; // 6 hours
   }, []);
 
@@ -110,28 +114,43 @@ export function AutoApproxLocationUpdater() {
     return () => window.clearTimeout(id);
   }, []);
 
+  /** While permission is granted, sync on load and when returning to the app (throttled). */
   useEffect(() => {
-    if (!shouldAttemptAutoSync) return;
     if (perm !== "granted") return;
-    // Silent refresh if permission is already granted.
-    startTransition(async () => {
-      const coords = await getCoarseCoords();
-      if (!coords) return;
-      const lastLat = readNumber(LS_LAST_LAT);
-      const lastLng = readNumber(LS_LAST_LNG);
-      const moved =
-        lastLat == null ||
-        lastLng == null ||
-        Math.abs(coords.lat - lastLat) >= 0.02 ||
-        Math.abs(coords.lng - lastLng) >= 0.02;
-      if (!moved && !shouldAttemptAutoSync) return;
-      const res = await setMyApproxLocationAction(coords.lat, coords.lng);
-      if (!res.ok) return;
-      writeNumber(LS_LAST_SYNC, nowMs());
-      writeNumber(LS_LAST_LAT, coords.lat);
-      writeNumber(LS_LAST_LNG, coords.lng);
-    });
-  }, [perm, shouldAttemptAutoSync]);
+
+    function shouldThrottle(): boolean {
+      const last = readNumber(LS_LAST_SYNC) ?? 0;
+      return nowMs() - last < AUTO_SYNC_THROTTLE_MS;
+    }
+
+    function runSilentSync() {
+      if (syncInFlight.current || shouldThrottle()) return;
+      syncInFlight.current = true;
+      startTransition(async () => {
+        try {
+          if (shouldThrottle()) return;
+          const coords = await getCoarseCoords();
+          if (!coords) return;
+          const res = await setMyApproxLocationAction(coords.lat, coords.lng);
+          if (!res.ok) return;
+          writeNumber(LS_LAST_SYNC, nowMs());
+          writeNumber(LS_LAST_LAT, coords.lat);
+          writeNumber(LS_LAST_LNG, coords.lng);
+        } finally {
+          syncInFlight.current = false;
+        }
+      });
+    }
+
+    runSilentSync();
+
+    const onVisibility = () => {
+      if (document.visibilityState !== "visible") return;
+      runSilentSync();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [perm]);
 
   function onEnable() {
     setError(null);
@@ -163,7 +182,7 @@ export function AutoApproxLocationUpdater() {
   const showBanner =
     mounted &&
     !dismissed &&
-    shouldAttemptAutoSync &&
+    shouldOfferBannerByCooldown &&
     (perm === "prompt" || perm === null) &&
     typeof navigator !== "undefined" &&
     !!navigator.geolocation;

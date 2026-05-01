@@ -54,12 +54,7 @@ export default async function ProfilePage() {
 
       <div className="card bg-base-100 border border-base-300/80 shadow-sm">
         <ul className="divide-y divide-base-300/60">
-          <SettingsRow
-            href="/app/profile/settings"
-            Icon={Settings2}
-            title="App settings"
-            description="Profile photo, password link, and shortcuts"
-          />
+          <SettingsRow href="/app/profile/settings" Icon={Settings2} title="App settings" />
         </ul>
       </div>
 
@@ -78,7 +73,6 @@ export default async function ProfilePage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-primary">
                   Wallet
                 </p>
-                <p className="text-xs text-base-content/55">Credits</p>
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-1">
@@ -108,7 +102,6 @@ export default async function ProfilePage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-secondary">
                   Listings
                 </p>
-                <p className="text-xs text-base-content/55">Yours</p>
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-1">
@@ -134,7 +127,6 @@ export default async function ProfilePage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-error">
                   Saved
                 </p>
-                <p className="text-xs text-base-content/55">Bookmarks</p>
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-1">

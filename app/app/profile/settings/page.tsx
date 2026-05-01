@@ -4,15 +4,10 @@ import { SettingsRow } from "@/components/SettingsRow";
 import { createClient } from "@/lib/supabase/server";
 import {
   ArrowLeft,
-  Bell,
-  BookMarked,
-  CreditCard,
   FileText,
-  Heart,
   KeyRound,
   ListOrdered,
   Mail,
-  MessageCircle,
   Scale,
   Settings2,
   Shield,
@@ -22,7 +17,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 /**
- * App settings entry from the header gear (placeholders until preferences ship).
+ * App settings: account, change password, help & legal. Opened from Profile → App settings.
  * Location: app/app/profile/settings/page.tsx
  */
 export default async function ProfileSettingsPage() {
@@ -69,18 +64,6 @@ export default async function ProfileSettingsPage() {
             </p>
             <p className="text-xs text-base-content/50 truncate">{user.email}</p>
           </div>
-        </div>
-      </div>
-
-      <div className="card bg-base-100 border border-base-300/80 shadow-sm">
-        <div className="card-body p-0">
-          <ul className="divide-y divide-base-300/60">
-            <SettingsRow href="/app/credits" Icon={CreditCard} title="Wallet" />
-            <SettingsRow href="/app/profile/listings" Icon={BookMarked} title="Your listings" />
-            <SettingsRow href="/app/profile/saved" Icon={Heart} title="Saved" />
-            <SettingsRow href="/app/messages" Icon={MessageCircle} title="Messages" />
-            <SettingsRow href="/app/activity" Icon={Bell} title="Activity" />
-          </ul>
         </div>
       </div>
 
