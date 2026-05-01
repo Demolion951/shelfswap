@@ -27,21 +27,29 @@ export function sortListingsByDistanceThenRecency<
 
 /**
  * Batch km from current user profile to listings (PostGIS). Null if either side has no point.
+ * Pass `viewerUserId` when the caller already resolved auth to skip an extra `getUser()` round trip.
  * Location: lib/listings/distance.ts
  */
 export async function attachDistanceKmToListings(
   listings: ListingWithRelations[],
+  viewerUserId?: string | null,
 ): Promise<(ListingWithRelations & { distance_km: number | null })[]> {
   if (listings.length === 0) {
     return [];
   }
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let userId: string | null;
+  if (viewerUserId === undefined) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    userId = user?.id ?? null;
+  } else {
+    userId = viewerUserId;
+  }
 
-  if (!user) {
+  if (!userId) {
     return listings.map((l) => ({ ...l, distance_km: null }));
   }
 
@@ -75,12 +83,19 @@ export async function attachDistanceKmToListings(
 
 export async function fetchDistanceKmForListing(
   listingId: string,
+  viewerUserId?: string | null,
 ): Promise<number | null> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  let userId: string | null;
+  if (viewerUserId === undefined) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    userId = user?.id ?? null;
+  } else {
+    userId = viewerUserId;
+  }
+  if (!userId) return null;
 
   const { data, error } = await supabase.rpc("listing_distances_km", {
     p_listing_ids: [listingId],

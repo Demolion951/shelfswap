@@ -16,15 +16,16 @@ type Props = { params: Promise<{ id: string }> };
 
 export default async function ListingPage({ params }: Props) {
   const { id } = await params;
-  const listing = await fetchListingById(id);
+  const supabase = await createClient();
+  const [listing, authRes] = await Promise.all([
+    fetchListingById(id),
+    supabase.auth.getUser(),
+  ]);
   if (!listing || listing.status !== "active") {
     notFound();
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = authRes.data.user;
   const isOwner = !!user && user.id === listing.user_id;
   const isSignedIn = !!user;
 
@@ -46,31 +47,37 @@ export default async function ListingPage({ params }: Props) {
   } | null = null;
   let buyerOfferOptions: Array<{ id: string; title: string }> = [];
   if (user) {
-    const { data: prof } = await supabase
-      .from("profiles")
-      .select("credit_balance, held_credits")
-      .eq("id", user.id)
-      .maybeSingle();
+    const [expRes, profRes, unlockRes, saveRes] = await Promise.all([
+      supabase.rpc("expire_listing_unlock_requests", { p_listing_id: id }),
+      supabase
+        .from("profiles")
+        .select("credit_balance, held_credits")
+        .eq("id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("listing_unlocks")
+        .select("id")
+        .eq("buyer_id", user.id)
+        .eq("listing_id", id)
+        .maybeSingle(),
+      supabase
+        .from("saved_listings")
+        .select("listing_id")
+        .eq("user_id", user.id)
+        .eq("listing_id", id)
+        .maybeSingle(),
+    ]);
+    if (expRes.error) {
+      console.warn("[ListingPage] expire_listing_unlock_requests", expRes.error.message);
+    }
+    const prof = profRes.data;
     const bal = prof?.credit_balance;
     creditBalance = typeof bal === "number" ? bal : Number(bal ?? 0) || 0;
-    const held = (prof as any)?.held_credits;
+    const held = (prof as { held_credits?: unknown } | null)?.held_credits;
     heldCredits = typeof held === "number" ? held : Number(held ?? 0) || 0;
 
-    // Best-effort: release expired holds for this listing (works for buyer or seller).
-    const { error: expErr } = await supabase.rpc("expire_listing_unlock_requests", {
-      p_listing_id: id,
-    });
-    if (expErr) {
-      console.warn("[ListingPage] expire_listing_unlock_requests", expErr.message);
-    }
-
-    const { data: unlockRow } = await supabase
-      .from("listing_unlocks")
-      .select("id")
-      .eq("buyer_id", user.id)
-      .eq("listing_id", id)
-      .maybeSingle();
-    viewerUnlocked = !!unlockRow;
+    viewerUnlocked = !!unlockRes.data;
+    viewerSaved = !!saveRes.data;
 
     if (!viewerUnlocked && !isOwner) {
       const { data: reqRow } = await supabase
@@ -82,14 +89,6 @@ export default async function ListingPage({ params }: Props) {
         .maybeSingle();
       viewerPendingUnlock = !!reqRow;
     }
-
-    const { data: saveRow } = await supabase
-      .from("saved_listings")
-      .select("listing_id")
-      .eq("user_id", user.id)
-      .eq("listing_id", id)
-      .maybeSingle();
-    viewerSaved = !!saveRow;
   }
 
   // Deal state: once unlocked, there should be only one buyer per listing.
@@ -193,16 +192,8 @@ export default async function ListingPage({ params }: Props) {
     }));
   }
 
-  let messages: ListingMessageRow[] = [];
-  let distanceKm: number | null = null;
-  const blurb = listing.isbn ? await fetchOpenLibraryBlurbByIsbn(listing.isbn) : null;
-  if (isOwner || viewerUnlocked) {
-    messages = await fetchListingMessagesIfAllowed(id);
-  }
-
-  // Distance needs listings.approx_geo *and* viewer profiles.approx_location. Older listings
-  // may lack geo if the seller had no profile area at post time — copy when they open the page.
-  if (isOwner && user) {
+  async function copyListingGeoFromProfileIfNeeded(): Promise<void> {
+    if (!(isOwner && user)) return;
     const { data: geoRow } = await supabase
       .from("listings")
       .select("approx_geo")
@@ -219,19 +210,24 @@ export default async function ListingPage({ params }: Props) {
       }
       return false;
     })();
-    if (missingGeo) {
-      const { error: copyErr } = await supabase.rpc("copy_listing_geo_from_profile", {
-        p_listing_id: id,
-      });
-      if (copyErr) {
-        console.warn("[ListingPage] copy_listing_geo_from_profile", copyErr.message);
-      }
+    if (!missingGeo) return;
+    const { error: copyErr } = await supabase.rpc("copy_listing_geo_from_profile", {
+      p_listing_id: id,
+    });
+    if (copyErr) {
+      console.warn("[ListingPage] copy_listing_geo_from_profile", copyErr.message);
     }
   }
 
-  if (!isOwner) {
-    distanceKm = await fetchDistanceKmForListing(id);
-  }
+  // Distance needs listings.approx_geo *and* viewer profiles.approx_location; blurbs/messages are independent.
+  const [blurb, messages, , distanceKm] = await Promise.all([
+    listing.isbn ? fetchOpenLibraryBlurbByIsbn(listing.isbn) : Promise.resolve(null),
+    isOwner || viewerUnlocked
+      ? fetchListingMessagesIfAllowed(id)
+      : Promise.resolve([] as ListingMessageRow[]),
+    copyListingGeoFromProfileIfNeeded(),
+    !isOwner ? fetchDistanceKmForListing(id, user?.id ?? null) : Promise.resolve(null),
+  ]);
 
   return (
     <ListingDetailView

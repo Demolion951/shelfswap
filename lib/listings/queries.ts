@@ -213,8 +213,9 @@ export async function searchListingsByText(
   const safe = q.trim().replace(/[^\w\s-]/g, "").trim();
   if (!safe) return [] as ListingWithRelations[];
 
-  // Type-ahead UX: for short queries, full-text search can feel too strict.
-  // Use ILIKE to support partial matches; keep full-text for longer queries.
+  // Type-ahead UX: full-text search matches whole words only; partial tokens like "Fift" won't hit
+  // "Fifty". Use ILIKE for shorter queries so substring matches work (pg_trgm indexes back this).
+  // Switch to full-text for longer phrases where ranking / multi-word behavior matters more.
   const qLen = safe.replace(/\s+/g, " ").length;
   const like = `%${safe}%`;
 
@@ -243,11 +244,11 @@ export async function searchListingsByText(
 
   const res = await withUnlockCreditsRetry(
     () =>
-      qLen < 4
+      qLen < 8
         ? runIlike(listingSelectWithUnlockCredits)
         : runText(listingSelectWithUnlockCredits),
     () =>
-      qLen < 4
+      qLen < 8
         ? runIlike(listingSelectNoUnlockCredits)
         : runText(listingSelectNoUnlockCredits),
   );

@@ -166,6 +166,7 @@ export function ListingCard({ listing, variant = "grid", compact = false }: Prop
 
   return (
     <Link
+      prefetch
       href={`/app/listings/${listing.id}`}
       className={
         variant === "row"

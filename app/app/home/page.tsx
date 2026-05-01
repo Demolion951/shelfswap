@@ -9,16 +9,18 @@ import { recommendListingsForUser } from "@/lib/listings/recommendations";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function HomePage() {
+  const supabase = await createClient();
+  const [recent, authRes] = await Promise.all([
+    fetchRecentListings(60),
+    supabase.auth.getUser(),
+  ]);
+  const user = authRes.data.user;
+
   // Nearest-first among the latest listings (signed-in + rough areas); falls back to newest-only when no km.
   const all = sortListingsByDistanceThenRecency(
-    await attachDistanceKmToListings(await fetchRecentListings(60)),
+    await attachDistanceKmToListings(recent, user?.id ?? null),
   );
   const newListings = all.slice(0, 12);
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   const excludeNew = new Set(newListings.map((l) => l.id));
   const notInNew = all.filter((l) => !excludeNew.has(l.id));

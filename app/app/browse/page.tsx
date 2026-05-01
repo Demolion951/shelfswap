@@ -4,6 +4,7 @@ import {
   sortListingsByDistanceThenRecency,
 } from "@/lib/listings/distance";
 import { fetchRecentListings } from "@/lib/listings/queries";
+import { createClient } from "@/lib/supabase/server";
 
 /**
  * Browse page: non-swipe discovery with instant client-side Gallery/List toggle.
@@ -16,8 +17,13 @@ export default async function BrowsePage({
 }) {
   const sp = await searchParams;
   const initialView = sp.view === "list" ? "list" : "gallery";
+  const supabase = await createClient();
+  const [recent, authRes] = await Promise.all([
+    fetchRecentListings(120),
+    supabase.auth.getUser(),
+  ]);
   const all = sortListingsByDistanceThenRecency(
-    await attachDistanceKmToListings(await fetchRecentListings(120)),
+    await attachDistanceKmToListings(recent, authRes.data.user?.id ?? null),
   );
 
   return (
