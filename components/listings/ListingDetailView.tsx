@@ -46,6 +46,8 @@ type Props = {
   messages: ListingMessageRow[];
   distanceKm: number | null;
   blurb: OpenLibraryBlurb | null;
+  /** True when unlock is live but DB has not yet debited credits (until seller’s first message). */
+  creditsPendingSellerReply?: boolean;
 };
 
 function sortPhotos(listing: ListingWithRelations) {
@@ -69,6 +71,7 @@ export function ListingDetailView({
   messages,
   distanceKm,
   blurb,
+  creditsPendingSellerReply = false,
 }: Props) {
   const photos = sortPhotos(listing);
   const seller = listing.profiles?.display_name?.trim() || "member";
@@ -253,9 +256,15 @@ export function ListingDetailView({
           <div className="card-body gap-4">
             <h2 className="shelfswap-heading text-lg font-semibold text-primary">Messages</h2>
             {!isOwner ? (
-              <div className="alert alert-success text-sm py-2">
-                You&apos;ve unlocked this listing — chat below to arrange handoff.
-              </div>
+              creditsPendingSellerReply ? (
+                <div className="alert alert-info text-sm py-2">
+                  You can message below. Credits are charged when the seller sends their first reply.
+                </div>
+              ) : (
+                <div className="alert alert-success text-sm py-2">
+                  You&apos;ve unlocked this listing — chat below to arrange handoff.
+                </div>
+              )
             ) : null}
             <ListingMessagesThread
               listingId={listing.id}

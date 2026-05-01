@@ -16,7 +16,7 @@ type RpcPayload = {
 };
 
 /**
- * Spend credits to unlock a listing (DB RPC: debit + listing_unlocks row).
+ * Unlock flow: request hold / respond accept (RPC). Credits debit when seller sends first message (DB trigger).
  * Location: app/app/listings/actions.ts
  */
 export async function unlockListingAction(listingId: string): Promise<UnlockListingResult> {

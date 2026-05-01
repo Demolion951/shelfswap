@@ -1,3 +1,4 @@
+import { LocalDateTimeText } from "@/components/messages/LocalDateTimeText";
 import { coverImageSrcForDisplay } from "@/lib/books/openLibraryCoverDisplay";
 import type { InboxThread } from "@/lib/messages/inbox";
 import Link from "next/link";
@@ -27,13 +28,6 @@ export function MessagesInboxList({ threads }: Props) {
     <ul className="flex flex-col gap-2">
       {threads.map((t) => {
         const thumbRaw = t.coverUrl ? coverImageSrcForDisplay(t.coverUrl) ?? t.coverUrl : null;
-        const when = new Date(t.lastActivityAt).toLocaleString(undefined, {
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-
         return (
           <li key={`${t.role}-${t.listingId}`}>
             <Link
@@ -85,7 +79,10 @@ export function MessagesInboxList({ threads }: Props) {
                   ) : (
                     <p className="mt-1 text-xs italic text-base-content/45">No messages yet</p>
                   )}
-                  <p className="mt-1 text-[10px] text-base-content/40">{when}</p>
+                  <LocalDateTimeText
+                    iso={t.lastActivityAt}
+                    className="mt-1 block text-[10px] text-base-content/40"
+                  />
                 </div>
               </div>
             </Link>

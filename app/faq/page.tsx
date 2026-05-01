@@ -39,8 +39,9 @@ export default function FaqPage() {
       <h2>What happens when I request an unlock?</h2>
       <p>
         Your credits are <strong>held</strong> until the seller accepts or declines, or until the request
-        expires. If the seller accepts, the hold becomes a spend. If they decline or the request expires,
-        held credits are released back to your available balance.
+        expires. If the seller accepts, you can message straight away; credits are charged when they send
+        their first reply. If they decline or the request expires, held credits are released back to your
+        available balance.
       </p>
 
       <h2>Can more than one buyer unlock the same listing?</h2>

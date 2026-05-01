@@ -46,6 +46,7 @@ export default async function ListingPage({ params }: Props) {
     completedAt: string | null;
   } | null = null;
   let buyerOfferOptions: Array<{ id: string; title: string }> = [];
+  let creditsPendingSellerReply = false;
   if (user) {
     const [expRes, profRes, unlockRes, saveRes] = await Promise.all([
       supabase.rpc("expire_listing_unlock_requests", { p_listing_id: id }),
@@ -56,7 +57,7 @@ export default async function ListingPage({ params }: Props) {
         .maybeSingle(),
       supabase
         .from("listing_unlocks")
-        .select("id")
+        .select("id, balance_captured_at")
         .eq("buyer_id", user.id)
         .eq("listing_id", id)
         .maybeSingle(),
@@ -78,6 +79,15 @@ export default async function ListingPage({ params }: Props) {
 
     viewerUnlocked = !!unlockRes.data;
     viewerSaved = !!saveRes.data;
+    const unlockMeta = unlockRes.data as {
+      id?: string;
+      balance_captured_at?: string | null;
+    } | null;
+    creditsPendingSellerReply =
+      !!viewerUnlocked &&
+      !isOwner &&
+      !!unlockMeta &&
+      unlockMeta.balance_captured_at == null;
 
     if (!viewerUnlocked && !isOwner) {
       const { data: reqRow } = await supabase
@@ -246,6 +256,7 @@ export default async function ListingPage({ params }: Props) {
       distanceKm={distanceKm}
       blurb={blurb}
       viewerSaved={viewerSaved}
+      creditsPendingSellerReply={creditsPendingSellerReply}
     />
   );
 }

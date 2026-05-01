@@ -92,7 +92,8 @@ export function UnlockRequestsPanel({ listingId, requests }: Props) {
           ))}
         </ul>
         <p className="text-[11px] text-base-content/50">
-          Accepting captures credits and unlocks chat. If you decline, the buyer’s held credits are released.
+          Accepting unlocks chat. The buyer&apos;s credits are charged when you send your first reply. If you
+          decline, their held credits are released.
         </p>
       </div>
     </div>
