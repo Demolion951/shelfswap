@@ -101,7 +101,7 @@ export default async function ListingPage({ params }: Props) {
     }
   }
 
-  // Deal state: once unlocked, there should be only one buyer per listing.
+  // Deal state: only after listing_unlocks exists (not during pending request-only phase).
   if ((isOwner || viewerUnlocked) && user) {
     if (isOwner) {
       const { data: u } = await supabase
@@ -232,7 +232,7 @@ export default async function ListingPage({ params }: Props) {
   // Distance needs listings.approx_geo *and* viewer profiles.approx_location; blurbs/messages are independent.
   const [blurb, messages, , distanceKm] = await Promise.all([
     listing.isbn ? fetchOpenLibraryBlurbByIsbn(listing.isbn) : Promise.resolve(null),
-    isOwner || viewerUnlocked
+    isOwner || viewerUnlocked || viewerPendingUnlock
       ? fetchListingMessagesIfAllowed(id)
       : Promise.resolve([] as ListingMessageRow[]),
     copyListingGeoFromProfileIfNeeded(),

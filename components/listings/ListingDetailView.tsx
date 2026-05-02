@@ -224,7 +224,7 @@ export function ListingDetailView({
 
       {blurb ? <BookBlurb text={blurb.text} /> : null}
 
-      {isOwner || viewerUnlocked ? (
+      {isOwner || viewerUnlocked || viewerPendingUnlock ? (
         <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
           <p className="text-sm text-base-content/60 min-w-0">
             Listed by <span className="font-medium text-base-content">@{seller}</span>
@@ -237,7 +237,7 @@ export function ListingDetailView({
         <p className="text-sm text-base-content/50">Seller name hidden until unlock</p>
       )}
 
-      {isOwner || viewerUnlocked ? (
+      {isOwner || viewerUnlocked || viewerPendingUnlock ? (
         <>
           {isOwner ? (
             <UnlockRequestsPanel listingId={listing.id} requests={pendingRequestsForSeller} />
@@ -256,7 +256,11 @@ export function ListingDetailView({
           <div className="card-body gap-4">
             <h2 className="shelfswap-heading text-lg font-semibold text-primary">Messages</h2>
             {!isOwner ? (
-              creditsPendingSellerReply ? (
+              viewerPendingUnlock && !viewerUnlocked ? (
+                <div className="alert alert-info text-sm py-2">
+                  Message below — when the seller replies, your request is accepted and credits are charged.
+                </div>
+              ) : creditsPendingSellerReply ? (
                 <div className="alert alert-info text-sm py-2">
                   You can message below. Credits are charged when the seller sends their first reply.
                 </div>

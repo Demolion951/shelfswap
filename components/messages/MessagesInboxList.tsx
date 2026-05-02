@@ -17,8 +17,7 @@ export function MessagesInboxList({ threads }: Props) {
       <div className="rounded-xl border border-base-300/80 bg-base-100 p-6 text-center text-sm text-base-content/60">
         <p className="mb-1 font-medium text-base-content">No conversations yet</p>
         <p>
-          Unlock a listing to message a seller, or wait for buyers on your listings — threads will
-          show up here.
+        Request unlock or wait for buyers — conversations appear here once there&apos;s activity.
         </p>
       </div>
     );

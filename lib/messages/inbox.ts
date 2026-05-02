@@ -35,6 +35,16 @@ export async function fetchInboxThreads(userId: string): Promise<InboxThread[]> 
     console.error("[fetchInboxThreads] listing_unlocks", uErr.message);
   }
 
+  const { data: pendingBuyerReqs, error: pbErr } = await supabase
+    .from("listing_unlock_requests")
+    .select("listing_id, created_at")
+    .eq("buyer_id", userId)
+    .eq("status", "pending");
+
+  if (pbErr) {
+    console.error("[fetchInboxThreads] listing_unlock_requests buyer", pbErr.message);
+  }
+
   const { data: ownedRows, error: oErr } = await supabase
     .from("listings")
     .select("id, title, cover_url, author, created_at")
@@ -54,12 +64,21 @@ export async function fetchInboxThreads(userId: string): Promise<InboxThread[]> 
       .select("listing_id")
       .in("listing_id", ownedIds);
 
+    const { data: pendingOnOwned } = await supabase
+      .from("listing_unlock_requests")
+      .select("listing_id")
+      .in("listing_id", ownedIds)
+      .eq("status", "pending");
+
     const { data: msgsOnOwned } = await supabase
       .from("listing_messages")
       .select("listing_id")
       .in("listing_id", ownedIds);
 
     for (const r of unlocksOnOwned ?? []) {
+      sellerActiveListingIds.add(r.listing_id as string);
+    }
+    for (const r of pendingOnOwned ?? []) {
       sellerActiveListingIds.add(r.listing_id as string);
     }
     for (const r of msgsOnOwned ?? []) {
@@ -69,12 +88,27 @@ export async function fetchInboxThreads(userId: string): Promise<InboxThread[]> 
 
   const acc: ThreadAcc[] = [];
 
+  const buyerListingSeen = new Set<string>();
   for (const r of unlockRows ?? []) {
+    const lid = r.listing_id as string;
+    buyerListingSeen.add(lid);
     acc.push({
-      listingId: r.listing_id as string,
+      listingId: lid,
       role: "buyer",
       sortFallback: r.created_at as string,
       unlockCount: 1,
+    });
+  }
+
+  for (const r of pendingBuyerReqs ?? []) {
+    const lid = r.listing_id as string;
+    if (buyerListingSeen.has(lid)) continue;
+    buyerListingSeen.add(lid);
+    acc.push({
+      listingId: lid,
+      role: "buyer",
+      sortFallback: r.created_at as string,
+      unlockCount: 0,
     });
   }
 

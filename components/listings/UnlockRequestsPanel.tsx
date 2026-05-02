@@ -1,11 +1,11 @@
 "use client";
 
 /**
- * Seller-side panel to accept/decline pending unlock requests.
+ * Seller-side panel for pending unlock requests: decline or reply in Messages to accept (FIFO).
  * Location: components/listings/UnlockRequestsPanel.tsx
  */
 import { respondUnlockHoldAction } from "@/app/app/listings/actions";
-import { Check, Loader2, X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
@@ -70,15 +70,6 @@ export function UnlockRequestsPanel({ listingId, requests }: Props) {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    className="btn btn-primary btn-sm gap-1"
-                    disabled={pending}
-                    onClick={() => onRespond(r.id, true)}
-                  >
-                    {pending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
-                    Accept
-                  </button>
-                  <button
-                    type="button"
                     className="btn btn-ghost btn-sm gap-1"
                     disabled={pending}
                     onClick={() => onRespond(r.id, false)}
@@ -92,8 +83,7 @@ export function UnlockRequestsPanel({ listingId, requests }: Props) {
           ))}
         </ul>
         <p className="text-[11px] text-base-content/50">
-          Accepting unlocks chat. The buyer&apos;s credits are charged when you send your first reply. If you
-          decline, their held credits are released.
+          Reply in Messages to accept and charge credits — or decline here to release their hold.
         </p>
       </div>
     </div>

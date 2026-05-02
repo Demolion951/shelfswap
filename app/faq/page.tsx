@@ -38,10 +38,10 @@ export default function FaqPage() {
 
       <h2>What happens when I request an unlock?</h2>
       <p>
-        Your credits are <strong>held</strong> until the seller accepts or declines, or until the request
-        expires. If the seller accepts, you can message straight away; credits are charged when they send
-        their first reply. If they decline or the request expires, held credits are released back to your
-        available balance.
+        Your credits are <strong>held</strong> until the seller engages or the request expires. You can
+        message as soon as you&apos;ve requested — when the seller sends their first reply, that counts as
+        accepting your request and your credits are charged. The seller can also decline to release your
+        hold without messaging.
       </p>
 
       <h2>Can more than one buyer unlock the same listing?</h2>

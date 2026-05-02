@@ -112,11 +112,11 @@ export function ListingUnlockPanel({
             </h2>
             <p className="text-sm text-base-content/65">
               {pendingRequest
-                ? "We’ll hold credits until the seller accepts or the request expires (24h). After they accept, you can chat; credits are charged when they reply."
+                ? "Credits stay held until the seller replies (that accepts you and charges) or they decline / the request expires (24h). You can message below straight away."
                 : (
                     <>
-                      Credits are held until the seller accepts. After that, they&apos;re charged when the
-                      seller sends their first message. You have{" "}
+                      Request chat — after that you can message before the seller replies; credits charge when
+                      they reply. You have{" "}
                       <span className="font-medium text-base-content">{available}</span>{" "}
                       available credits.
                     </>
