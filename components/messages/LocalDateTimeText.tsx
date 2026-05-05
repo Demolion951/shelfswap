@@ -1,7 +1,8 @@
 "use client";
 
 /**
- * Formats an ISO timestamp in the viewer's local timezone (fixes SSR UTC drift on the inbox).
+ * Formats an ISO timestamp in the viewer’s local timezone (avoids server-rendered UTC drift).
+ * Use for inbox rows, listing threads, and Activity feed timestamps so times stay aligned.
  * Location: components/messages/LocalDateTimeText.tsx
  */
 export function LocalDateTimeText({

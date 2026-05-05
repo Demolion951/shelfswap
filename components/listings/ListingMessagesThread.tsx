@@ -5,6 +5,7 @@
  * Location: components/listings/ListingMessagesThread.tsx
  */
 import { sendListingMessageAction } from "@/app/app/listings/private-actions";
+import { LocalDateTimeText } from "@/components/messages/LocalDateTimeText";
 import type { ListingMessageRow } from "@/lib/listings/queries";
 import { Loader2, Send } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -64,14 +65,7 @@ export function ListingMessagesThread({ listingId, messages, currentUserId }: Pr
               >
                 <div className="chat-header text-[10px] opacity-70">
                   {mine ? "You" : m.sender_display_name}
-                  <time className="ml-1 opacity-60">
-                    {new Date(m.created_at).toLocaleString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </time>
+                  <LocalDateTimeText iso={m.created_at} className="ml-1 opacity-60 inline" />
                 </div>
                 <div
                   className={`chat-bubble text-sm ${

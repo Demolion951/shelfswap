@@ -1,5 +1,6 @@
+import { LocalDateTimeText } from "@/components/messages/LocalDateTimeText";
 import { createClient } from "@/lib/supabase/server";
-import { Bell, Gift, Library, Lock, MessageCircle, Sparkles, Timer } from "lucide-react";
+import { Bell, Gift, Library, Lock, MessageCircle, Shuffle, Sparkles, Timer } from "lucide-react";
 import Link from "next/link";
 
 type EventRow = {
@@ -65,6 +66,17 @@ type TimelineItem =
       listingId: string;
       outcome: "accepted" | "declined";
       credits: number;
+      wasUnread: boolean;
+    }
+  | {
+      key: string;
+      createdAt: string;
+      kind: "swap_offer_decision";
+      listingId: string;
+      outcome: "accepted" | "declined";
+      offeredListingId: string | null;
+      listingTitleHint: string | null;
+      offeredTitleHint: string | null;
       wasUnread: boolean;
     }
   | {
@@ -185,6 +197,11 @@ export default async function ActivityPage() {
   }
   for (const n of (notifRows ?? []) as NotifRow[]) {
     if (n.listing_id) listingIdSet.add(n.listing_id);
+    if (n.type === "swap_accepted" || n.type === "swap_declined") {
+      const sp = (n.payload ?? {}) as Record<string, unknown>;
+      const oid = sp.offered_listing_id;
+      if (typeof oid === "string" && oid.length > 0) listingIdSet.add(oid);
+    }
   }
 
   const listingIds = [...listingIdSet];
@@ -245,6 +262,25 @@ export default async function ActivityPage() {
   for (const n of (notifRows ?? []) as NotifRow[]) {
     if (!n.listing_id) continue;
     const payload = (n.payload ?? {}) as Record<string, unknown>;
+    if (n.type === "swap_accepted" || n.type === "swap_declined") {
+      const oid = payload.offered_listing_id;
+      const offeredListingId =
+        typeof oid === "string" ? oid : oid != null ? String(oid) : null;
+      const lt = payload.listing_title;
+      const ot = payload.offered_title;
+      items.push({
+        key: `notif-swap-${n.id}`,
+        createdAt: n.created_at,
+        kind: "swap_offer_decision",
+        listingId: n.listing_id,
+        outcome: n.type === "swap_accepted" ? "accepted" : "declined",
+        offeredListingId,
+        listingTitleHint: typeof lt === "string" ? lt : null,
+        offeredTitleHint: typeof ot === "string" ? ot : null,
+        wasUnread: n.read_at == null,
+      });
+      continue;
+    }
     if (n.type === "conversation_started") {
       items.push({
         key: `notif-${n.id}`,
@@ -385,13 +421,6 @@ export default async function ActivityPage() {
       </div>
       <ul className="space-y-2">
         {items.map((item) => {
-          const when = new Date(item.createdAt).toLocaleString(undefined, {
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-
           if (item.kind === "buyer_unlock") {
             const title = listingTitle(item.listingId, titleById, null);
             return (
@@ -406,7 +435,9 @@ export default async function ActivityPage() {
                           <span className="font-medium">{title}</span> for{" "}
                           {item.credits} credit{item.credits === 1 ? "" : "s"}.
                         </p>
-                        <p className="text-xs text-base-content/50 mt-1">{when}</p>
+                        <p className="text-xs text-base-content/50 mt-1">
+                          <LocalDateTimeText iso={item.createdAt} />
+                        </p>
                         <Link
                           href={`/app/listings/${item.listingId}`}
                           className="link link-primary text-xs mt-2 inline-block"
@@ -435,7 +466,9 @@ export default async function ActivityPage() {
                           <span className="font-medium">{title}</span> ({item.credits} credit
                           {item.credits === 1 ? "" : "s"}).
                         </p>
-                        <p className="text-xs text-base-content/50 mt-1">{when}</p>
+                        <p className="text-xs text-base-content/50 mt-1">
+                          <LocalDateTimeText iso={item.createdAt} />
+                        </p>
                         <Link
                           href={`/app/listings/${item.listingId}`}
                           className="link link-primary text-xs mt-2 inline-block"
@@ -478,7 +511,9 @@ export default async function ActivityPage() {
                             <span className="badge badge-primary badge-xs">New</span>
                           ) : null}
                         </div>
-                        <p className="text-xs text-base-content/50 mt-1">{when}</p>
+                        <p className="text-xs text-base-content/50 mt-1">
+                          <LocalDateTimeText iso={item.createdAt} />
+                        </p>
                         <Link
                           href={`/app/listings/${item.listingId}`}
                           className="link link-primary text-xs mt-2 inline-block"
@@ -524,13 +559,78 @@ export default async function ActivityPage() {
                             <span className="badge badge-primary badge-xs">New</span>
                           ) : null}
                         </div>
-                        <p className="text-xs text-base-content/50 mt-1">{when}</p>
+                        <p className="text-xs text-base-content/50 mt-1">
+                          <LocalDateTimeText iso={item.createdAt} />
+                        </p>
                         <Link
                           href={`/app/listings/${item.listingId}`}
                           className="link link-primary text-xs mt-2 inline-block"
                         >
                           Open listing
                         </Link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            );
+          }
+
+          if (item.kind === "swap_offer_decision") {
+            const theirs = listingTitle(item.listingId, titleById, item.listingTitleHint);
+            const yours = item.offeredTitleHint?.trim()
+              ? item.offeredTitleHint.trim()
+              : item.offeredListingId
+                ? listingTitle(item.offeredListingId, titleById, null)
+                : "your offered book";
+            return (
+              <li key={item.key}>
+                <div
+                  className={`card card-border bg-base-100 shadow-sm ${
+                    item.wasUnread ? "border-primary/35" : "border-base-300/80"
+                  }`}
+                >
+                  <div className="card-body gap-1 py-4">
+                    <div className="flex items-start gap-2">
+                      <Shuffle
+                        className={`mt-0.5 h-4 w-4 shrink-0 ${
+                          item.outcome === "accepted" ? "text-success" : "text-warning"
+                        }`}
+                        aria-hidden
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm text-base-content">
+                            Swap{" "}
+                            <span className="font-medium">
+                              {item.outcome === "accepted" ? "accepted" : "declined"}
+                            </span>
+                            : their <span className="font-medium">{theirs}</span> for your{" "}
+                            <span className="font-medium">{yours}</span>.
+                          </p>
+                          {item.wasUnread ? (
+                            <span className="badge badge-primary badge-xs">New</span>
+                          ) : null}
+                        </div>
+                        <p className="text-xs text-base-content/50 mt-1">
+                          <LocalDateTimeText iso={item.createdAt} />
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+                          <Link
+                            href={`/app/listings/${item.listingId}`}
+                            className="link link-primary text-xs inline-block"
+                          >
+                            Their listing
+                          </Link>
+                          {item.offeredListingId ? (
+                            <Link
+                              href={`/app/listings/${item.offeredListingId}`}
+                              className="link link-secondary text-xs inline-block"
+                            >
+                              Your offered listing
+                            </Link>
+                          ) : null}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -560,7 +660,9 @@ export default async function ActivityPage() {
                             <span className="badge badge-primary badge-xs">New</span>
                           ) : null}
                         </div>
-                        <p className="text-xs text-base-content/50 mt-1">{when}</p>
+                        <p className="text-xs text-base-content/50 mt-1">
+                          <LocalDateTimeText iso={item.createdAt} />
+                        </p>
                         <Link
                           href={`/app/listings/${item.listingId}`}
                           className="link link-primary text-xs mt-2 inline-block"
@@ -607,7 +709,9 @@ export default async function ActivityPage() {
                             <span className="badge badge-primary badge-xs">New</span>
                           ) : null}
                         </div>
-                        <p className="text-xs text-base-content/50 mt-1">{when}</p>
+                        <p className="text-xs text-base-content/50 mt-1">
+                          <LocalDateTimeText iso={item.createdAt} />
+                        </p>
                         {item.listingId ? (
                           <Link
                             href={`/app/listings/${item.listingId}`}
@@ -683,7 +787,9 @@ export default async function ActivityPage() {
                             “{preview}”
                           </p>
                         ) : null}
-                        <p className="text-xs text-base-content/50 mt-1">{when}</p>
+                        <p className="text-xs text-base-content/50 mt-1">
+                          <LocalDateTimeText iso={item.createdAt} />
+                        </p>
                         <Link
                           href={`/app/listings/${item.listingId}`}
                           className="link link-primary text-xs mt-2 inline-block"
@@ -710,7 +816,9 @@ export default async function ActivityPage() {
                       <p className="text-sm text-base-content">
                         You listed <span className="font-medium">{title}</span>.
                       </p>
-                      <p className="text-xs text-base-content/50 mt-1">{when}</p>
+                      <p className="text-xs text-base-content/50 mt-1">
+                        <LocalDateTimeText iso={item.createdAt} />
+                      </p>
                       {item.listingId ? (
                         <Link
                           href={`/app/listings/${item.listingId}`}

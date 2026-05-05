@@ -245,6 +245,7 @@ export function ListingDetailView({
           {unlockDeal ? (
             <DealPanel
               listingId={listing.id}
+              listingTitle={listing.title}
               isOwner={isOwner}
               currentUserId={currentUserId}
               listingOpenToSwaps={!!listing.open_to_swaps}

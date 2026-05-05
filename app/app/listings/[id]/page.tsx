@@ -14,6 +14,30 @@ import type { ListingWithRelations } from "@/lib/listings/queries";
 
 type Props = { params: Promise<{ id: string }> };
 
+/** When several buyers unlocked the same listing, prefer the row with an active swap so the Deal panel is not blank. */
+function pickSellerUnlockRow(
+  rows:
+    | Array<{
+        buyer_id: string;
+        deal_type: string | null;
+        swap_status: string | null;
+        offered_listing_id: string | null;
+        buyer_confirmed_at: string | null;
+        seller_confirmed_at: string | null;
+        completed_at: string | null;
+      }>
+    | null,
+) {
+  if (!rows?.length) return null;
+  const proposed = rows.find((r) => r.deal_type === "swap" && r.swap_status === "proposed");
+  if (proposed) return proposed;
+  const accepted = rows.find((r) => r.deal_type === "swap" && r.swap_status === "accepted");
+  if (accepted) return accepted;
+  const anySwap = rows.find((r) => r.deal_type === "swap");
+  if (anySwap) return anySwap;
+  return rows[0];
+}
+
 export default async function ListingPage({ params }: Props) {
   const { id } = await params;
   const supabase = await createClient();
@@ -104,13 +128,13 @@ export default async function ListingPage({ params }: Props) {
   // Deal state: only after listing_unlocks exists (not during pending request-only phase).
   if ((isOwner || viewerUnlocked) && user) {
     if (isOwner) {
-      const { data: u } = await supabase
+      const { data: unlockRows } = await supabase
         .from("listing_unlocks")
         .select("buyer_id, deal_type, swap_status, offered_listing_id, buyer_confirmed_at, seller_confirmed_at, completed_at")
         .eq("listing_id", id)
         .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(24);
+      const u = pickSellerUnlockRow(unlockRows ?? null);
       if (u) {
         let offeredTitle: string | null = null;
         if (u.offered_listing_id) {

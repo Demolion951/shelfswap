@@ -1,12 +1,13 @@
 "use client";
 
 /**
- * Swap-related deal UI after unlock (offer / accept swap). Handoff confirmation is rendered in
- * ListingDetailView next to “Listed by” (DealHandoffPanel).
+ * Swap-related deal UI after unlock (offer / accept swap). Shows agreed-swap summary after acceptance
+ * so sellers do not lose context; handoff lives in DealHandoffPanel beside “Listed by”.
  * Location: components/listings/DealPanel.tsx
  */
 import { proposeSwapAction, respondSwapAction } from "@/app/app/listings/actions";
 import { Check, Loader2, RefreshCw, Shuffle, X } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
@@ -25,6 +26,8 @@ type OfferOption = { id: string; title: string };
 
 type Props = {
   listingId: string;
+  /** Seller listing title (this page’s book) — used in swap summary after acceptance. */
+  listingTitle: string;
   isOwner: boolean;
   currentUserId: string | null;
   listingOpenToSwaps: boolean;
@@ -34,6 +37,7 @@ type Props = {
 
 export function DealPanel({
   listingId,
+  listingTitle,
   isOwner,
   currentUserId,
   listingOpenToSwaps,
@@ -112,14 +116,38 @@ export function DealPanel({
               <Shuffle className="h-4 w-4 text-secondary" aria-hidden />
               Offer a swap
             </div>
+            {deal.swapStatus === "declined" ? (
+              <div role="status" className="alert alert-warning text-sm py-2">
+                The seller declined your swap offer. You can propose a different listing below or keep this as
+                pickup only.
+              </div>
+            ) : null}
             {deal.dealType === "swap" ? (
-              <p className="text-xs text-base-content/60">
-                {deal.swapStatus === "proposed"
-                  ? `Swap proposed: ${deal.offeredTitle ?? "your book"}`
-                  : deal.swapStatus === "accepted"
-                    ? `Swap accepted: ${deal.offeredTitle ?? "your book"}`
-                    : "Swap was declined."}
-              </p>
+              deal.swapStatus === "accepted" ? (
+                <div role="status" className="alert alert-success text-sm py-3 gap-2">
+                  <div className="font-medium text-success-content">Swap agreed</div>
+                  <p className="text-xs text-success-content/90 leading-snug">
+                    They accepted exchanging{" "}
+                    <span className="font-medium">{listingTitle}</span> for your{" "}
+                    <span className="font-medium">{deal.offeredTitle ?? "offered book"}</span>. Arrange details in
+                    Messages and confirm handoff above when done.
+                  </p>
+                  {deal.offeredListingId ? (
+                    <Link
+                      href={`/app/listings/${deal.offeredListingId}`}
+                      className="link link-accent text-xs"
+                    >
+                      View your offered listing
+                    </Link>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="text-xs text-base-content/60">
+                  {deal.swapStatus === "proposed"
+                    ? `Awaiting seller — you offered ${deal.offeredTitle ?? "your book"} for ${listingTitle}.`
+                    : null}
+                </p>
+              )
             ) : (
               <>
                 <select
@@ -180,6 +208,29 @@ export function DealPanel({
                 Decline
               </button>
             </div>
+          </div>
+        ) : null}
+
+        {isOwner && deal.dealType === "swap" && deal.swapStatus === "accepted" ? (
+          <div role="status" className="rounded-lg border border-success/30 bg-success/10 p-3 space-y-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-base-content">
+              <Shuffle className="h-4 w-4 text-success" aria-hidden />
+              Swap agreed
+            </div>
+            <p className="text-xs text-base-content/75 leading-snug">
+              You accepted exchanging your{" "}
+              <span className="font-medium text-base-content">{listingTitle}</span> for their{" "}
+              <span className="font-medium text-base-content">{deal.offeredTitle ?? "offered book"}</span>. Use
+              Messages to arrange pickup; confirm handoff above when you&apos;ve passed your copy over.
+            </p>
+            {deal.offeredListingId ? (
+              <Link
+                href={`/app/listings/${deal.offeredListingId}`}
+                className="link link-success text-xs inline-block"
+              >
+                View their offered listing
+              </Link>
+            ) : null}
           </div>
         ) : null}
       </div>
