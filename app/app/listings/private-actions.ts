@@ -11,8 +11,8 @@ import { logEventAction } from "@/app/app/events/actions";
 export type SimpleActionResult = { ok: true } | { ok: false; error: string };
 
 /**
- * Inserts one message. RLS ensures sender is seller or unlocked buyer.
- * Response: row is not returned to client; listing page revalidates.
+ * Posts one message via `post_listing_message` RPC (seller, unlocked buyer, or pending unlock).
+ * Falls back to direct insert if the RPC is not deployed yet.
  */
 export async function sendListingMessageAction(
   formData: FormData,
@@ -49,24 +49,54 @@ export async function sendListingMessageAction(
     console.error("[sendListingMessageAction] profile", profErr.message);
   }
 
-  const displayName = prof?.display_name?.trim() || "Member";
-
-  const { error: insErr } = await supabase.from("listing_messages").insert({
-    listing_id: listingId,
-    sender_id: user.id,
-    sender_display_name: displayName,
-    body,
+  const { data: rpcData, error: rpcErr } = await supabase.rpc("post_listing_message", {
+    p_listing_id: listingId,
+    p_body: body,
   });
 
-  if (insErr) {
-    console.error("[sendListingMessageAction] insert", insErr.message);
-    return {
-      ok: false,
-      error:
-        insErr.message.includes("row-level security") || insErr.code === "42501"
+  if (rpcErr) {
+    const em = rpcErr.message.toLowerCase();
+    const missingFn =
+      rpcErr.code === "42883" ||
+      (em.includes("post_listing_message") &&
+        (em.includes("does not exist") || em.includes("could not find")));
+    if (!missingFn) {
+      console.error("[sendListingMessageAction] rpc", rpcErr.message);
+      return { ok: false, error: rpcErr.message };
+    }
+    const displayName = prof?.display_name?.trim() || "Member";
+    const { error: insErr } = await supabase.from("listing_messages").insert({
+      listing_id: listingId,
+      sender_id: user.id,
+      sender_display_name: displayName,
+      body,
+    });
+    if (insErr) {
+      console.error("[sendListingMessageAction] insert fallback", insErr.message);
+      return {
+        ok: false,
+        error:
+          insErr.message.includes("row-level security") || insErr.code === "42501"
+            ? "You can’t message on this listing (unlock it first, or list it yourself)."
+            : insErr.message,
+      };
+    }
+  } else {
+    const payload = rpcData as { ok?: boolean; error?: string } | null;
+    if (!payload || payload.ok !== true) {
+      const code = payload?.error ?? "";
+      const friendly =
+        code === "not_participant"
           ? "You can’t message on this listing (unlock it first, or list it yourself)."
-          : insErr.message,
-    };
+          : code === "too_long"
+            ? "Message is too long (max 2000 characters)."
+            : code === "empty_body"
+              ? "Message cannot be empty."
+              : code === "not_authenticated"
+                ? "Sign in to send a message."
+                : "Could not send message.";
+      return { ok: false, error: friendly };
+    }
   }
 
   await logEventAction({

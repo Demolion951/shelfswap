@@ -258,9 +258,9 @@ export function ListingDetailView({
             <h2 className="shelfswap-heading text-lg font-semibold text-primary">Messages</h2>
             {!isOwner ? (
               viewerPendingUnlock && !viewerUnlocked ? (
-                <div className="alert alert-info text-sm py-2">
-                  Message below — when the seller replies, your request is accepted and credits are charged.
-                </div>
+                <p className="text-sm text-base-content/60 leading-snug">
+                  When the seller replies, your request is accepted and credits are charged.
+                </p>
               ) : creditsPendingSellerReply ? (
                 <div className="alert alert-info text-sm py-2">
                   You can message below. Credits are charged when the seller sends their first reply.

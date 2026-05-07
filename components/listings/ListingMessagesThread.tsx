@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Listing-scoped chat: seller + unlocked buyers; messages persisted via server action.
+ * Listing-scoped chat: seller, unlocked buyers, and buyers with a pending unlock request.
  * Location: components/listings/ListingMessagesThread.tsx
  */
 import { sendListingMessageAction } from "@/app/app/listings/private-actions";
@@ -51,11 +51,7 @@ export function ListingMessagesThread({ listingId, messages, currentUserId }: Pr
   return (
     <div className="flex flex-col gap-3">
       <div className="max-h-64 space-y-2 overflow-y-auto rounded-lg border border-base-300/80 bg-base-200/30 p-3">
-        {messages.length === 0 ? (
-          <p className="text-center text-sm text-base-content/50 py-4">
-            No messages yet. Say hello to get started.
-          </p>
-        ) : (
+        {messages.length === 0 ? null : (
           messages.map((m) => {
             const mine = currentUserId !== null && m.sender_id === currentUserId;
             return (
