@@ -29,7 +29,7 @@ export function AppTopBar({ unreadCount }: Props) {
             height={382}
             priority
             unoptimized
-            className="h-11 w-auto max-w-[10rem] object-contain"
+            className="h-[2.375rem] w-auto max-w-[9rem] object-contain"
           />
         </Link>
         <div className="flex shrink-0 items-center">

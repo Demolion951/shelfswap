@@ -3,7 +3,7 @@
  * so browsers and intermediaries do not keep showing an older cached image.
  * Location: lib/brand/logo.ts
  */
-export const LOGO_VERSION = "20260531-trimmed";
+export const LOGO_VERSION = "20260531-trimmed-sm";
 
 export function shelfswapLogoSrc(): string {
   return `/brand/logo.png?v=${LOGO_VERSION}`;
