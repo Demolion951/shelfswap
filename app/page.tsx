@@ -24,12 +24,12 @@ export default async function LandingPage() {
             <Image
               src={shelfswapLogoSrc()}
               alt=""
-              width={857}
-              height={220}
+              width={635}
+              height={382}
               priority
               unoptimized
               aria-hidden
-              className="h-16 w-auto max-w-full sm:h-28"
+              className="h-28 w-auto max-w-[min(100%,18rem)] sm:h-36 sm:max-w-sm"
             />
           </h1>
           <p className="text-base text-base-content/70 leading-relaxed">

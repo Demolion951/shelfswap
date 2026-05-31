@@ -82,13 +82,16 @@ function main() {
       }
     }
 
-    await sharp(Buffer.from(data), {
+    const trimmed = await sharp(Buffer.from(data), {
       raw: { width: w, height: h, channels: 4 },
     })
+      .trim({ threshold: 12 })
       .png({ compressionLevel: 9, effort: 10 })
-      .toFile(OUT);
+      .toBuffer();
 
-    console.log("Wrote", OUT, `${w}x${h}`);
+    await sharp(trimmed).toFile(OUT);
+    const meta = await sharp(trimmed).metadata();
+    console.log("Wrote", OUT, `${meta.width}x${meta.height} (trimmed)`);
   })().catch((e) => {
     console.error(e);
     process.exit(1);

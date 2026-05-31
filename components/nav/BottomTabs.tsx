@@ -2,7 +2,8 @@
 
 /**
  * Mobile-first bottom tab bar for the authenticated app shell (/app/*).
- * Icons via lucide-react; active state from pathname.
+ * Centred icons and labels; slightly taller touch targets for a cleaner layout.
+ * Location: components/nav/BottomTabs.tsx
  */
 import { Home, MessageCircle, PlusCircle, Search, UserRound } from "lucide-react";
 import Link from "next/link";
@@ -43,36 +44,40 @@ export function BottomTabs({ unreadMessagesCount }: Props) {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-base-300/90 bg-base-100/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-base-300/70 bg-base-100/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md supports-[backdrop-filter]:bg-base-100/80"
       aria-label="Main navigation"
     >
-      <ul className="mx-auto flex max-w-lg items-stretch justify-around">
+      <ul className="mx-auto flex h-[4.5rem] max-w-lg items-stretch justify-around px-1">
         {tabs.map(({ href, label, Icon }) => {
           const active = isActive(pathname, href);
           return (
-            <li key={href} className="flex-1">
+            <li key={href} className="flex min-w-0 flex-1">
               <Link
                 href={href}
                 prefetch={true}
-                className={`flex flex-col items-center gap-0.5 py-2 text-[9px] font-medium transition-colors ${
+                className={`flex flex-1 flex-col items-center justify-center gap-1 px-0.5 text-[10px] font-medium tracking-wide transition-colors ${
                   active
                     ? "text-primary"
-                    : "text-base-content/55 hover:text-base-content"
+                    : "text-base-content/50 hover:text-base-content/80"
                 }`}
               >
-                <span className={href === "/app/messages" ? "indicator" : ""}>
+                <span
+                  className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
+                    active ? "bg-primary/12" : ""
+                  } ${href === "/app/messages" ? "indicator" : ""}`}
+                >
                   {href === "/app/messages" && msgBadge ? (
                     <span className="indicator-item badge badge-primary badge-xs min-w-[1.1rem] px-1">
                       {msgBadge}
                     </span>
                   ) : null}
                   <Icon
-                    className="h-5 w-5"
-                    strokeWidth={active ? 2.25 : 1.75}
+                    className="h-[1.35rem] w-[1.35rem]"
+                    strokeWidth={active ? 2.25 : 1.85}
                     aria-hidden
                   />
                 </span>
-                {label}
+                <span className="leading-none">{label}</span>
               </Link>
             </li>
           );

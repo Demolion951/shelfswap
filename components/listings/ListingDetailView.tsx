@@ -5,8 +5,7 @@ import {
 } from "@/lib/geo/formatDistance";
 import { CONDITION_LABELS, formatUnlockCredits } from "@/lib/listings/format";
 import type { ListingMessageRow, ListingWithRelations } from "@/lib/listings/queries";
-import type { OpenLibraryBlurb } from "@/lib/books/openLibraryBlurb";
-import { BookBlurb } from "@/components/listings/BookBlurb";
+import { OpenLibraryBlurbLoader } from "@/components/listings/OpenLibraryBlurbLoader";
 import { ListingSaveHeart } from "@/components/listings/ListingSaveHeart";
 import { DealHandoffPanel } from "@/components/listings/DealHandoffPanel";
 import { DealPanel } from "@/components/listings/DealPanel";
@@ -45,7 +44,6 @@ type Props = {
   currentUserId: string | null;
   messages: ListingMessageRow[];
   distanceKm: number | null;
-  blurb: OpenLibraryBlurb | null;
   /** True when unlock is live but DB has not yet debited credits (until seller’s first message). */
   creditsPendingSellerReply?: boolean;
 };
@@ -70,7 +68,6 @@ export function ListingDetailView({
   currentUserId,
   messages,
   distanceKm,
-  blurb,
   creditsPendingSellerReply = false,
 }: Props) {
   const photos = sortPhotos(listing);
@@ -222,7 +219,7 @@ export function ListingDetailView({
         </section>
       ) : null}
 
-      {blurb ? <BookBlurb text={blurb.text} /> : null}
+      <OpenLibraryBlurbLoader isbn={listing.isbn} />
 
       {isOwner || viewerUnlocked || viewerPendingUnlock ? (
         <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">

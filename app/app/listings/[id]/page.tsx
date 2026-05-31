@@ -1,5 +1,4 @@
 import { ListingDetailView } from "@/components/listings/ListingDetailView";
-import { fetchOpenLibraryBlurbByIsbn } from "@/lib/books/openLibraryBlurb";
 import { fetchDistanceKmForListing } from "@/lib/listings/distance";
 import {
   fetchListingById,
@@ -72,7 +71,18 @@ export default async function ListingPage({ params }: Props) {
   let buyerOfferOptions: Array<{ id: string; title: string }> = [];
   let creditsPendingSellerReply = false;
   if (user) {
-    const [expRes, profRes, unlockRes, saveRes] = await Promise.all([
+    const pendingReqPromise =
+      !isOwner
+        ? supabase
+            .from("listing_unlock_requests")
+            .select("id")
+            .eq("buyer_id", user.id)
+            .eq("listing_id", id)
+            .eq("status", "pending")
+            .maybeSingle()
+        : Promise.resolve({ data: null as { id: string } | null });
+
+    const [expRes, profRes, unlockRes, saveRes, pendingReqRes] = await Promise.all([
       supabase.rpc("expire_listing_unlock_requests", { p_listing_id: id }),
       supabase
         .from("profiles")
@@ -91,6 +101,7 @@ export default async function ListingPage({ params }: Props) {
         .eq("user_id", user.id)
         .eq("listing_id", id)
         .maybeSingle(),
+      pendingReqPromise,
     ]);
     if (expRes.error) {
       console.warn("[ListingPage] expire_listing_unlock_requests", expRes.error.message);
@@ -114,14 +125,7 @@ export default async function ListingPage({ params }: Props) {
       unlockMeta.balance_captured_at == null;
 
     if (!viewerUnlocked && !isOwner) {
-      const { data: reqRow } = await supabase
-        .from("listing_unlock_requests")
-        .select("id")
-        .eq("buyer_id", user.id)
-        .eq("listing_id", id)
-        .eq("status", "pending")
-        .maybeSingle();
-      viewerPendingUnlock = !!reqRow;
+      viewerPendingUnlock = !!(pendingReqRes as { data?: { id: string } | null }).data;
     }
   }
 
@@ -253,9 +257,8 @@ export default async function ListingPage({ params }: Props) {
     }
   }
 
-  // Distance needs listings.approx_geo *and* viewer profiles.approx_location; blurbs/messages are independent.
-  const [blurb, messages, , distanceKm] = await Promise.all([
-    listing.isbn ? fetchOpenLibraryBlurbByIsbn(listing.isbn) : Promise.resolve(null),
+  // Open Library blurbs load client-side (OpenLibraryBlurbLoader) — avoids blocking on slow external APIs.
+  const [messages, , distanceKm] = await Promise.all([
     isOwner || viewerUnlocked || viewerPendingUnlock
       ? fetchListingMessagesIfAllowed(id)
       : Promise.resolve([] as ListingMessageRow[]),
@@ -278,7 +281,6 @@ export default async function ListingPage({ params }: Props) {
       currentUserId={user?.id ?? null}
       messages={messages}
       distanceKm={distanceKm}
-      blurb={blurb}
       viewerSaved={viewerSaved}
       creditsPendingSellerReply={creditsPendingSellerReply}
     />

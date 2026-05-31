@@ -21,7 +21,7 @@ export default async function AppShellLayout({
   const unreadMessages = await getUnreadMessageNotificationCountForUser(supabase, user.id);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-base-200 pb-[calc(4.25rem+env(safe-area-inset-bottom))]">
+    <div className="flex min-h-dvh flex-col bg-base-200 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))]">
       <AppTopBar unreadCount={unreadNotifications} />
       <main className="mx-auto w-full max-w-lg flex-1 px-4 py-4 space-y-4">
         <AutoApproxLocationUpdater />
