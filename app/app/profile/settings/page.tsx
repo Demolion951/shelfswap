@@ -1,5 +1,6 @@
 import { SignOutForm } from "@/components/auth/SignOutForm";
 import { ProfileAvatarUploader } from "@/components/profile/ProfileAvatarUploader";
+import { ProfileLocationSettings } from "@/components/profile/ProfileLocationSettings";
 import { SettingsRow } from "@/components/SettingsRow";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -31,10 +32,14 @@ export default async function ProfileSettingsPage() {
   const { data: profile } = user
     ? await supabase
         .from("profiles")
-        .select("display_name, avatar_url")
+        .select("display_name, avatar_url, home_approx_area_text, approx_area_text")
         .eq("id", user.id)
         .maybeSingle()
     : { data: null };
+
+  const homeAreaLabel =
+    (profile?.home_approx_area_text as string | null)?.trim() || null;
+  const browseAreaLabel = (profile?.approx_area_text as string | null)?.trim() || null;
 
   return (
     <div className="space-y-6 pt-2">
@@ -64,6 +69,15 @@ export default async function ProfileSettingsPage() {
             </p>
             <p className="text-xs text-base-content/50 truncate">{user.email}</p>
           </div>
+        </div>
+      </div>
+
+      <div className="card bg-base-100 border border-base-300/80 shadow-sm">
+        <div className="card-body p-4">
+          <ProfileLocationSettings
+            homeAreaLabel={homeAreaLabel}
+            browseAreaLabel={browseAreaLabel}
+          />
         </div>
       </div>
 

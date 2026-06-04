@@ -180,10 +180,12 @@ export async function createListing(
     } else {
       const { data: prof } = await supabase
         .from("profiles")
-        .select("approx_area_text")
+        .select("home_approx_area_text, approx_area_text")
         .eq("id", user.id)
         .maybeSingle();
-      const at = (prof?.approx_area_text as string | null)?.trim();
+      const at =
+        (prof?.home_approx_area_text as string | null)?.trim() ||
+        (prof?.approx_area_text as string | null)?.trim();
       if (at) {
         await supabase.from("listings").update({ approx_area_text: at }).eq("id", listingId);
       }

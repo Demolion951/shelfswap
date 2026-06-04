@@ -193,9 +193,9 @@ export function AutoApproxLocationUpdater() {
     <div className="alert bg-base-100 border border-base-300/80 text-sm">
       <MapPin className="h-4 w-4 text-primary" aria-hidden />
       <div className="min-w-0">
-        <div className="font-medium">Turn on rough location?</div>
+        <div className="font-medium">Turn on browse location?</div>
         <div className="text-xs text-base-content/60 leading-snug">
-          Helps show approximate distances. No address is stored.
+          Shows nearby books while you travel. Your listed books keep their home area.
         </div>
         {error ? (
           <div className="mt-2 text-xs text-error">{error}</div>

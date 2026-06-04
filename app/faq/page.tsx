@@ -79,8 +79,9 @@ export default function FaqPage() {
 
       <h2>Location and distance</h2>
       <p>
-        Approximate distance may be shown using coarse location you allow the app to refresh. It is not a
-        precise address by default.
+        <strong>Where your books are</strong> (home area) is fixed on your listings so buyers know where
+        pickup happens. <strong>Where you&apos;re browsing</strong> updates when you travel so Home and
+        Search show books near you now. We store only a rough area (~1 km), not your street address.
       </p>
     </LegalDocShell>
   );
