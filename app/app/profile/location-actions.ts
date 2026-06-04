@@ -5,6 +5,7 @@
  * Location: app/app/profile/location-actions.ts
  */
 import { createClient } from "@/lib/supabase/server";
+import { geocodeUkPostcode } from "@/lib/geo/geocodePostcode";
 import { reverseGeocodeAreaText } from "@/lib/geo/reverseGeocode";
 import { revalidatePath } from "next/cache";
 
@@ -13,6 +14,7 @@ export type LocationActionResult = { ok: true } | { ok: false; error: string };
 function revalidateLocationPaths() {
   revalidatePath("/app/profile");
   revalidatePath("/app/profile/settings");
+  revalidatePath("/app/profile/location");
   revalidatePath("/app/home");
   revalidatePath("/app/search");
   revalidatePath("/app/browse");
@@ -80,10 +82,22 @@ export async function setMyApproxLocationAction(
   return setMyBrowseLocationAction(lat, lng);
 }
 
+/** Home area from UK postcode — listings show town/area only, not the postcode. */
+export async function setMyHomeFromPostcodeAction(
+  postcode: string,
+): Promise<LocationActionResult> {
+  const geo = await geocodeUkPostcode(postcode);
+  if (!geo.ok) {
+    return { ok: false, error: geo.error };
+  }
+  return setMyHomeLocationAction(geo.lat, geo.lng, geo.areaLabel);
+}
+
 /** Fixed area where your books live — shown on listings; updates active listing locations. */
 export async function setMyHomeLocationAction(
   lat: number,
   lng: number,
+  areaLabelOverride?: string | null,
 ): Promise<LocationActionResult> {
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
     return { ok: false, error: "Invalid coordinates." };
@@ -114,20 +128,22 @@ export async function setMyHomeLocationAction(
     };
   }
 
-  let areaText: string | null = null;
-  try {
-    areaText = await reverseGeocodeAreaText(lat, lng);
-    if (areaText) {
-      const { error: upErr } = await supabase
-        .from("profiles")
-        .update({ home_approx_area_text: areaText })
-        .eq("id", user.id);
-      if (upErr) {
-        console.warn("[setMyHomeLocationAction] home_approx_area_text", upErr.message);
-      }
+  let areaText: string | null = areaLabelOverride?.trim() || null;
+  if (!areaText) {
+    try {
+      areaText = await reverseGeocodeAreaText(lat, lng);
+    } catch (e) {
+      console.warn("[setMyHomeLocationAction] reverse geocode failed", e);
     }
-  } catch (e) {
-    console.warn("[setMyHomeLocationAction] reverse geocode failed", e);
+  }
+  if (areaText) {
+    const { error: upErr } = await supabase
+      .from("profiles")
+      .update({ home_approx_area_text: areaText })
+      .eq("id", user.id);
+    if (upErr) {
+      console.warn("[setMyHomeLocationAction] home_approx_area_text", upErr.message);
+    }
   }
 
   const { error: syncErr } = await supabase.rpc("sync_my_active_listings_from_home", {

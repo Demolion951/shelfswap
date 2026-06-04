@@ -79,9 +79,10 @@ export default function FaqPage() {
 
       <h2>Location and distance</h2>
       <p>
-        <strong>Where your books are</strong> (home area) is fixed on your listings so buyers know where
-        pickup happens. <strong>Where you&apos;re browsing</strong> updates when you travel so Home and
-        Search show books near you now. We store only a rough area (~1 km), not your street address.
+        Set <strong>where your books are</strong> in Profile → Location (UK postcode or your device). That area
+        stays on your listings so buyers know where pickup happens. Home and Search use your current
+        area automatically when location is allowed. We store only a rough area (~1 km) and show town or
+        area on listings — never your postcode or full address.
       </p>
     </LegalDocShell>
   );
