@@ -1,4 +1,4 @@
-import { RehomedSection } from "@/components/listings/RehomedSection";
+import { RehomedTabs } from "@/components/listings/RehomedTabs";
 import { fetchMyRehomedListings } from "@/lib/listings/queries";
 import { createClient } from "@/lib/supabase/server";
 import { ArrowLeft, Home } from "lucide-react";
@@ -37,22 +37,7 @@ export default async function ProfileRehomedPage() {
       {total === 0 ? (
         <p className="text-sm text-base-content/50">No completed handoffs yet.</p>
       ) : (
-        <div className="space-y-8">
-          <RehomedSection
-            title="Pickups"
-            description="Someone unlocked your listing for credits and completed the handoff (not a swap)."
-            listings={pickups}
-            icon="pickup"
-            emptyText="No completed pickup sales yet."
-          />
-          <RehomedSection
-            title="Swaps"
-            description="You completed a swap — either on your listing or a book you offered to trade."
-            listings={swaps}
-            icon="swap"
-            emptyText="No completed swaps yet."
-          />
-        </div>
+        <RehomedTabs pickups={pickups} swaps={swaps} />
       )}
     </div>
   );
