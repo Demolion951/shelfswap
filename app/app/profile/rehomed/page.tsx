@@ -6,7 +6,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 /**
- * Completed handoffs — pickup sales and swaps (opened from Profile → Rehomed).
+ * Completed handoffs — passed on and swaps (opened from Profile → Rehomed).
  * Location: app/app/profile/rehomed/page.tsx
  */
 export default async function ProfileRehomedPage() {

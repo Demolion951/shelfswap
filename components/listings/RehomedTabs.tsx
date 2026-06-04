@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Pickups / Swaps toggle for Profile → Rehomed (main title stays on the page).
+ * Passed on / Swaps toggle for Profile → Rehomed (main title stays on the page).
  * Location: components/listings/RehomedTabs.tsx
  */
 import { RehomedListingRow } from "@/components/listings/RehomedListingRow";
@@ -55,7 +55,7 @@ export function RehomedTabs({ pickups, swaps }: Props) {
           }`}
           onClick={() => setTab("pickup")}
         >
-          <span className="shelfswap-heading text-base">Pickups</span>
+          <span className="shelfswap-heading text-base">Passed on</span>
           <span className="badge badge-sm tabular-nums min-w-[1.25rem]">{pickups.length}</span>
         </button>
         <button
@@ -74,7 +74,7 @@ export function RehomedTabs({ pickups, swaps }: Props) {
 
       <div role="tabpanel">
         {tab === "pickup" ? (
-          <RehomedList listings={active} emptyText="No completed pickup sales yet." />
+          <RehomedList listings={active} emptyText="Nothing passed on yet." />
         ) : (
           <RehomedList listings={active} emptyText="No completed swaps yet." />
         )}

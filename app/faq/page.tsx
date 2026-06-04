@@ -52,9 +52,9 @@ export default function FaqPage() {
 
       <h2>Do swaps count toward the seller reward?</h2>
       <p>
-        No. The free credit every <strong>5 completed deals</strong> counts <strong>pickup</strong> sales only
-        (someone unlocked your listing and you both confirmed handoff). Completed <strong>swaps</strong> show
-        under Profile → Rehomed → Swaps but do not increase your reward counter.
+        No. The free credit every <strong>5 completed deals</strong> counts <strong>passed on</strong> handoffs
+        only (unlock for credits, not a swap). Swaps appear under Profile → Rehomed → Swaps and do not
+        increase your reward counter.
       </p>
 
       <h2>How do credits work on swaps?</h2>
