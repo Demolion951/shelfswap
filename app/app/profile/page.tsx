@@ -6,7 +6,7 @@ import {
   getSavedListingsCount,
 } from "@/lib/listings/queries";
 import { createClient } from "@/lib/supabase/server";
-import { ChevronRight, Coins, Heart, Home, Library, MapPin, Settings2 } from "lucide-react";
+import { ChevronRight, Coins, Heart, Home, Library, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -20,7 +20,7 @@ export default async function ProfilePage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name, avatar_url, credit_balance, home_approx_area_text")
+    .select("display_name, avatar_url, credit_balance")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -30,8 +30,6 @@ export default async function ProfilePage() {
     getSavedListingsCount(user.id),
   ]);
   const rehomedCount = rehomedListings.pickups.length + rehomedListings.swaps.length;
-  const homeAreaLabel =
-    (profile?.home_approx_area_text as string | null)?.trim() || null;
 
   return (
     <div className="space-y-6 pt-2">
@@ -96,28 +94,6 @@ export default async function ProfilePage() {
                 aria-hidden
               />
             </div>
-          </div>
-        </Link>
-        <Link
-          href="/app/profile/location"
-          className="card bg-base-100 border border-base-300/80 shadow-sm transition hover:border-primary/35 w-full"
-        >
-          <div className="card-body flex flex-row items-center justify-between gap-3 p-4 sm:p-5">
-            <div className="flex min-w-0 items-center gap-3">
-              <MapPin
-                className="h-5 w-5 shrink-0 text-primary sm:h-6 sm:w-6"
-                aria-hidden
-              />
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wide text-primary">
-                  Location
-                </p>
-                <p className="text-[10px] text-base-content/45 leading-tight truncate">
-                  {homeAreaLabel ?? "Where your books are"}
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="h-4 w-4 shrink-0 text-base-content/35" aria-hidden />
           </div>
         </Link>
         <Link

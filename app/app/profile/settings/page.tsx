@@ -1,5 +1,6 @@
 import { SignOutForm } from "@/components/auth/SignOutForm";
 import { ProfileAvatarUploader } from "@/components/profile/ProfileAvatarUploader";
+import { SetLocationSettings } from "@/components/profile/SetLocationSettings";
 import { SettingsRow } from "@/components/SettingsRow";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -31,10 +32,13 @@ export default async function ProfileSettingsPage() {
   const { data: profile } = user
     ? await supabase
         .from("profiles")
-        .select("display_name, avatar_url")
+        .select("display_name, avatar_url, home_approx_area_text")
         .eq("id", user.id)
         .maybeSingle()
     : { data: null };
+
+  const homeAreaLabel =
+    (profile?.home_approx_area_text as string | null)?.trim() || null;
 
   return (
     <div className="space-y-6 pt-2">
@@ -69,8 +73,9 @@ export default async function ProfileSettingsPage() {
 
       <div className="card bg-base-100 border border-base-300/80 shadow-sm">
         <div className="card-body p-0">
-          <ul className="divide-y divide-base-300/60">
+          <ul>
             <SettingsRow href="/auth/forgot-password" Icon={KeyRound} title="Change password" />
+            <SetLocationSettings homeAreaLabel={homeAreaLabel} />
           </ul>
         </div>
       </div>

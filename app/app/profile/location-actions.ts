@@ -14,7 +14,6 @@ export type LocationActionResult = { ok: true } | { ok: false; error: string };
 function revalidateLocationPaths() {
   revalidatePath("/app/profile");
   revalidatePath("/app/profile/settings");
-  revalidatePath("/app/profile/location");
   revalidatePath("/app/home");
   revalidatePath("/app/search");
   revalidatePath("/app/browse");

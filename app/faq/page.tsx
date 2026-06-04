@@ -79,7 +79,7 @@ export default function FaqPage() {
 
       <h2>Location and distance</h2>
       <p>
-        Set <strong>where your books are</strong> in Profile → Location (UK postcode or your device). That area
+        Set <strong>where your books are</strong> in Profile → App settings → Set Location (UK postcode). That area
         stays on your listings so buyers know where pickup happens. Home and Search use your current
         area automatically when location is allowed. We store only a rough area (~1 km) and show town or
         area on listings — never your postcode or full address.
