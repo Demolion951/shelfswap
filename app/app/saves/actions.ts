@@ -43,6 +43,7 @@ export async function toggleSaveListingAction(listingId: string): Promise<SaveTo
       return { ok: false, error: delErr.message };
     }
     revalidatePath(`/app/listings/${listingId}`);
+    revalidatePath("/app/home");
     revalidatePath("/app/profile");
     revalidatePath("/app/profile/saved");
     return { ok: true, saved: false };
@@ -59,6 +60,7 @@ export async function toggleSaveListingAction(listingId: string): Promise<SaveTo
 
   await logEventAction({ type: "save_listing", listingId });
   revalidatePath(`/app/listings/${listingId}`);
+  revalidatePath("/app/home");
   revalidatePath("/app/profile");
   revalidatePath("/app/profile/saved");
   return { ok: true, saved: true };

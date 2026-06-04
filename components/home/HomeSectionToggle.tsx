@@ -22,6 +22,10 @@ type Props = {
   showStar?: boolean;
   /** Shown when `listings` is empty (rare after server fallbacks). */
   emptyMessage?: string;
+  /** Show save hearts on cards (signed-in users). */
+  showSaveHearts?: boolean;
+  /** Listing ids the user has already saved. */
+  savedListingIds?: string[];
 };
 
 export function HomeSectionToggle({
@@ -33,9 +37,12 @@ export function HomeSectionToggle({
   defaultMode = "cards",
   showStar = false,
   emptyMessage = "Nothing to show here yet.",
+  showSaveHearts = false,
+  savedListingIds = [],
 }: Props) {
   const [mode, setMode] = useState<"cards" | "shelf">(defaultMode);
   const isEmpty = listings.length === 0;
+  const savedSet = new Set(savedListingIds);
 
   return (
     <section className="space-y-3">
@@ -77,14 +84,25 @@ export function HomeSectionToggle({
         <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-thin snap-x snap-mandatory">
           {listings.map((l) => (
             <div key={l.id} className="snap-start shrink-0 w-[9.75rem] sm:w-[10.25rem]">
-              <ListingCard listing={l} compact />
+              <ListingCard
+                listing={l}
+                compact
+                showSaveHeart={showSaveHearts}
+                initiallySaved={savedSet.has(l.id)}
+              />
             </div>
           ))}
         </div>
       ) : (
         <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-5 sm:gap-2">
           {listings.map((l) => (
-            <ListingMiniCard key={l.id} listing={l} compact />
+            <ListingMiniCard
+              key={l.id}
+              listing={l}
+              compact
+              showSaveHeart={showSaveHearts}
+              initiallySaved={savedSet.has(l.id)}
+            />
           ))}
         </div>
       )}

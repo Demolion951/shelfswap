@@ -1,5 +1,6 @@
 "use client";
 
+import { ListingCardSaveHeart } from "@/components/listings/ListingCardSaveHeart";
 import { coverImageSrcForDisplay } from "@/lib/books/openLibraryCoverDisplay";
 import { listingAreaLine } from "@/lib/listings/areaDisplay";
 import { CONDITION_LABELS, formatUnlockCredits } from "@/lib/listings/format";
@@ -16,6 +17,9 @@ type Props = {
   variant?: "grid" | "row";
   /** Tighter typography and padding (e.g. home carousel). */
   compact?: boolean;
+  /** Show save heart overlay (signed-in home/browse). */
+  showSaveHeart?: boolean;
+  initiallySaved?: boolean;
 };
 
 function sortedPhotos(listing: ListingWithRelations) {
@@ -23,7 +27,13 @@ function sortedPhotos(listing: ListingWithRelations) {
   return [...photos].sort((a, b) => a.sort - b.sort);
 }
 
-export function ListingCard({ listing, variant = "grid", compact = false }: Props) {
+export function ListingCard({
+  listing,
+  variant = "grid",
+  compact = false,
+  showSaveHeart = false,
+  initiallySaved = false,
+}: Props) {
   const photos = sortedPhotos(listing);
   const coverFromIsbn = listing.isbn
     ? `/api/openlibrary-cover?isbn=${encodeURIComponent(listing.isbn.replace(/\D/g, ""))}&size=M`
@@ -70,6 +80,9 @@ export function ListingCard({ listing, variant = "grid", compact = false }: Prop
             No image
           </div>
         )}
+        {showSaveHeart ? (
+          <ListingCardSaveHeart listingId={listing.id} initiallySaved={initiallySaved} />
+        ) : null}
       </figure>
       <div
         className={

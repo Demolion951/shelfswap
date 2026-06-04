@@ -4,7 +4,10 @@ import {
   attachDistanceKmToListings,
   sortListingsByDistanceThenRecency,
 } from "@/lib/listings/distance";
-import { fetchRecentListings } from "@/lib/listings/queries";
+import {
+  fetchRecentListings,
+  fetchSavedListingIdsForUser,
+} from "@/lib/listings/queries";
 import { recommendListingsForUser } from "@/lib/listings/recommendations";
 import { createClient } from "@/lib/supabase/server";
 
@@ -46,6 +49,19 @@ export default async function HomePage() {
     .slice(0, 24);
   const explore = exploreUnique.length > 0 ? exploreUnique : all.slice(0, 24);
 
+  const feedListingIds = [
+    ...new Set([
+      ...newListings.map((l) => l.id),
+      ...recommendedFilled.map((l) => l.id),
+      ...explore.map((l) => l.id),
+    ]),
+  ];
+  const savedIdSet = user
+    ? await fetchSavedListingIdsForUser(user.id, feedListingIds)
+    : new Set<string>();
+  const savedListingIds = [...savedIdSet];
+  const showSaveHearts = !!user;
+
   if (all.length === 0) {
     return (
       <div className="space-y-6 pt-2">
@@ -71,12 +87,16 @@ export default async function HomePage() {
         actionLabel="View all"
         defaultMode="shelf"
         showStar={true}
+        showSaveHearts={showSaveHearts}
+        savedListingIds={savedListingIds}
       />
 
       <HomeSectionToggle
         title="Recommended for you"
         listings={recommendedFilled}
         emptyMessage="Nothing to recommend yet — use Search or Browse to explore."
+        showSaveHearts={showSaveHearts}
+        savedListingIds={savedListingIds}
       />
 
       <HomeSectionToggle
@@ -85,6 +105,8 @@ export default async function HomePage() {
         actionHref="/app/browse"
         actionLabel="View all"
         defaultMode="shelf"
+        showSaveHearts={showSaveHearts}
+        savedListingIds={savedListingIds}
       />
     </div>
   );

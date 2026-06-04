@@ -327,6 +327,28 @@ export async function fetchListingMessagesIfAllowed(
   return (data ?? []) as ListingMessageRow[];
 }
 
+/** Which of the given listing ids the user has saved (for feed hearts). */
+export async function fetchSavedListingIdsForUser(
+  userId: string,
+  listingIds: string[],
+): Promise<Set<string>> {
+  const unique = [...new Set(listingIds.filter(Boolean))];
+  if (unique.length === 0) return new Set();
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("saved_listings")
+    .select("listing_id")
+    .eq("user_id", userId)
+    .in("listing_id", unique);
+
+  if (error) {
+    console.error("[fetchSavedListingIdsForUser]", error.message);
+    return new Set();
+  }
+  return new Set((data ?? []).map((r) => r.listing_id as string));
+}
+
 export async function getSavedListingsCount(userId: string): Promise<number> {
   const supabase = await createClient();
   const { count, error } = await supabase

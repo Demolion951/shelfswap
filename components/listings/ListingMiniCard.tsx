@@ -4,6 +4,7 @@
  * Compact “shelf” card: small cover + essential info for dense grids.
  * Location: components/listings/ListingMiniCard.tsx
  */
+import { ListingCardSaveHeart } from "@/components/listings/ListingCardSaveHeart";
 import { coverImageSrcForDisplay } from "@/lib/books/openLibraryCoverDisplay";
 import { listingAreaLine } from "@/lib/listings/areaDisplay";
 import { formatUnlockCredits } from "@/lib/listings/format";
@@ -14,9 +15,16 @@ type Props = {
   listing: ListingWithRelations;
   /** Even denser grid (home shelf). */
   compact?: boolean;
+  showSaveHeart?: boolean;
+  initiallySaved?: boolean;
 };
 
-export function ListingMiniCard({ listing, compact = false }: Props) {
+export function ListingMiniCard({
+  listing,
+  compact = false,
+  showSaveHeart = false,
+  initiallySaved = false,
+}: Props) {
   const photos = listing.listing_photos ?? [];
   const thumbRaw = photos[0]?.url ?? listing.cover_url;
   const thumb = thumbRaw ? coverImageSrcForDisplay(thumbRaw) ?? thumbRaw : null;
@@ -30,7 +38,7 @@ export function ListingMiniCard({ listing, compact = false }: Props) {
     >
       <div className={compact ? "p-1.5" : "p-2"}>
         <figure
-          className={`aspect-[3/4] w-full overflow-hidden bg-base-300 ${compact ? "rounded" : "rounded-md"}`}
+          className={`relative aspect-[3/4] w-full overflow-hidden bg-base-300 ${compact ? "rounded" : "rounded-md"}`}
         >
           {thumb ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -52,6 +60,9 @@ export function ListingMiniCard({ listing, compact = false }: Props) {
               No cover
             </div>
           )}
+          {showSaveHeart ? (
+            <ListingCardSaveHeart listingId={listing.id} initiallySaved={initiallySaved} />
+          ) : null}
         </figure>
 
         <div className={compact ? "mt-1.5 space-y-0.5" : "mt-2 space-y-0.5"}>
