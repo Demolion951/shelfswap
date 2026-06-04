@@ -65,6 +65,7 @@ begin
         where ol.id = r.offered_listing_id;
       end if;
 
+      -- Net can be 0 (requires credits_spent check 0–2; see 20260509_swap_allow_zero_net_credits.sql).
       v_net := greatest(v_seller_cost - v_offered_cost, 0);
       v_refund := greatest(v_spent - v_net, 0);
 
