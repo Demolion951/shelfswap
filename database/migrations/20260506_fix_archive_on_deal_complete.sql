@@ -1,29 +1,7 @@
--- Seller rewards + completion side-effects.
--- - Tracks completed sales count on profiles.
--- - Awards +1 credit per 5 completed sales (only after both-party completion confirm).
--- - Archives the listing when the deal completes.
--- - Adds in-app notifications for deal completion and reward earned.
+-- Ensure completed deals archive listings (remove from home/browse/search).
+-- Backfill listings that were marked completed before archive logic existed.
 
 begin;
-
-alter table public.profiles
-  add column if not exists completed_sales_count int not null default 0,
-  add column if not exists reward_credits_earned int not null default 0;
-
-alter table public.profiles
-  drop constraint if exists profiles_completed_sales_count_nonnegative;
-alter table public.profiles
-  add constraint profiles_completed_sales_count_nonnegative check (completed_sales_count >= 0);
-
-alter table public.profiles
-  drop constraint if exists profiles_reward_credits_earned_nonnegative;
-alter table public.profiles
-  add constraint profiles_reward_credits_earned_nonnegative check (reward_credits_earned >= 0);
-
-comment on column public.profiles.completed_sales_count is
-  'Count of completed deals as a seller (both parties confirmed completion).';
-comment on column public.profiles.reward_credits_earned is
-  'Credits granted by the seller reward program (1 credit per 5 completed sales).';
 
 create or replace function public.confirm_deal_complete(p_listing_id uuid)
 returns jsonb
@@ -69,7 +47,6 @@ begin
     return jsonb_build_object('ok', false, 'error', 'not_party');
   end if;
 
-  -- Only the first time both parties have confirmed should we mark completion and award rewards.
   update public.listing_unlocks
   set completed_at = now()
   where listing_id = p_listing_id and buyer_id = v_buyer
@@ -81,12 +58,10 @@ begin
   v_completed := v_row_count > 0;
 
   if v_completed then
-    -- Archive the listing so it no longer appears in active feeds/search.
     update public.listings
     set status = 'archived'
     where id = p_listing_id and status = 'active';
 
-    -- Seller reward: +1 credit for every 5 completed sales.
     update public.profiles
     set completed_sales_count = completed_sales_count + 1
     where id = v_seller
@@ -130,5 +105,12 @@ end $$;
 revoke all on function public.confirm_deal_complete(uuid) from public;
 grant execute on function public.confirm_deal_complete(uuid) to authenticated;
 
-commit;
+-- Listings completed in-app but never archived (older confirm_deal_complete).
+update public.listings l
+set status = 'archived'
+from public.listing_unlocks u
+where u.listing_id = l.id
+  and u.completed_at is not null
+  and l.status = 'active';
 
+commit;

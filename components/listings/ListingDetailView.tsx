@@ -33,6 +33,9 @@ type Props = {
     swapStatus: "proposed" | "accepted" | "declined" | null;
     offeredListingId: string | null;
     offeredTitle: string | null;
+    offeredCredits: number | null;
+    creditsSpent: number;
+    swapCreditsRefunded: number;
     buyerConfirmedAt: string | null;
     sellerConfirmedAt: string | null;
     completedAt: string | null;
@@ -208,6 +211,7 @@ export function ListingDetailView({
             <DealPanel
               listingId={listing.id}
               listingTitle={listing.title}
+              listingUnlockCredits={credits}
               isOwner={isOwner}
               currentUserId={currentUserId}
               listingOpenToSwaps={!!listing.open_to_swaps}
@@ -219,7 +223,11 @@ export function ListingDetailView({
           <div className="card-body gap-4">
             <h2 className="shelfswap-heading text-lg font-semibold text-primary">Messages</h2>
             {!isOwner ? (
-              viewerPendingUnlock && !viewerUnlocked ? (
+              unlockDeal?.completedAt ? (
+                <p className="text-sm text-base-content/60 leading-snug">
+                  This deal is completed. The listing is no longer shown on Home or Browse.
+                </p>
+              ) : viewerPendingUnlock && !viewerUnlocked ? (
                 <p className="text-sm text-base-content/60 leading-snug">
                   When the seller replies, your request is accepted and credits are charged.
                 </p>
@@ -232,6 +240,10 @@ export function ListingDetailView({
                   You&apos;ve unlocked this listing — chat below to arrange handoff.
                 </div>
               )
+            ) : unlockDeal?.completedAt ? (
+              <p className="text-sm text-base-content/60 leading-snug">
+                Deal completed — this listing is archived and hidden from discovery.
+              </p>
             ) : null}
             <ListingMessagesThread
               listingId={listing.id}

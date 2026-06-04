@@ -50,6 +50,14 @@ export default function FaqPage() {
         pending requests for that listing are typically declined so everyone stays aligned.
       </p>
 
+      <h2>How do credits work on swaps?</h2>
+      <p>
+        You pay the full unlock cost when your request is accepted. If you propose a swap and the seller
+        accepts, your net unlock is the difference between their listing&apos;s credit value and your offered
+        book&apos;s credit value (never below zero). Any extra credits you already paid are refunded to your
+        balance. When both of you confirm handoff on a completed swap, both listings are archived.
+      </p>
+
       <h2>Is there an in-app cash price for the physical book?</h2>
       <p>
         The app focuses on credits to unlock chat and arrange pickup or swap in person. Any agreement for

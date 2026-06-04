@@ -402,6 +402,72 @@ export async function fetchSavedListings(
   return attachPublicProfilesToListings(ordered);
 }
 
+export type RehomedListing = ListingWithRelations & { rehomedAt: string };
+
+/** Seller listings with a completed deal (both parties confirmed handoff). */
+export async function fetchMyRehomedListings(
+  userId: string,
+  limit = 50,
+): Promise<RehomedListing[]> {
+  const supabase = await createClient();
+
+  // Query unlocks directly — listings has two FKs to listing_unlocks (listing_id + offered_listing_id).
+  const { data: unlockRows, error: unlockErr } = await supabase
+    .from("listing_unlocks")
+    .select("listing_id, completed_at")
+    .not("completed_at", "is", null)
+    .order("completed_at", { ascending: false })
+    .limit(limit * 8);
+
+  if (unlockErr) {
+    console.error("[fetchMyRehomedListings] unlocks", unlockErr.message);
+    return [];
+  }
+
+  const rehomedAtByListingId = new Map<string, string>();
+  for (const row of unlockRows ?? []) {
+    const listingId = String(row.listing_id ?? "");
+    const at = row.completed_at as string | null;
+    if (!listingId || !at || rehomedAtByListingId.has(listingId)) continue;
+    rehomedAtByListingId.set(listingId, at);
+  }
+
+  const listingIds = [...rehomedAtByListingId.keys()];
+  if (listingIds.length === 0) return [];
+
+  const res = await withUnlockCreditsRetry(
+    () =>
+      supabase
+        .from("listings")
+        .select(listingSelectWithUnlockCredits)
+        .eq("user_id", userId)
+        .in("id", listingIds),
+    () =>
+      supabase
+        .from("listings")
+        .select(listingSelectNoUnlockCredits)
+        .eq("user_id", userId)
+        .in("id", listingIds),
+  );
+
+  if (res.error) {
+    console.error("[fetchMyRehomedListings] listings", res.error.message);
+    return [];
+  }
+
+  const deduped: RehomedListing[] = listingRowsFromQueryData(res.data)
+    .map((row) => {
+      const id = String(row.id ?? "");
+      const rehomedAt = rehomedAtByListingId.get(id);
+      if (!rehomedAt) return null;
+      return { ...normalizeListingRow(row), rehomedAt };
+    })
+    .filter((row): row is RehomedListing => row != null);
+
+  deduped.sort((a, b) => (a.rehomedAt < b.rehomedAt ? 1 : -1));
+  return attachPublicProfilesToListings(deduped.slice(0, limit));
+}
+
 export async function fetchMyListings(
   userId: string,
   limit = 50,

@@ -10,8 +10,19 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import type { PendingUnlockRequest } from "@/components/listings/UnlockRequestsPanel";
 import type { ListingWithRelations } from "@/lib/listings/queries";
+import { normalizeUnlockCredits } from "@/lib/listings/swapCredits";
 
 type Props = { params: Promise<{ id: string }> };
+
+function parseCreditsSpent(value: unknown): number {
+  const n = typeof value === "number" ? value : Number(value ?? 1);
+  return Number.isFinite(n) && n >= 0 ? n : 1;
+}
+
+function parseSwapCreditsRefunded(value: unknown): number {
+  const n = typeof value === "number" ? value : Number(value ?? 0);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
 
 /** When several buyers unlocked the same listing, prefer the row with an active swap so the Deal panel is not blank. */
 function pickSellerUnlockRow(
@@ -21,6 +32,8 @@ function pickSellerUnlockRow(
         deal_type: string | null;
         swap_status: string | null;
         offered_listing_id: string | null;
+        credits_spent: number | null;
+        swap_credits_refunded: number | null;
         buyer_confirmed_at: string | null;
         seller_confirmed_at: string | null;
         completed_at: string | null;
@@ -44,13 +57,30 @@ export default async function ListingPage({ params }: Props) {
     fetchListingById(id),
     supabase.auth.getUser(),
   ]);
-  if (!listing || listing.status !== "active") {
+  if (!listing) {
     notFound();
   }
 
   const user = authRes.data.user;
   const isOwner = !!user && user.id === listing.user_id;
   const isSignedIn = !!user;
+
+  if (listing.status !== "active") {
+    if (!user) {
+      notFound();
+    }
+    if (!isOwner) {
+      const { data: archivedUnlock } = await supabase
+        .from("listing_unlocks")
+        .select("id")
+        .eq("listing_id", id)
+        .eq("buyer_id", user.id)
+        .maybeSingle();
+      if (!archivedUnlock) {
+        notFound();
+      }
+    }
+  }
 
   let creditBalance = 0;
   let heldCredits = 0;
@@ -64,6 +94,9 @@ export default async function ListingPage({ params }: Props) {
     swapStatus: "proposed" | "accepted" | "declined" | null;
     offeredListingId: string | null;
     offeredTitle: string | null;
+    offeredCredits: number | null;
+    creditsSpent: number;
+    swapCreditsRefunded: number;
     buyerConfirmedAt: string | null;
     sellerConfirmedAt: string | null;
     completedAt: string | null;
@@ -127,6 +160,38 @@ export default async function ListingPage({ params }: Props) {
     if (!viewerUnlocked && !isOwner) {
       viewerPendingUnlock = !!(pendingReqRes as { data?: { id: string } | null }).data;
     }
+
+    // Seller already messaged but unlock row missing (e.g. chat before accept-on-reply migration).
+    if (!isOwner && !viewerUnlocked && viewerPendingUnlock) {
+      const { data: recon, error: reconErr } = await supabase.rpc(
+        "reconcile_unlock_accept_after_seller_reply",
+        { p_listing_id: id },
+      );
+      if (reconErr) {
+        console.warn("[ListingPage] reconcile_unlock_accept_after_seller_reply", reconErr.message);
+      } else if ((recon as { accepted?: boolean } | null)?.accepted === true) {
+        const [unlockAgain, pendingAgain] = await Promise.all([
+          supabase
+            .from("listing_unlocks")
+            .select("id, balance_captured_at")
+            .eq("buyer_id", user.id)
+            .eq("listing_id", id)
+            .maybeSingle(),
+          supabase
+            .from("listing_unlock_requests")
+            .select("id")
+            .eq("buyer_id", user.id)
+            .eq("listing_id", id)
+            .eq("status", "pending")
+            .maybeSingle(),
+        ]);
+        viewerUnlocked = !!unlockAgain.data;
+        viewerPendingUnlock = !viewerUnlocked && !!pendingAgain.data;
+        const meta = unlockAgain.data as { balance_captured_at?: string | null } | null;
+        creditsPendingSellerReply =
+          !!viewerUnlocked && !!meta && meta.balance_captured_at == null;
+      }
+    }
   }
 
   // Deal state: only after listing_unlocks exists (not during pending request-only phase).
@@ -134,20 +199,24 @@ export default async function ListingPage({ params }: Props) {
     if (isOwner) {
       const { data: unlockRows } = await supabase
         .from("listing_unlocks")
-        .select("buyer_id, deal_type, swap_status, offered_listing_id, buyer_confirmed_at, seller_confirmed_at, completed_at")
+        .select(
+          "buyer_id, deal_type, swap_status, offered_listing_id, buyer_confirmed_at, seller_confirmed_at, completed_at, credits_spent, swap_credits_refunded",
+        )
         .eq("listing_id", id)
         .order("created_at", { ascending: false })
         .limit(24);
       const u = pickSellerUnlockRow(unlockRows ?? null);
       if (u) {
         let offeredTitle: string | null = null;
+        let offeredCredits: number | null = null;
         if (u.offered_listing_id) {
           const { data: ol } = await supabase
             .from("listings")
-            .select("title")
+            .select("title, unlock_credits")
             .eq("id", u.offered_listing_id)
             .maybeSingle();
           offeredTitle = (ol?.title as string | null) ?? null;
+          if (ol) offeredCredits = normalizeUnlockCredits(ol.unlock_credits);
         }
         unlockDeal = {
           buyerId: String(u.buyer_id),
@@ -155,6 +224,9 @@ export default async function ListingPage({ params }: Props) {
           swapStatus: (u.swap_status as any) ?? null,
           offeredListingId: (u.offered_listing_id as any) ?? null,
           offeredTitle,
+          offeredCredits,
+          creditsSpent: parseCreditsSpent(u.credits_spent),
+          swapCreditsRefunded: parseSwapCreditsRefunded(u.swap_credits_refunded),
           buyerConfirmedAt: (u.buyer_confirmed_at as any) ?? null,
           sellerConfirmedAt: (u.seller_confirmed_at as any) ?? null,
           completedAt: (u.completed_at as any) ?? null,
@@ -163,19 +235,23 @@ export default async function ListingPage({ params }: Props) {
     } else if (viewerUnlocked) {
       const { data: u } = await supabase
         .from("listing_unlocks")
-        .select("buyer_id, deal_type, swap_status, offered_listing_id, buyer_confirmed_at, seller_confirmed_at, completed_at")
+        .select(
+          "buyer_id, deal_type, swap_status, offered_listing_id, buyer_confirmed_at, seller_confirmed_at, completed_at, credits_spent, swap_credits_refunded",
+        )
         .eq("listing_id", id)
         .eq("buyer_id", user.id)
         .maybeSingle();
       if (u) {
         let offeredTitle: string | null = null;
+        let offeredCredits: number | null = null;
         if (u.offered_listing_id) {
           const { data: ol } = await supabase
             .from("listings")
-            .select("title")
+            .select("title, unlock_credits")
             .eq("id", u.offered_listing_id)
             .maybeSingle();
           offeredTitle = (ol?.title as string | null) ?? null;
+          if (ol) offeredCredits = normalizeUnlockCredits(ol.unlock_credits);
         }
         unlockDeal = {
           buyerId: String(u.buyer_id),
@@ -183,6 +259,9 @@ export default async function ListingPage({ params }: Props) {
           swapStatus: (u.swap_status as any) ?? null,
           offeredListingId: (u.offered_listing_id as any) ?? null,
           offeredTitle,
+          offeredCredits,
+          creditsSpent: parseCreditsSpent(u.credits_spent),
+          swapCreditsRefunded: parseSwapCreditsRefunded(u.swap_credits_refunded),
           buyerConfirmedAt: (u.buyer_confirmed_at as any) ?? null,
           sellerConfirmedAt: (u.seller_confirmed_at as any) ?? null,
           completedAt: (u.completed_at as any) ?? null,

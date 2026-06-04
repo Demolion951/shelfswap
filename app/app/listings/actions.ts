@@ -235,6 +235,7 @@ export async function respondSwapAction(listingId: string, accept: boolean): Pro
   if (ok !== true) return { ok: false, error: (data as any)?.error ?? "Could not respond." };
   revalidatePath(`/app/listings/${listingId}`);
   revalidatePath("/app/activity");
+  revalidatePath("/app/credits");
   return { ok: true };
 }
 
@@ -251,6 +252,9 @@ export async function confirmDealCompleteAction(listingId: string): Promise<Conf
   const ok = (data as any)?.ok;
   if (ok !== true) return { ok: false, error: (data as any)?.error ?? "Could not confirm." };
   revalidatePath(`/app/listings/${listingId}`);
+  revalidatePath("/app/home");
+  revalidatePath("/app/browse");
+  revalidatePath("/app/search");
   revalidatePath("/app/activity");
   return { ok: true };
 }

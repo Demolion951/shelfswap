@@ -6,6 +6,7 @@
  * Location: components/listings/DealPanel.tsx
  */
 import { proposeSwapAction, respondSwapAction } from "@/app/app/listings/actions";
+import { swapEstimatedRefund, swapNetCredits } from "@/lib/listings/swapCredits";
 import { Check, Loader2, RefreshCw, Shuffle, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -17,6 +18,9 @@ export type UnlockDeal = {
   swapStatus: "proposed" | "accepted" | "declined" | null;
   offeredListingId: string | null;
   offeredTitle: string | null;
+  offeredCredits: number | null;
+  creditsSpent: number;
+  swapCreditsRefunded: number;
   buyerConfirmedAt: string | null;
   sellerConfirmedAt: string | null;
   completedAt: string | null;
@@ -24,10 +28,16 @@ export type UnlockDeal = {
 
 type OfferOption = { id: string; title: string };
 
+function creditWord(n: number): string {
+  return n === 1 ? "credit" : "credits";
+}
+
 type Props = {
   listingId: string;
   /** Seller listing title (this page’s book) — used in swap summary after acceptance. */
   listingTitle: string;
+  /** Credits to unlock this listing (1 or 2). */
+  listingUnlockCredits: number;
   isOwner: boolean;
   currentUserId: string | null;
   listingOpenToSwaps: boolean;
@@ -38,6 +48,7 @@ type Props = {
 export function DealPanel({
   listingId,
   listingTitle,
+  listingUnlockCredits,
   isOwner,
   currentUserId,
   listingOpenToSwaps,
@@ -55,6 +66,29 @@ export function DealPanel({
   }, [currentUserId, deal.buyerId]);
 
   const canShowSwap = listingOpenToSwaps && isBuyer && !isOwner;
+
+  const swapCreditNote = useMemo(() => {
+    if (deal.dealType !== "swap" || deal.offeredCredits == null) return null;
+    if (deal.swapStatus === "accepted") {
+      if (deal.swapCreditsRefunded > 0) {
+        return `${deal.swapCreditsRefunded} ${creditWord(deal.swapCreditsRefunded)} refunded — net unlock ${deal.creditsSpent} ${creditWord(deal.creditsSpent)}.`;
+      }
+      return `Net unlock: ${deal.creditsSpent} ${creditWord(deal.creditsSpent)}.`;
+    }
+    if (deal.swapStatus === "proposed") {
+      const estRefund = swapEstimatedRefund(
+        deal.creditsSpent,
+        listingUnlockCredits,
+        deal.offeredCredits,
+      );
+      const net = swapNetCredits(listingUnlockCredits, deal.offeredCredits);
+      if (estRefund > 0) {
+        return `If accepted, net unlock is ${net} ${creditWord(net)} (${estRefund} ${creditWord(estRefund)} refunded).`;
+      }
+      return `If accepted, net unlock stays ${net} ${creditWord(net)}.`;
+    }
+    return null;
+  }, [deal, listingUnlockCredits]);
 
   function onProposeSwap() {
     setError(null);
@@ -141,6 +175,9 @@ export function DealPanel({
                     </span>
                     . Message below to arrange pickup; confirm handoff when you&apos;re done.
                   </p>
+                  {swapCreditNote ? (
+                    <p className="text-xs text-base-content/70">{swapCreditNote}</p>
+                  ) : null}
                   {deal.offeredListingId ? (
                     <Link
                       href={`/app/listings/${deal.offeredListingId}`}
@@ -196,7 +233,22 @@ export function DealPanel({
             </div>
             <div className="text-xs text-base-content/60 mt-1">
               Offered: {deal.offeredTitle ?? "a book"}
+              {deal.offeredCredits != null
+                ? ` (${deal.offeredCredits} ${creditWord(deal.offeredCredits)} unlock)`
+                : null}
             </div>
+            {deal.offeredCredits != null &&
+            swapEstimatedRefund(deal.creditsSpent, listingUnlockCredits, deal.offeredCredits) > 0 ? (
+              <p className="text-xs text-base-content/60 mt-2">
+                Accepting refunds the buyer{" "}
+                {swapEstimatedRefund(deal.creditsSpent, listingUnlockCredits, deal.offeredCredits)}{" "}
+                {creditWord(
+                  swapEstimatedRefund(deal.creditsSpent, listingUnlockCredits, deal.offeredCredits),
+                )}{" "}
+                (net {swapNetCredits(listingUnlockCredits, deal.offeredCredits)}{" "}
+                {creditWord(swapNetCredits(listingUnlockCredits, deal.offeredCredits))}).
+              </p>
+            ) : null}
             <div className="mt-3 flex gap-2">
               <button
                 type="button"
@@ -238,6 +290,9 @@ export function DealPanel({
               </span>
               . Message below to arrange pickup; confirm handoff when you&apos;ve handed over your copy.
             </p>
+            {swapCreditNote ? (
+              <p className="text-xs text-base-content/70">{swapCreditNote}</p>
+            ) : null}
             {deal.offeredListingId ? (
               <Link
                 href={`/app/listings/${deal.offeredListingId}`}

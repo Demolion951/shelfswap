@@ -1,8 +1,12 @@
 import { SignOutForm } from "@/components/auth/SignOutForm";
 import { SettingsRow } from "@/components/SettingsRow";
-import { fetchMyListings, getSavedListingsCount } from "@/lib/listings/queries";
+import {
+  fetchMyListings,
+  fetchMyRehomedListings,
+  getSavedListingsCount,
+} from "@/lib/listings/queries";
 import { createClient } from "@/lib/supabase/server";
-import { ChevronRight, Coins, Heart, Library, Settings2 } from "lucide-react";
+import { ChevronRight, Coins, Heart, Home, Library, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -20,8 +24,12 @@ export default async function ProfilePage() {
     .eq("id", user.id)
     .maybeSingle();
 
-  const myListings = await fetchMyListings(user.id);
-  const savedCount = await getSavedListingsCount(user.id);
+  const [myListings, rehomedListings, savedCount] = await Promise.all([
+    fetchMyListings(user.id),
+    fetchMyRehomedListings(user.id),
+    getSavedListingsCount(user.id),
+  ]);
+  const rehomedCount = rehomedListings.length;
 
   return (
     <div className="space-y-6 pt-2">
@@ -106,6 +114,31 @@ export default async function ProfilePage() {
             </div>
             <div className="flex shrink-0 items-center gap-1">
               <p className="text-2xl font-bold sm:text-3xl">{myListings.length}</p>
+              <ChevronRight
+                className="h-4 w-4 text-base-content/35"
+                aria-hidden
+              />
+            </div>
+          </div>
+        </Link>
+        <Link
+          href="/app/profile/rehomed"
+          className="card bg-base-100 border border-base-300/80 shadow-sm transition hover:border-success/35 w-full"
+        >
+          <div className="card-body flex flex-row items-center justify-between gap-3 p-4 sm:p-5">
+            <div className="flex min-w-0 items-center gap-3">
+              <Home
+                className="h-5 w-5 shrink-0 text-success sm:h-6 sm:w-6"
+                aria-hidden
+              />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-wide text-success">
+                  Rehomed
+                </p>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              <p className="text-2xl font-bold sm:text-3xl">{rehomedCount}</p>
               <ChevronRight
                 className="h-4 w-4 text-base-content/35"
                 aria-hidden

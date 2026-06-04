@@ -77,6 +77,8 @@ type TimelineItem =
       offeredListingId: string | null;
       listingTitleHint: string | null;
       offeredTitleHint: string | null;
+      creditsRefunded: number | null;
+      netCredits: number | null;
       wasUnread: boolean;
     }
   | {
@@ -268,6 +270,14 @@ export default async function ActivityPage() {
         typeof oid === "string" ? oid : oid != null ? String(oid) : null;
       const lt = payload.listing_title;
       const ot = payload.offered_title;
+      const refundedRaw = payload.credits_refunded;
+      const netRaw = payload.net_credits;
+      const creditsRefunded =
+        typeof refundedRaw === "number" && Number.isFinite(refundedRaw) && refundedRaw > 0
+          ? refundedRaw
+          : null;
+      const netCredits =
+        typeof netRaw === "number" && Number.isFinite(netRaw) ? netRaw : null;
       items.push({
         key: `notif-swap-${n.id}`,
         createdAt: n.created_at,
@@ -277,6 +287,8 @@ export default async function ActivityPage() {
         offeredListingId,
         listingTitleHint: typeof lt === "string" ? lt : null,
         offeredTitleHint: typeof ot === "string" ? ot : null,
+        creditsRefunded,
+        netCredits,
         wasUnread: n.read_at == null,
       });
       continue;
@@ -612,6 +624,18 @@ export default async function ActivityPage() {
                             <span className="badge badge-primary badge-xs">New</span>
                           ) : null}
                         </div>
+                        {item.outcome === "accepted" &&
+                        (item.creditsRefunded != null || item.netCredits != null) ? (
+                          <p className="text-xs text-base-content/60 mt-1">
+                            {item.creditsRefunded != null
+                              ? `${item.creditsRefunded} credit${item.creditsRefunded === 1 ? "" : "s"} refunded`
+                              : null}
+                            {item.creditsRefunded != null && item.netCredits != null ? " · " : null}
+                            {item.netCredits != null
+                              ? `net unlock ${item.netCredits} credit${item.netCredits === 1 ? "" : "s"}`
+                              : null}
+                          </p>
+                        ) : null}
                         <p className="text-xs text-base-content/50 mt-1">
                           <LocalDateTimeText iso={item.createdAt} />
                         </p>
