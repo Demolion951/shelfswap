@@ -404,32 +404,100 @@ export async function fetchSavedListings(
 
 export type RehomedListing = ListingWithRelations & { rehomedAt: string };
 
-/** Seller listings with a completed deal (both parties confirmed handoff). */
+function mergeRehomedCompletedAt(
+  map: Map<string, string>,
+  listingId: unknown,
+  completedAt: unknown,
+) {
+  const id = String(listingId ?? "");
+  const at = typeof completedAt === "string" ? completedAt : null;
+  if (!id || !at) return;
+  const prev = map.get(id);
+  if (!prev || at > prev) map.set(id, at);
+}
+
+function unlockRowIsCompleted(row: {
+  completed_at?: string | null;
+  buyer_confirmed_at?: string | null;
+  seller_confirmed_at?: string | null;
+}): boolean {
+  if (row.completed_at) return true;
+  return !!(row.buyer_confirmed_at && row.seller_confirmed_at);
+}
+
+function completedAtFromUnlockRow(row: {
+  completed_at?: string | null;
+  buyer_confirmed_at?: string | null;
+  seller_confirmed_at?: string | null;
+}): string | null {
+  if (typeof row.completed_at === "string" && row.completed_at) return row.completed_at;
+  const seller = row.seller_confirmed_at;
+  const buyer = row.buyer_confirmed_at;
+  if (typeof seller === "string" && seller && typeof buyer === "string" && buyer) {
+    return seller > buyer ? seller : buyer;
+  }
+  return null;
+}
+
+/**
+ * Your archived books after a completed deal: sold on your listing, or offered in a completed swap.
+ */
 export async function fetchMyRehomedListings(
   userId: string,
   limit = 50,
 ): Promise<RehomedListing[]> {
   const supabase = await createClient();
+  const rehomedAtByListingId = new Map<string, string>();
 
-  // Query unlocks directly — listings has two FKs to listing_unlocks (listing_id + offered_listing_id).
-  const { data: unlockRows, error: unlockErr } = await supabase
-    .from("listing_unlocks")
-    .select("listing_id, completed_at")
-    .not("completed_at", "is", null)
-    .order("completed_at", { ascending: false })
-    .limit(limit * 8);
+  const { data: archivedRows, error: archivedErr } = await supabase
+    .from("listings")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("status", "archived");
 
-  if (unlockErr) {
-    console.error("[fetchMyRehomedListings] unlocks", unlockErr.message);
+  if (archivedErr) {
+    console.error("[fetchMyRehomedListings] archived", archivedErr.message);
     return [];
   }
 
-  const rehomedAtByListingId = new Map<string, string>();
-  for (const row of unlockRows ?? []) {
-    const listingId = String(row.listing_id ?? "");
-    const at = row.completed_at as string | null;
-    if (!listingId || !at || rehomedAtByListingId.has(listingId)) continue;
-    rehomedAtByListingId.set(listingId, at);
+  const archivedIds = (archivedRows ?? []).map((r) => String(r.id)).filter(Boolean);
+  if (archivedIds.length === 0) return [];
+
+  const unlockSelect =
+    "listing_id, offered_listing_id, completed_at, buyer_confirmed_at, seller_confirmed_at";
+
+  const [{ data: soldUnlocks, error: soldErr }, { data: swapAwayUnlocks, error: swapErr }] =
+    await Promise.all([
+      supabase
+        .from("listing_unlocks")
+        .select(unlockSelect)
+        .in("listing_id", archivedIds),
+      supabase
+        .from("listing_unlocks")
+        .select(unlockSelect)
+        .in("offered_listing_id", archivedIds)
+        .eq("buyer_id", userId),
+    ]);
+
+  if (soldErr) {
+    console.error("[fetchMyRehomedListings] sold unlocks", soldErr.message);
+  }
+  if (swapErr) {
+    console.error("[fetchMyRehomedListings] swap-away unlocks", swapErr.message);
+  }
+
+  for (const row of [...(soldUnlocks ?? []), ...(swapAwayUnlocks ?? [])]) {
+    if (!unlockRowIsCompleted(row)) continue;
+    const at = completedAtFromUnlockRow(row);
+    if (!at) continue;
+    const soldId = row.listing_id;
+    const offeredId = row.offered_listing_id;
+    if (soldId && archivedIds.includes(String(soldId))) {
+      mergeRehomedCompletedAt(rehomedAtByListingId, soldId, at);
+    }
+    if (offeredId && archivedIds.includes(String(offeredId))) {
+      mergeRehomedCompletedAt(rehomedAtByListingId, offeredId, at);
+    }
   }
 
   const listingIds = [...rehomedAtByListingId.keys()];

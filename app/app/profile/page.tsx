@@ -135,6 +135,9 @@ export default async function ProfilePage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-success">
                   Rehomed
                 </p>
+                <p className="text-[10px] text-base-content/45 leading-tight">
+                  Completed sales &amp; swaps
+                </p>
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-1">

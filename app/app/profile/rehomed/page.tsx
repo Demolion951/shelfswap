@@ -30,11 +30,11 @@ export default async function ProfileRehomedPage() {
       </div>
 
       <p className="text-sm text-base-content/60">
-        Books you&apos;ve handed over after a completed deal.
+        Books you&apos;ve handed over after a completed sale or swap.
       </p>
 
       {rehomedListings.length === 0 ? (
-        <p className="text-sm text-base-content/50">No completed sales yet.</p>
+        <p className="text-sm text-base-content/50">No completed handoffs yet.</p>
       ) : (
         <ul className="flex flex-col gap-4">
           {rehomedListings.map((l) => (
