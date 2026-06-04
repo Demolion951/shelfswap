@@ -76,8 +76,6 @@ export default async function HomePage() {
       <HomeSectionToggle
         title="Recommended for you"
         listings={recommendedFilled}
-        actionHref="/app/search"
-        actionLabel="Search"
         emptyMessage="Nothing to recommend yet — use Search or Browse to explore."
       />
 

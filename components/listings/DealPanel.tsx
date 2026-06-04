@@ -124,18 +124,27 @@ export function DealPanel({
             ) : null}
             {deal.dealType === "swap" ? (
               deal.swapStatus === "accepted" ? (
-                <div role="status" className="alert alert-success text-sm py-3 gap-2">
-                  <div className="font-medium text-success-content">Swap agreed</div>
-                  <p className="text-xs text-success-content/90 leading-snug">
-                    They accepted exchanging{" "}
-                    <span className="font-medium">{listingTitle}</span> for your{" "}
-                    <span className="font-medium">{deal.offeredTitle ?? "offered book"}</span>. Arrange details in
-                    Messages and confirm handoff above when done.
+                <div
+                  role="status"
+                  className="rounded-lg border border-success/30 bg-success/10 px-3 py-3 space-y-2"
+                >
+                  <div className="flex items-center gap-2">
+                    <Shuffle className="h-4 w-4 shrink-0 text-success" aria-hidden />
+                    <span className="text-sm font-semibold text-base-content">Swap agreed</span>
+                  </div>
+                  <p className="text-sm text-base-content/80 leading-relaxed">
+                    They accepted{" "}
+                    <span className="font-medium text-base-content">{listingTitle}</span>
+                    {" ↔ "}
+                    <span className="font-medium text-base-content">
+                      {deal.offeredTitle ?? "your offered book"}
+                    </span>
+                    . Message below to arrange pickup; confirm handoff when you&apos;re done.
                   </p>
                   {deal.offeredListingId ? (
                     <Link
                       href={`/app/listings/${deal.offeredListingId}`}
-                      className="link link-accent text-xs"
+                      className="link link-primary text-sm font-medium"
                     >
                       View your offered listing
                     </Link>
@@ -212,21 +221,27 @@ export function DealPanel({
         ) : null}
 
         {isOwner && deal.dealType === "swap" && deal.swapStatus === "accepted" ? (
-          <div role="status" className="rounded-lg border border-success/30 bg-success/10 p-3 space-y-2">
-            <div className="flex items-center gap-2 text-sm font-medium text-base-content">
-              <Shuffle className="h-4 w-4 text-success" aria-hidden />
-              Swap agreed
+          <div
+            role="status"
+            className="rounded-lg border border-success/30 bg-success/10 px-3 py-3 space-y-2"
+          >
+            <div className="flex items-center gap-2">
+              <Shuffle className="h-4 w-4 shrink-0 text-success" aria-hidden />
+              <span className="text-sm font-semibold text-base-content">Swap agreed</span>
             </div>
-            <p className="text-xs text-base-content/75 leading-snug">
-              You accepted exchanging your{" "}
-              <span className="font-medium text-base-content">{listingTitle}</span> for their{" "}
-              <span className="font-medium text-base-content">{deal.offeredTitle ?? "offered book"}</span>. Use
-              Messages to arrange pickup; confirm handoff above when you&apos;ve passed your copy over.
+            <p className="text-sm text-base-content/80 leading-relaxed">
+              You accepted{" "}
+              <span className="font-medium text-base-content">{listingTitle}</span>
+              {" ↔ "}
+              <span className="font-medium text-base-content">
+                {deal.offeredTitle ?? "their offered book"}
+              </span>
+              . Message below to arrange pickup; confirm handoff when you&apos;ve handed over your copy.
             </p>
             {deal.offeredListingId ? (
               <Link
                 href={`/app/listings/${deal.offeredListingId}`}
-                className="link link-success text-xs inline-block"
+                className="link link-primary text-sm font-medium"
               >
                 View their offered listing
               </Link>

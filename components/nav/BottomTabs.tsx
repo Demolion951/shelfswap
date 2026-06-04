@@ -12,8 +12,8 @@ import { usePathname } from "next/navigation";
 const tabs = [
   { href: "/app/home", label: "Home", Icon: Home },
   { href: "/app/search", label: "Search", Icon: Search },
-  { href: "/app/messages", label: "Messages", Icon: MessageCircle },
   { href: "/app/sell", label: "Add", Icon: PlusCircle },
+  { href: "/app/messages", label: "Messages", Icon: MessageCircle },
   { href: "/app/profile", label: "Profile", Icon: UserRound },
 ] as const;
 

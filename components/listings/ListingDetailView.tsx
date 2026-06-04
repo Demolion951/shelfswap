@@ -1,8 +1,5 @@
 import { coverImageSrcForDisplay } from "@/lib/books/openLibraryCoverDisplay";
-import {
-  approxDistanceAlwaysVisibleLine,
-  formatApproxDistanceKm,
-} from "@/lib/geo/formatDistance";
+import { listingAreaLine } from "@/lib/listings/areaDisplay";
 import { CONDITION_LABELS, formatUnlockCredits } from "@/lib/listings/format";
 import type { ListingMessageRow, ListingWithRelations } from "@/lib/listings/queries";
 import { OpenLibraryBlurbLoader } from "@/components/listings/OpenLibraryBlurbLoader";
@@ -67,7 +64,7 @@ export function ListingDetailView({
   buyerOfferOptions,
   currentUserId,
   messages,
-  distanceKm,
+  distanceKm: _distanceKm,
   creditsPendingSellerReply = false,
 }: Props) {
   const photos = sortPhotos(listing);
@@ -79,14 +76,7 @@ export function ListingDetailView({
     isbnDigits.length === 10 || isbnDigits.length === 13
       ? `/api/openlibrary-cover?isbn=${encodeURIComponent(isbnDigits)}&size=L`
       : null;
-  const distanceLine =
-    !isOwner && isSignedIn ? formatApproxDistanceKm(distanceKm) : null;
-  const town = listing.approx_area_text?.trim() || null;
-  const buyerDistanceText =
-    !isOwner && isSignedIn
-      ? distanceLine ?? approxDistanceAlwaysVisibleLine(distanceKm)
-      : null;
-  const buyerHasApproxKm = !isOwner && isSignedIn && distanceLine != null;
+  const areaLine = !isOwner && isSignedIn ? listingAreaLine(listing.approx_area_text) : null;
 
   return (
     <div className="space-y-4 pb-8">
@@ -173,35 +163,10 @@ export function ListingDetailView({
         ) : null}
       </div>
 
-      {!isOwner ? (
+      {!isOwner && areaLine ? (
         <div className="flex items-start gap-2 text-sm text-base-content/70">
           <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-primary/80" aria-hidden />
-          <span>
-            {!isSignedIn ? (
-              "Sign in and allow approximate location to see distance hints."
-            ) : buyerDistanceText ? (
-              <span className="block text-sm leading-snug text-base-content/80">
-                {town ? (
-                  <>
-                    {town}{" "}
-                    <span
-                      className={
-                        buyerHasApproxKm ? "text-secondary" : "text-base-content/65"
-                      }
-                    >
-                      ({buyerDistanceText})
-                    </span>
-                  </>
-                ) : (
-                  <span
-                    className={buyerHasApproxKm ? "text-secondary" : "text-base-content/70"}
-                  >
-                    {buyerDistanceText}
-                  </span>
-                )}
-              </span>
-            ) : null}
-          </span>
+          <span className="text-sm leading-snug text-base-content/80">{areaLine}</span>
         </div>
       ) : null}
 

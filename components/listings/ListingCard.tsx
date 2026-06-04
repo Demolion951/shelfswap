@@ -1,10 +1,7 @@
 "use client";
 
 import { coverImageSrcForDisplay } from "@/lib/books/openLibraryCoverDisplay";
-import {
-  approxDistanceAlwaysVisibleLine,
-  formatApproxDistanceKm,
-} from "@/lib/geo/formatDistance";
+import { listingAreaLine } from "@/lib/listings/areaDisplay";
 import { CONDITION_LABELS, formatUnlockCredits } from "@/lib/listings/format";
 import type { ListingWithRelations } from "@/lib/listings/queries";
 import Link from "next/link";
@@ -35,11 +32,7 @@ export function ListingCard({ listing, variant = "grid", compact = false }: Prop
   const thumb = thumbRaw ? coverImageSrcForDisplay(thumbRaw) ?? thumbRaw : null;
   const cond = CONDITION_LABELS[listing.condition] ?? listing.condition;
   const credits = listing.unlock_credits === 2 ? 2 : 1;
-  const km = listing.distance_km ?? null;
-  const distLine =
-    formatApproxDistanceKm(km) ?? approxDistanceAlwaysVisibleLine(km);
-  const hasApproxKm = formatApproxDistanceKm(km) != null;
-  const town = listing.approx_area_text?.trim() || null;
+  const areaLine = listingAreaLine(listing.approx_area_text);
 
   const inner = (
     <>
@@ -138,28 +131,19 @@ export function ListingCard({ listing, variant = "grid", compact = false }: Prop
             <span className="badge badge-xs shrink-0 badge-accent badge-outline">Swaps</span>
           ) : null}
         </div>
-        <p
-          className={
-            variant === "row"
-              ? "mt-auto text-[0.68rem] leading-snug line-clamp-2 text-base-content/65"
-              : compact
-                ? "text-[0.6rem] leading-snug line-clamp-2 text-base-content/65"
-                : "text-[0.68rem] leading-snug line-clamp-2 text-base-content/65"
-          }
-        >
-          {town ? (
-            <>
-              <span>{town}</span>{" "}
-              <span className={hasApproxKm ? "text-secondary" : "text-base-content/50"}>
-                ({distLine})
-              </span>
-            </>
-          ) : (
-            <span className={hasApproxKm ? "text-secondary" : "text-base-content/50"}>
-              {distLine}
-            </span>
-          )}
-        </p>
+        {areaLine ? (
+          <p
+            className={
+              variant === "row"
+                ? "mt-auto text-[0.68rem] leading-snug line-clamp-2 text-base-content/65"
+                : compact
+                  ? "text-[0.6rem] leading-snug line-clamp-2 text-base-content/65"
+                  : "text-[0.68rem] leading-snug line-clamp-2 text-base-content/65"
+            }
+          >
+            {areaLine}
+          </p>
+        ) : null}
       </div>
     </>
   );

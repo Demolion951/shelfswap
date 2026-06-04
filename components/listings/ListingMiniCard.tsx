@@ -5,10 +5,7 @@
  * Location: components/listings/ListingMiniCard.tsx
  */
 import { coverImageSrcForDisplay } from "@/lib/books/openLibraryCoverDisplay";
-import {
-  approxDistanceAlwaysVisibleLine,
-  formatApproxDistanceKm,
-} from "@/lib/geo/formatDistance";
+import { listingAreaLine } from "@/lib/listings/areaDisplay";
 import { formatUnlockCredits } from "@/lib/listings/format";
 import type { ListingWithRelations } from "@/lib/listings/queries";
 import Link from "next/link";
@@ -24,11 +21,7 @@ export function ListingMiniCard({ listing, compact = false }: Props) {
   const thumbRaw = photos[0]?.url ?? listing.cover_url;
   const thumb = thumbRaw ? coverImageSrcForDisplay(thumbRaw) ?? thumbRaw : null;
   const credits = listing.unlock_credits === 2 ? 2 : 1;
-  const km = listing.distance_km ?? null;
-  const distLine =
-    formatApproxDistanceKm(km) ?? approxDistanceAlwaysVisibleLine(km);
-  const hasApproxKm = formatApproxDistanceKm(km) != null;
-  const town = listing.approx_area_text?.trim() || null;
+  const areaLine = listingAreaLine(listing.approx_area_text);
 
   return (
     <Link
@@ -93,26 +86,17 @@ export function ListingMiniCard({ listing, compact = false }: Props) {
               {formatUnlockCredits(credits)}
             </span>
           </div>
-          <p
-            className={
-              compact
-                ? "line-clamp-2 text-[9px] leading-snug text-base-content/60"
-                : "line-clamp-2 text-[10px] leading-snug text-base-content/60"
-            }
-          >
-            {town ? (
-              <>
-                <span>{town}</span>{" "}
-                <span className={hasApproxKm ? "text-secondary" : "text-base-content/50"}>
-                  ({distLine})
-                </span>
-              </>
-            ) : (
-              <span className={hasApproxKm ? "text-secondary" : "text-base-content/50"}>
-                {distLine}
-              </span>
-            )}
-          </p>
+          {areaLine ? (
+            <p
+              className={
+                compact
+                  ? "line-clamp-2 text-[9px] leading-snug text-base-content/60"
+                  : "line-clamp-2 text-[10px] leading-snug text-base-content/60"
+              }
+            >
+              {areaLine}
+            </p>
+          ) : null}
         </div>
       </div>
     </Link>
