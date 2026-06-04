@@ -29,7 +29,7 @@ export default async function ProfilePage() {
     fetchMyRehomedListings(user.id),
     getSavedListingsCount(user.id),
   ]);
-  const rehomedCount = rehomedListings.length;
+  const rehomedCount = rehomedListings.pickups.length + rehomedListings.swaps.length;
 
   return (
     <div className="space-y-6 pt-2">

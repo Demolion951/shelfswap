@@ -1,4 +1,4 @@
-import { RehomedListingRow } from "@/components/listings/RehomedListingRow";
+import { RehomedSection } from "@/components/listings/RehomedSection";
 import { fetchMyRehomedListings } from "@/lib/listings/queries";
 import { createClient } from "@/lib/supabase/server";
 import { ArrowLeft, Home } from "lucide-react";
@@ -6,7 +6,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 /**
- * Seller’s completed (rehomed) listings — opened from Profile → Rehomed card.
+ * Completed handoffs — pickup sales and swaps (opened from Profile → Rehomed).
  * Location: app/app/profile/rehomed/page.tsx
  */
 export default async function ProfileRehomedPage() {
@@ -15,7 +15,8 @@ export default async function ProfileRehomedPage() {
   const user = authData?.user ?? null;
   if (!user) redirect("/auth/sign-in");
 
-  const rehomedListings = await fetchMyRehomedListings(user.id);
+  const { pickups, swaps } = await fetchMyRehomedListings(user.id);
+  const total = pickups.length + swaps.length;
 
   return (
     <div className="space-y-6 pt-2">
@@ -30,19 +31,28 @@ export default async function ProfileRehomedPage() {
       </div>
 
       <p className="text-sm text-base-content/60">
-        Books you&apos;ve handed over after a completed sale or swap.
+        Books you&apos;ve handed over after a completed deal.
       </p>
 
-      {rehomedListings.length === 0 ? (
+      {total === 0 ? (
         <p className="text-sm text-base-content/50">No completed handoffs yet.</p>
       ) : (
-        <ul className="flex flex-col gap-4">
-          {rehomedListings.map((l) => (
-            <li key={l.id}>
-              <RehomedListingRow listing={l} />
-            </li>
-          ))}
-        </ul>
+        <div className="space-y-8">
+          <RehomedSection
+            title="Pickups"
+            description="Someone unlocked your listing for credits and completed the handoff (not a swap)."
+            listings={pickups}
+            icon="pickup"
+            emptyText="No completed pickup sales yet."
+          />
+          <RehomedSection
+            title="Swaps"
+            description="You completed a swap — either on your listing or a book you offered to trade."
+            listings={swaps}
+            icon="swap"
+            emptyText="No completed swaps yet."
+          />
+        </div>
       )}
     </div>
   );

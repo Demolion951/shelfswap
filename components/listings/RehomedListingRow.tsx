@@ -1,5 +1,5 @@
 /**
- * Read-only row for a seller’s completed (rehomed) listing on Profile → Listings.
+ * Read-only row for a completed (rehomed) listing on Profile → Rehomed.
  * Location: components/listings/RehomedListingRow.tsx
  */
 import { ListingCard } from "@/components/listings/ListingCard";

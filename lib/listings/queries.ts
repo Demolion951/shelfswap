@@ -402,18 +402,31 @@ export async function fetchSavedListings(
   return attachPublicProfilesToListings(ordered);
 }
 
-export type RehomedListing = ListingWithRelations & { rehomedAt: string };
+export type RehomedKind = "pickup" | "swap";
 
-function mergeRehomedCompletedAt(
-  map: Map<string, string>,
+export type RehomedListing = ListingWithRelations & {
+  rehomedAt: string;
+  rehomedKind: RehomedKind;
+};
+
+export type MyRehomedListings = {
+  pickups: RehomedListing[];
+  swaps: RehomedListing[];
+};
+
+type RehomedMeta = { at: string; kind: RehomedKind };
+
+function mergeRehomedMeta(
+  map: Map<string, RehomedMeta>,
   listingId: unknown,
   completedAt: unknown,
+  kind: RehomedKind,
 ) {
   const id = String(listingId ?? "");
   const at = typeof completedAt === "string" ? completedAt : null;
   if (!id || !at) return;
   const prev = map.get(id);
-  if (!prev || at > prev) map.set(id, at);
+  if (!prev || at > prev.at) map.set(id, { at, kind });
 }
 
 function unlockRowIsCompleted(row: {
@@ -440,14 +453,15 @@ function completedAtFromUnlockRow(row: {
 }
 
 /**
- * Your archived books after a completed deal: sold on your listing, or offered in a completed swap.
+ * Your archived books after a completed deal, split by pickup sale vs swap handoff.
  */
 export async function fetchMyRehomedListings(
   userId: string,
   limit = 50,
-): Promise<RehomedListing[]> {
+): Promise<MyRehomedListings> {
+  const empty: MyRehomedListings = { pickups: [], swaps: [] };
   const supabase = await createClient();
-  const rehomedAtByListingId = new Map<string, string>();
+  const rehomedMetaByListingId = new Map<string, RehomedMeta>();
 
   const { data: archivedRows, error: archivedErr } = await supabase
     .from("listings")
@@ -457,14 +471,14 @@ export async function fetchMyRehomedListings(
 
   if (archivedErr) {
     console.error("[fetchMyRehomedListings] archived", archivedErr.message);
-    return [];
+    return empty;
   }
 
   const archivedIds = (archivedRows ?? []).map((r) => String(r.id)).filter(Boolean);
-  if (archivedIds.length === 0) return [];
+  if (archivedIds.length === 0) return empty;
 
   const unlockSelect =
-    "listing_id, offered_listing_id, completed_at, buyer_confirmed_at, seller_confirmed_at";
+    "listing_id, offered_listing_id, deal_type, completed_at, buyer_confirmed_at, seller_confirmed_at";
 
   const [{ data: soldUnlocks, error: soldErr }, { data: swapAwayUnlocks, error: swapErr }] =
     await Promise.all([
@@ -486,22 +500,28 @@ export async function fetchMyRehomedListings(
     console.error("[fetchMyRehomedListings] swap-away unlocks", swapErr.message);
   }
 
-  for (const row of [...(soldUnlocks ?? []), ...(swapAwayUnlocks ?? [])]) {
+  for (const row of soldUnlocks ?? []) {
     if (!unlockRowIsCompleted(row)) continue;
     const at = completedAtFromUnlockRow(row);
     if (!at) continue;
     const soldId = row.listing_id;
-    const offeredId = row.offered_listing_id;
-    if (soldId && archivedIds.includes(String(soldId))) {
-      mergeRehomedCompletedAt(rehomedAtByListingId, soldId, at);
-    }
-    if (offeredId && archivedIds.includes(String(offeredId))) {
-      mergeRehomedCompletedAt(rehomedAtByListingId, offeredId, at);
-    }
+    if (!soldId || !archivedIds.includes(String(soldId))) continue;
+    const kind: RehomedKind =
+      (row as { deal_type?: string }).deal_type === "swap" ? "swap" : "pickup";
+    mergeRehomedMeta(rehomedMetaByListingId, soldId, at, kind);
   }
 
-  const listingIds = [...rehomedAtByListingId.keys()];
-  if (listingIds.length === 0) return [];
+  for (const row of swapAwayUnlocks ?? []) {
+    if (!unlockRowIsCompleted(row)) continue;
+    const at = completedAtFromUnlockRow(row);
+    if (!at) continue;
+    const offeredId = row.offered_listing_id;
+    if (!offeredId || !archivedIds.includes(String(offeredId))) continue;
+    mergeRehomedMeta(rehomedMetaByListingId, offeredId, at, "swap");
+  }
+
+  const listingIds = [...rehomedMetaByListingId.keys()];
+  if (listingIds.length === 0) return empty;
 
   const res = await withUnlockCreditsRetry(
     () =>
@@ -520,20 +540,31 @@ export async function fetchMyRehomedListings(
 
   if (res.error) {
     console.error("[fetchMyRehomedListings] listings", res.error.message);
-    return [];
+    return empty;
   }
 
   const deduped: RehomedListing[] = listingRowsFromQueryData(res.data)
     .map((row) => {
       const id = String(row.id ?? "");
-      const rehomedAt = rehomedAtByListingId.get(id);
-      if (!rehomedAt) return null;
-      return { ...normalizeListingRow(row), rehomedAt };
+      const meta = rehomedMetaByListingId.get(id);
+      if (!meta) return null;
+      return { ...normalizeListingRow(row), rehomedAt: meta.at, rehomedKind: meta.kind };
     })
     .filter((row): row is RehomedListing => row != null);
 
   deduped.sort((a, b) => (a.rehomedAt < b.rehomedAt ? 1 : -1));
-  return attachPublicProfilesToListings(deduped.slice(0, limit));
+
+  const withProfiles = await attachPublicProfilesToListings(deduped);
+  const pickups: RehomedListing[] = [];
+  const swaps: RehomedListing[] = [];
+  for (const row of withProfiles) {
+    if (row.rehomedKind === "swap") {
+      if (swaps.length < limit) swaps.push(row);
+    } else if (pickups.length < limit) {
+      pickups.push(row);
+    }
+  }
+  return { pickups, swaps };
 }
 
 export async function fetchMyListings(

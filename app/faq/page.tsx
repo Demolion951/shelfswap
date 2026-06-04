@@ -50,6 +50,13 @@ export default function FaqPage() {
         pending requests for that listing are typically declined so everyone stays aligned.
       </p>
 
+      <h2>Do swaps count toward the seller reward?</h2>
+      <p>
+        No. The free credit every <strong>5 completed deals</strong> counts <strong>pickup</strong> sales only
+        (someone unlocked your listing and you both confirmed handoff). Completed <strong>swaps</strong> show
+        under Profile → Rehomed → Swaps but do not increase your reward counter.
+      </p>
+
       <h2>How do credits work on swaps?</h2>
       <p>
         You pay the full unlock cost when your request is accepted. If you propose a swap and the seller
