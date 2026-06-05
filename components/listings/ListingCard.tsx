@@ -38,7 +38,10 @@ export function ListingCard({
   const coverFromIsbn = listing.isbn
     ? `/api/openlibrary-cover?isbn=${encodeURIComponent(listing.isbn.replace(/\D/g, ""))}&size=M`
     : null;
-  const thumbRaw = photos[0]?.url ?? listing.cover_url ?? coverFromIsbn;
+  const catalogueCover =
+    coverFromIsbn ??
+    (listing.cover_url ? coverImageSrcForDisplay(listing.cover_url) ?? listing.cover_url : null);
+  const thumbRaw = catalogueCover ?? photos[0]?.url;
   const thumb = thumbRaw ? coverImageSrcForDisplay(thumbRaw) ?? thumbRaw : null;
   const cond = CONDITION_LABELS[listing.condition] ?? listing.condition;
   const credits = listing.unlock_credits === 2 ? 2 : 1;

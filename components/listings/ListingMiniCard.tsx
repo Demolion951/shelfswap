@@ -26,7 +26,13 @@ export function ListingMiniCard({
   initiallySaved = false,
 }: Props) {
   const photos = listing.listing_photos ?? [];
-  const thumbRaw = photos[0]?.url ?? listing.cover_url;
+  const coverFromIsbn = listing.isbn
+    ? `/api/openlibrary-cover?isbn=${encodeURIComponent(listing.isbn.replace(/\D/g, ""))}&size=M`
+    : null;
+  const catalogueCover =
+    coverFromIsbn ??
+    (listing.cover_url ? coverImageSrcForDisplay(listing.cover_url) ?? listing.cover_url : null);
+  const thumbRaw = catalogueCover ?? photos[0]?.url;
   const thumb = thumbRaw ? coverImageSrcForDisplay(thumbRaw) ?? thumbRaw : null;
   const credits = listing.unlock_credits === 2 ? 2 : 1;
   const areaLine = listingAreaLine(listing.approx_area_text);

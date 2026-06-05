@@ -52,6 +52,9 @@ export async function createListing(
   if (!CONDITIONS.has(condition)) {
     return { error: "Pick a condition." };
   }
+  if (imageFiles.length > 8) {
+    return { error: "Please add at most 8 photos per listing." };
+  }
 
   const rowBase = {
     user_id: user.id,
@@ -193,29 +196,33 @@ export async function createListing(
   }
 
   if (isbn) {
-    const enrich = await fetchOpenLibraryEnrichmentByIsbn(isbn);
-    if (enrich && enrich.subjects.length > 0) {
-      const { data: row, error: metaErr } = await supabase
-        .from("listings")
-        .select("metadata")
-        .eq("id", listingId)
-        .maybeSingle();
-      if (metaErr) {
-        console.warn("[createListing] fetch metadata", metaErr.message);
+    try {
+      const enrich = await fetchOpenLibraryEnrichmentByIsbn(isbn);
+      if (enrich && enrich.subjects.length > 0) {
+        const { data: row, error: metaErr } = await supabase
+          .from("listings")
+          .select("metadata")
+          .eq("id", listingId)
+          .maybeSingle();
+        if (metaErr) {
+          console.warn("[createListing] fetch metadata", metaErr.message);
+        }
+        const prev = (row?.metadata as Record<string, unknown> | null) ?? {};
+        const nextMeta = {
+          ...prev,
+          openlibrary: { workKey: enrich.workKey, sourceUrl: enrich.sourceUrl },
+          subjects: enrich.subjects,
+        };
+        const { error: upErr } = await supabase
+          .from("listings")
+          .update({ metadata: nextMeta })
+          .eq("id", listingId);
+        if (upErr) {
+          console.warn("[createListing] update metadata subjects", upErr.message);
+        }
       }
-      const prev = (row?.metadata as Record<string, unknown> | null) ?? {};
-      const nextMeta = {
-        ...prev,
-        openlibrary: { workKey: enrich.workKey, sourceUrl: enrich.sourceUrl },
-        subjects: enrich.subjects,
-      };
-      const { error: upErr } = await supabase
-        .from("listings")
-        .update({ metadata: nextMeta })
-        .eq("id", listingId);
-      if (upErr) {
-        console.warn("[createListing] update metadata subjects", upErr.message);
-      }
+    } catch (e) {
+      console.warn("[createListing] open library enrichment", e);
     }
   }
 
@@ -279,6 +286,9 @@ export async function updateListing(formData: FormData): Promise<UpdateListingRe
   }
   if (!CONDITIONS.has(condition)) {
     return { error: "Pick a condition." };
+  }
+  if (imageFiles.length > 8) {
+    return { error: "Please add at most 8 photos per listing." };
   }
 
   const patch = {

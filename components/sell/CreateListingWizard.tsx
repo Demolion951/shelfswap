@@ -23,6 +23,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 
 const STEPS = ["Book", "Details"] as const;
 const CONDITIONS = new Set(["new", "like_new", "good", "acceptable"]);
+const MAX_LISTING_PHOTOS = 8;
 
 /** Prefill when editing an existing listing (server-loaded). */
 export type EditListingInitial = {
@@ -48,6 +49,7 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
   const [pending, startTransition] = useTransition();
   const [lookupPending, setLookupPending] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
+  const [manualEntry, setManualEntry] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [isbnInput, setIsbnInput] = useState("");
@@ -90,16 +92,18 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
     try {
       const res = await lookupIsbnAction(raw);
       if (res) {
+        setManualEntry(false);
         setTitle(res.title);
         setAuthor(res.author ?? "");
         setCoverUrl(res.coverUrl ?? "");
         setIsbnInput(res.isbn);
       } else {
+        setManualEntry(true);
         setTitle("");
         setAuthor("");
         setCoverUrl("");
         setError(
-          "We couldn’t find this ISBN in Open Library. Try scanning again or a different copy.",
+          "We couldn't find this ISBN. Please enter the details below to list the book.",
         );
       }
     } finally {
@@ -112,6 +116,10 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
     setError(null);
     const next = [...photos];
     for (let i = 0; i < files.length; i++) {
+      if (next.length >= MAX_LISTING_PHOTOS) {
+        setError(`You can add up to ${MAX_LISTING_PHOTOS} photos per listing.`);
+        break;
+      }
       const f = files[i];
       if (f.type.startsWith("image/")) {
         // Keep uploads reliable on mobile + Vercel/server-actions limits.
@@ -146,6 +154,11 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
 
   function submit() {
     setError(null);
+    const totalBytes = photos.reduce((sum, p) => sum + p.file.size, 0);
+    if (totalBytes > 18 * 1024 * 1024) {
+      setError("Photos are too large together. Try fewer or smaller images.");
+      return;
+    }
     startTransition(async () => {
       const fd = new FormData();
       fd.append("title", title.trim());
@@ -177,6 +190,98 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
       }
       router.push(`/app/listings/${res.listingId}`);
     });
+  }
+
+  function renderPhotoSection(emphasizeUpload = false) {
+    return (
+      <div className="border-t border-base-300/40 pt-4 space-y-3">
+        <p className="text-sm font-medium text-base-content">
+          {emphasizeUpload ? "Photos of your copy" : "Optional: photos of your copy"}
+        </p>
+        {emphasizeUpload ? (
+          <p className="text-xs text-base-content/55">
+            Add at least one photo so buyers can see the edition and condition you&apos;re listing.
+          </p>
+        ) : null}
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            className="btn btn-outline border-primary/30 btn-sm gap-2"
+            onClick={() => cameraInputRef.current?.click()}
+          >
+            <Camera className="h-4 w-4 shrink-0" aria-hidden />
+            Take photo
+          </button>
+          <button
+            type="button"
+            className="btn btn-outline border-primary/30 btn-sm gap-2"
+            onClick={() => galleryInputRef.current?.click()}
+          >
+            <Images className="h-4 w-4 shrink-0" aria-hidden />
+            From gallery
+          </button>
+        </div>
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          multiple
+          className="hidden"
+          aria-hidden
+          tabIndex={-1}
+          onChange={(e) => onPickPhotos(e.target.files)}
+        />
+        <input
+          ref={galleryInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          aria-hidden
+          tabIndex={-1}
+          onChange={(e) => onPickPhotos(e.target.files)}
+        />
+        {photos.length > 0 ? (
+          <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {photos.map((p, i) => (
+              <li key={p.url} className="relative aspect-square">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={p.url}
+                  alt=""
+                  className="h-full w-full rounded-lg object-cover border border-base-300"
+                />
+                <button
+                  type="button"
+                  className="btn btn-circle btn-xs btn-error absolute -right-1 -top-1"
+                  onClick={() => removePhoto(i)}
+                  aria-label="Remove photo"
+                >
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {existingServerPhotos.length > 0 ? (
+          <div className="space-y-2 border-t border-base-300/40 pt-4">
+            <p className="text-xs font-medium text-base-content/70">Photos on this listing</p>
+            <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+              {existingServerPhotos.map((p) => (
+                <li key={p.id} className="aspect-square overflow-hidden rounded-lg border border-base-300/80">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={p.url} alt="" className="h-full w-full object-cover" />
+                </li>
+              ))}
+            </ul>
+            <p className="text-[11px] text-base-content/50">
+              Add more photos below; existing ones stay on the listing.
+            </p>
+          </div>
+        ) : null}
+      </div>
+    );
   }
 
   return (
@@ -243,7 +348,7 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
                 </button>
               </div>
             </label>
-            {title ? (
+            {title && !manualEntry ? (
               <div className="rounded-xl border border-success/25 bg-success/5 p-4 space-y-4">
                 <div className="space-y-1">
                   <p className="text-xs font-semibold uppercase tracking-wide text-success">
@@ -266,97 +371,48 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
                   </div>
                 ) : (
                   <p className="text-xs text-base-content/55">
-                    No cover image for this ISBN — you can add photos below.
+                    No catalogue cover for this ISBN — add photos of your copy below.
                   </p>
                 )}
-                <div className="border-t border-base-300/40 pt-4 space-y-3">
-                  <p className="text-sm font-medium text-base-content">
-                    Optional: photos of your copy
-                  </p>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    <button
-                      type="button"
-                      className="btn btn-outline border-primary/30 btn-sm gap-2"
-                      onClick={() => cameraInputRef.current?.click()}
-                    >
-                      <Camera className="h-4 w-4 shrink-0" aria-hidden />
-                      Take photo
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-outline border-primary/30 btn-sm gap-2"
-                      onClick={() => galleryInputRef.current?.click()}
-                    >
-                      <Images className="h-4 w-4 shrink-0" aria-hidden />
-                      From gallery
-                    </button>
-                  </div>
-                  <input
-                    ref={cameraInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    multiple
-                    className="hidden"
-                    aria-hidden
-                    tabIndex={-1}
-                    onChange={(e) => onPickPhotos(e.target.files)}
-                  />
-                  <input
-                    ref={galleryInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    aria-hidden
-                    tabIndex={-1}
-                    onChange={(e) => onPickPhotos(e.target.files)}
-                  />
-                  {photos.length > 0 ? (
-                    <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                      {photos.map((p, i) => (
-                        <li key={p.url} className="relative aspect-square">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={p.url}
-                            alt=""
-                            className="h-full w-full rounded-lg object-cover border border-base-300"
-                          />
-                          <button
-                            type="button"
-                            className="btn btn-circle btn-xs btn-error absolute -right-1 -top-1"
-                            onClick={() => removePhoto(i)}
-                            aria-label="Remove photo"
-                          >
-                            ×
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                  {existingServerPhotos.length > 0 ? (
-                    <div className="space-y-2 border-t border-base-300/40 pt-4">
-                      <p className="text-xs font-medium text-base-content/70">Photos on this listing</p>
-                      <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                        {existingServerPhotos.map((p) => (
-                          <li key={p.id} className="aspect-square overflow-hidden rounded-lg border border-base-300/80">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={p.url} alt="" className="h-full w-full object-cover" />
-                          </li>
-                        ))}
-                      </ul>
-                      <p className="text-[11px] text-base-content/50">
-                        Add more photos below; existing ones stay on the listing.
-                      </p>
-                    </div>
-                  ) : null}
-                </div>
+                {renderPhotoSection(!coverUrl)}
               </div>
-            ) : (
-              <p className="text-center text-xs text-base-content/50">
-                Scan or look up an ISBN to load title and author automatically.
-              </p>
-            )}
+            ) : manualEntry ? (
+              <div className="rounded-xl border border-base-300/80 bg-base-100 p-4 space-y-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                  Enter book details
+                </p>
+                <label className="form-control">
+                  <span className="label-text text-sm">Title</span>
+                  <input
+                    className="input input-bordered w-full"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Book title"
+                    required
+                  />
+                </label>
+                <label className="form-control">
+                  <span className="label-text text-sm">Author</span>
+                  <input
+                    className="input input-bordered w-full"
+                    value={author}
+                    onChange={(e) => setAuthor(e.target.value)}
+                    placeholder="Author name"
+                  />
+                </label>
+                <label className="form-control">
+                  <span className="label-text text-sm">ISBN (optional)</span>
+                  <input
+                    className="input input-bordered w-full font-mono text-sm"
+                    value={isbnInput}
+                    onChange={(e) => setIsbnInput(e.target.value)}
+                    placeholder="978…"
+                    inputMode="numeric"
+                  />
+                </label>
+                {renderPhotoSection(true)}
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}

@@ -79,12 +79,26 @@ export function ListingDetailView({
     isbnDigits.length === 10 || isbnDigits.length === 13
       ? `/api/openlibrary-cover?isbn=${encodeURIComponent(isbnDigits)}&size=L`
       : null;
+  const catalogueCover =
+    isbnCoverUrl ??
+    (listing.cover_url ? coverImageSrcForDisplay(listing.cover_url) ?? listing.cover_url : null);
   const areaLine = !isOwner && isSignedIn ? listingAreaLine(listing.approx_area_text) : null;
 
   return (
     <div className="space-y-4 pb-8">
       <ListingViewTracker listingId={listing.id} enabled={isSignedIn && !isOwner} />
       <div className="carousel carousel-center w-full gap-2 rounded-xl bg-base-200/50 p-2">
+        {catalogueCover ? (
+          <div className="carousel-item w-[85%] max-w-sm first:pl-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={catalogueCover}
+              alt=""
+              className="max-h-80 w-full rounded-lg object-contain bg-base-300/30"
+              referrerPolicy="no-referrer"
+            />
+          </div>
+        ) : null}
         {photos.map((ph) => {
           const src = coverImageSrcForDisplay(ph.url) ?? ph.url;
           return (
@@ -102,35 +116,9 @@ export function ListingDetailView({
             </div>
           );
         })}
-        {photos.length === 0 && listing.cover_url ? (
-          <div className="carousel-item w-full">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={
-                // Prefer the ISBN proxy when available (most reliable), otherwise use stored cover_url.
-                isbnCoverUrl ??
-                coverImageSrcForDisplay(listing.cover_url) ??
-                listing.cover_url
-              }
-              alt=""
-              className="max-h-80 w-full rounded-lg object-contain"
-              referrerPolicy="no-referrer"
-            />
-          </div>
-        ) : null}
-        {photos.length === 0 && !listing.cover_url ? (
+        {!catalogueCover && photos.length === 0 ? (
           <div className="carousel-item flex min-h-[14rem] w-full items-center justify-center rounded-lg bg-base-300/40 text-sm text-base-content/45">
-            {isbnCoverUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={isbnCoverUrl}
-                alt=""
-                className="max-h-80 w-full rounded-lg object-contain"
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              "No cover image for this listing"
-            )}
+            No cover image for this listing
           </div>
         ) : null}
       </div>
