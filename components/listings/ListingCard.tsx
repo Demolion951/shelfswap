@@ -80,9 +80,6 @@ export function ListingCard({
             No image
           </div>
         )}
-        {showSaveHeart ? (
-          <ListingCardSaveHeart listingId={listing.id} initiallySaved={initiallySaved} />
-        ) : null}
       </figure>
       <div
         className={
@@ -144,18 +141,33 @@ export function ListingCard({
             <span className="badge badge-xs shrink-0 badge-accent badge-outline">Swaps</span>
           ) : null}
         </div>
-        {areaLine ? (
-          <p
-            className={
-              variant === "row"
-                ? "mt-auto text-[0.68rem] leading-snug line-clamp-2 text-base-content/65"
-                : compact
-                  ? "text-[0.6rem] leading-snug line-clamp-2 text-base-content/65"
-                  : "text-[0.68rem] leading-snug line-clamp-2 text-base-content/65"
-            }
+        {areaLine || showSaveHeart ? (
+          <div
+            className={`flex items-end justify-between gap-1 ${variant === "row" ? "mt-auto" : ""}`}
           >
-            {areaLine}
-          </p>
+            {areaLine ? (
+              <p
+                className={
+                  variant === "row"
+                    ? "min-w-0 flex-1 text-[0.68rem] leading-snug line-clamp-2 text-base-content/65"
+                    : compact
+                      ? "min-w-0 flex-1 text-[0.6rem] leading-snug line-clamp-2 text-base-content/65"
+                      : "min-w-0 flex-1 text-[0.68rem] leading-snug line-clamp-2 text-base-content/65"
+                }
+              >
+                {areaLine}
+              </p>
+            ) : (
+              <span className="flex-1" aria-hidden />
+            )}
+            {showSaveHeart ? (
+              <ListingCardSaveHeart
+                listingId={listing.id}
+                initiallySaved={initiallySaved}
+                compact={compact}
+              />
+            ) : null}
+          </div>
         ) : null}
       </div>
     </>

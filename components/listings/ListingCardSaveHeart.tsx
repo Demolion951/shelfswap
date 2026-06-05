@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Small save heart for listing cards (home/browse feeds). Stops link navigation on tap.
+ * Save heart for listing cards — inline beside location, no circular chrome.
  * Location: components/listings/ListingCardSaveHeart.tsx
  */
 import { toggleSaveListingAction } from "@/app/app/saves/actions";
@@ -12,9 +12,15 @@ import { useEffect, useState, useTransition } from "react";
 type Props = {
   listingId: string;
   initiallySaved: boolean;
+  /** Smaller icon on compact home cards. */
+  compact?: boolean;
 };
 
-export function ListingCardSaveHeart({ listingId, initiallySaved }: Props) {
+export function ListingCardSaveHeart({
+  listingId,
+  initiallySaved,
+  compact = false,
+}: Props) {
   const router = useRouter();
   const [saved, setSaved] = useState(initiallySaved);
   const [pending, startTransition] = useTransition();
@@ -34,24 +40,24 @@ export function ListingCardSaveHeart({ listingId, initiallySaved }: Props) {
     });
   }
 
+  const iconClass = compact ? "h-3 w-3" : "h-3.5 w-3.5";
+
   return (
     <button
       type="button"
       onClick={onToggle}
       disabled={pending}
-      className={`absolute top-1.5 right-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full border shadow-sm backdrop-blur-sm transition ${
-        saved
-          ? "border-red-200/90 bg-red-50/95 text-red-600 hover:bg-red-100"
-          : "border-base-300/50 bg-base-100/90 text-base-content/50 hover:border-base-300 hover:text-base-content/75"
+      className={`btn btn-ghost shrink-0 min-h-0 h-auto border-0 bg-transparent p-0 shadow-none hover:bg-transparent ${
+        saved ? "text-error hover:text-error" : "text-base-content/35 hover:text-base-content/55"
       }`}
       aria-label={saved ? "Remove from saved" : "Save listing"}
       aria-pressed={saved}
     >
       {pending ? (
-        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+        <Loader2 className={`${iconClass} animate-spin`} aria-hidden />
       ) : (
         <Heart
-          className="h-3.5 w-3.5"
+          className={iconClass}
           strokeWidth={saved ? 2 : 1.75}
           fill={saved ? "currentColor" : "none"}
           aria-hidden

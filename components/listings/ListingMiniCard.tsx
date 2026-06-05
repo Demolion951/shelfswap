@@ -38,7 +38,7 @@ export function ListingMiniCard({
     >
       <div className={compact ? "p-1.5" : "p-2"}>
         <figure
-          className={`relative aspect-[3/4] w-full overflow-hidden bg-base-300 ${compact ? "rounded" : "rounded-md"}`}
+          className={`aspect-[3/4] w-full overflow-hidden bg-base-300 ${compact ? "rounded" : "rounded-md"}`}
         >
           {thumb ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -60,9 +60,6 @@ export function ListingMiniCard({
               No cover
             </div>
           )}
-          {showSaveHeart ? (
-            <ListingCardSaveHeart listingId={listing.id} initiallySaved={initiallySaved} />
-          ) : null}
         </figure>
 
         <div className={compact ? "mt-1.5 space-y-0.5" : "mt-2 space-y-0.5"}>
@@ -97,20 +94,32 @@ export function ListingMiniCard({
               {formatUnlockCredits(credits)}
             </span>
           </div>
-          {areaLine ? (
-            <p
-              className={
-                compact
-                  ? "line-clamp-2 text-[9px] leading-snug text-base-content/60"
-                  : "line-clamp-2 text-[10px] leading-snug text-base-content/60"
-              }
-            >
-              {areaLine}
-            </p>
+          {areaLine || showSaveHeart ? (
+            <div className="flex items-end justify-between gap-1">
+              {areaLine ? (
+                <p
+                  className={
+                    compact
+                      ? "min-w-0 flex-1 line-clamp-2 text-[9px] leading-snug text-base-content/60"
+                      : "min-w-0 flex-1 line-clamp-2 text-[10px] leading-snug text-base-content/60"
+                  }
+                >
+                  {areaLine}
+                </p>
+              ) : (
+                <span className="flex-1" aria-hidden />
+              )}
+              {showSaveHeart ? (
+                <ListingCardSaveHeart
+                  listingId={listing.id}
+                  initiallySaved={initiallySaved}
+                  compact={compact}
+                />
+              ) : null}
+            </div>
           ) : null}
         </div>
       </div>
     </Link>
   );
 }
-
