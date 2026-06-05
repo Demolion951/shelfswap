@@ -1,13 +1,12 @@
 "use client";
 
 /**
- * Save heart for listing cards — inline beside location, no circular chrome.
+ * Save heart for listing cards — inline beside location; instant toggle, queued sync.
  * Location: components/listings/ListingCardSaveHeart.tsx
  */
-import { toggleSaveListingAction } from "@/app/app/saves/actions";
-import { Heart, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { setSaveListingAction } from "@/app/app/saves/actions";
+import { Heart } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 type Props = {
   listingId: string;
@@ -21,22 +20,35 @@ export function ListingCardSaveHeart({
   initiallySaved,
   compact = false,
 }: Props) {
-  const router = useRouter();
   const [saved, setSaved] = useState(initiallySaved);
-  const [pending, startTransition] = useTransition();
+  const savedRef = useRef(initiallySaved);
+  const syncQueueRef = useRef(Promise.resolve());
 
   useEffect(() => {
+    savedRef.current = initiallySaved;
     setSaved(initiallySaved);
-  }, [initiallySaved]);
+  }, [listingId, initiallySaved]);
 
   function onToggle(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    startTransition(async () => {
-      const res = await toggleSaveListingAction(listingId);
-      if (!res.ok) return;
+
+    const target = !savedRef.current;
+    savedRef.current = target;
+    setSaved(target);
+
+    syncQueueRef.current = syncQueueRef.current.then(async () => {
+      const res = await setSaveListingAction(listingId, target);
+      if (!res.ok) {
+        if (savedRef.current === target) {
+          const reverted = !target;
+          savedRef.current = reverted;
+          setSaved(reverted);
+        }
+        return;
+      }
+      savedRef.current = res.saved;
       setSaved(res.saved);
-      router.refresh();
     });
   }
 
@@ -46,23 +58,18 @@ export function ListingCardSaveHeart({
     <button
       type="button"
       onClick={onToggle}
-      disabled={pending}
       className={`btn btn-ghost shrink-0 min-h-0 h-auto border-0 bg-transparent p-0 shadow-none hover:bg-transparent ${
         saved ? "text-error hover:text-error" : "text-base-content/35 hover:text-base-content/55"
       }`}
       aria-label={saved ? "Remove from saved" : "Save listing"}
       aria-pressed={saved}
     >
-      {pending ? (
-        <Loader2 className={`${iconClass} animate-spin`} aria-hidden />
-      ) : (
-        <Heart
-          className={iconClass}
-          strokeWidth={saved ? 2 : 1.75}
-          fill={saved ? "currentColor" : "none"}
-          aria-hidden
-        />
-      )}
+      <Heart
+        className={iconClass}
+        strokeWidth={saved ? 2 : 1.75}
+        fill={saved ? "currentColor" : "none"}
+        aria-hidden
+      />
     </button>
   );
 }

@@ -30,10 +30,6 @@ export default async function ProfileRehomedPage() {
         <h1 className="shelfswap-heading text-xl font-semibold">Rehomed</h1>
       </div>
 
-      <p className="text-sm text-base-content/60">
-        Books you&apos;ve handed over after a completed deal.
-      </p>
-
       {total === 0 ? (
         <p className="text-sm text-base-content/50">No completed handoffs yet.</p>
       ) : (

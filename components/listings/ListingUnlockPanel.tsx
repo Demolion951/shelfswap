@@ -115,10 +115,9 @@ export function ListingUnlockPanel({
                 ? "Credits stay held until the seller replies."
                 : (
                     <>
-                      Request chat — after that you can message before the seller replies; credits charge when
-                      they reply. You have{" "}
-                      <span className="font-medium text-base-content">{available}</span>{" "}
-                      available credits.
+                      Credits charge when they reply. You have{" "}
+                      <span className="font-medium text-base-content">{available}</span> available
+                      credits.
                     </>
                   )}
             </p>
