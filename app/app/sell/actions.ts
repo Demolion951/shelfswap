@@ -41,19 +41,11 @@ export async function createListing(
   const unlockCredits = unlockRaw === 2 ? 2 : 1;
   const openToSwaps = formData.get("open_to_swaps") === "on";
 
-  const files = formData.getAll("photos") as File[];
-  const imageFiles = files.filter(
-    (f) => f instanceof File && f.size > 0 && f.type.startsWith("image/"),
-  );
-
   if (!title) {
     return { error: "Title is required." };
   }
   if (!CONDITIONS.has(condition)) {
     return { error: "Pick a condition." };
-  }
-  if (imageFiles.length > 8) {
-    return { error: "Please add at most 8 photos per listing." };
   }
 
   const rowBase = {
@@ -94,61 +86,6 @@ export async function createListing(
   }
 
   const listingId = listing.id as string;
-  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-
-  for (let i = 0; i < imageFiles.length; i++) {
-    const file = imageFiles[i];
-    const ext =
-      file.type === "image/png"
-        ? "png"
-        : file.type === "image/webp"
-          ? "webp"
-          : "jpg";
-    const path = `${user.id}/${listingId}/${crypto.randomUUID()}.${ext}`;
-
-    const { error: upErr } = await supabase.storage
-      .from("listing-photos")
-      .upload(path, file, {
-        cacheControl: "3600",
-        upsert: false,
-        contentType: file.type || "image/jpeg",
-      });
-
-    if (upErr) {
-      console.error("[createListing] upload", upErr.message);
-      await supabase.from("listings").delete().eq("id", listingId);
-      return { error: `Photo upload failed: ${upErr.message}` };
-    }
-
-    const publicUrl = `${baseUrl}/storage/v1/object/public/listing-photos/${path}`;
-    const { data: photoRpc, error: photoErr } = await supabase.rpc("add_my_listing_photo", {
-      p_listing_id: listingId,
-      p_url: publicUrl,
-      p_sort: i,
-    });
-
-    if (photoErr) {
-      console.error("[createListing] add_my_listing_photo", photoErr.message);
-      try {
-        await supabase.storage.from("listing-photos").remove([path]);
-      } catch {
-        // ignore cleanup failures
-      }
-      await supabase.from("listings").delete().eq("id", listingId);
-      return { error: `Could not save photo records: ${photoErr.message}` };
-    }
-    const pr = photoRpc as { ok?: boolean; error?: string } | null;
-    if (!pr || pr.ok !== true) {
-      console.error("[createListing] add_my_listing_photo rpc", photoRpc);
-      try {
-        await supabase.storage.from("listing-photos").remove([path]);
-      } catch {
-        // ignore cleanup failures
-      }
-      await supabase.from("listings").delete().eq("id", listingId);
-      return { error: `Could not save photo records: ${pr?.error ?? "rpc_failed"}` };
-    }
-  }
 
   const useProfileArea = formData.get("use_profile_area") === "on";
   const approxLat = Number.parseFloat(String(formData.get("approx_lat") ?? ""));
@@ -276,19 +213,11 @@ export async function updateListing(formData: FormData): Promise<UpdateListingRe
   const unlockCredits = unlockRaw === 2 ? 2 : 1;
   const openToSwaps = formData.get("open_to_swaps") === "on";
 
-  const files = formData.getAll("photos") as File[];
-  const imageFiles = files.filter(
-    (f) => f instanceof File && f.size > 0 && f.type.startsWith("image/"),
-  );
-
   if (!title) {
     return { error: "Title is required." };
   }
   if (!CONDITIONS.has(condition)) {
     return { error: "Pick a condition." };
-  }
-  if (imageFiles.length > 8) {
-    return { error: "Please add at most 8 photos per listing." };
   }
 
   const patch = {
@@ -312,69 +241,6 @@ export async function updateListing(formData: FormData): Promise<UpdateListingRe
   if (upRes.error) {
     console.error("[updateListing]", upRes.error.message);
     return { error: upRes.error.message ?? "Could not update listing." };
-  }
-
-  if (imageFiles.length > 0) {
-    const { data: maxRow } = await supabase
-      .from("listing_photos")
-      .select("sort")
-      .eq("listing_id", listingId)
-      .order("sort", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    let sortBase = typeof maxRow?.sort === "number" ? maxRow.sort + 1 : 0;
-    const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-
-    for (let i = 0; i < imageFiles.length; i++) {
-      const file = imageFiles[i];
-      const ext =
-        file.type === "image/png"
-          ? "png"
-          : file.type === "image/webp"
-            ? "webp"
-            : "jpg";
-      const path = `${user.id}/${listingId}/${crypto.randomUUID()}.${ext}`;
-
-      const { error: upErr } = await supabase.storage
-        .from("listing-photos")
-        .upload(path, file, {
-          cacheControl: "3600",
-          upsert: false,
-          contentType: file.type || "image/jpeg",
-        });
-
-      if (upErr) {
-        console.error("[updateListing] upload", upErr.message);
-        return { error: `Photo upload failed: ${upErr.message}` };
-      }
-
-      const publicUrl = `${baseUrl}/storage/v1/object/public/listing-photos/${path}`;
-      const { data: photoRpc, error: photoErr } = await supabase.rpc("add_my_listing_photo", {
-        p_listing_id: listingId,
-        p_url: publicUrl,
-        p_sort: sortBase + i,
-      });
-
-      if (photoErr) {
-        console.error("[updateListing] add_my_listing_photo", photoErr.message);
-        try {
-          await supabase.storage.from("listing-photos").remove([path]);
-        } catch {
-          // ignore cleanup failures
-        }
-        return { error: `Could not save new photo records: ${photoErr.message}` };
-      }
-      const pr = photoRpc as { ok?: boolean; error?: string } | null;
-      if (!pr || pr.ok !== true) {
-        console.error("[updateListing] add_my_listing_photo rpc", photoRpc);
-        try {
-          await supabase.storage.from("listing-photos").remove([path]);
-        } catch {
-          // ignore cleanup failures
-        }
-        return { error: `Could not save new photo records: ${pr?.error ?? "rpc_failed"}` };
-      }
-    }
   }
 
   if (isbn) {

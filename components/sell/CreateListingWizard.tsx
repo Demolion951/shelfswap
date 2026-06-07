@@ -7,6 +7,8 @@
  */
 import { createListing, updateListing } from "@/app/app/sell/actions";
 import { lookupIsbnAction } from "@/app/app/sell/lookup-action";
+import { isLikelyImageFile } from "@/lib/client/compressListingPhoto";
+import { uploadListingPhotos } from "@/lib/client/uploadListingPhotos";
 import { BarcodeScannerModal } from "@/components/sell/BarcodeScannerModal";
 import { CatalogueCoverPreview } from "@/components/sell/CatalogueCoverPreview";
 import {
@@ -47,6 +49,7 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [pending, startTransition] = useTransition();
+  const [uploadLabel, setUploadLabel] = useState<string | null>(null);
   const [lookupPending, setLookupPending] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
   const [manualEntry, setManualEntry] = useState(false);
@@ -121,9 +124,8 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
         break;
       }
       const f = files[i];
-      if (f.type.startsWith("image/")) {
-        // Keep uploads reliable on mobile + Vercel/server-actions limits.
-        if (f.size > 8 * 1024 * 1024) {
+      if (isLikelyImageFile(f)) {
+        if (f.size > 12 * 1024 * 1024) {
           setError("That photo is too large. Please pick a smaller image.");
           continue;
         }
@@ -154,9 +156,10 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
 
   function submit() {
     setError(null);
-    const totalBytes = photos.reduce((sum, p) => sum + p.file.size, 0);
-    if (totalBytes > 18 * 1024 * 1024) {
-      setError("Photos are too large together. Try fewer or smaller images.");
+    setUploadLabel(null);
+    const photoFiles = photos.map((p) => p.file);
+    if (editListing && existingServerPhotos.length + photoFiles.length > MAX_LISTING_PHOTOS) {
+      setError(`You can have up to ${MAX_LISTING_PHOTOS} photos per listing.`);
       return;
     }
     startTransition(async () => {
@@ -170,7 +173,6 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
       fd.append("unlock_credits", String(unlockCredits));
       if (openToSwaps) fd.append("open_to_swaps", "on");
       fd.append("use_profile_area", "on");
-      photos.forEach((p) => fd.append("photos", p.file));
 
       if (editListing) {
         fd.append("listing_id", editListing.id);
@@ -178,6 +180,25 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
         if ("error" in res) {
           setError(res.error);
           return;
+        }
+        if (photoFiles.length > 0) {
+          const sortStart = existingServerPhotos.length;
+          const up = await uploadListingPhotos(
+            res.listingId,
+            photoFiles,
+            sortStart,
+            (current, total) => setUploadLabel(`Uploading photo ${current} of ${total}…`),
+          );
+          setUploadLabel(null);
+          if (!up.ok) {
+            setError(
+              up.uploaded > 0
+                ? `${up.uploaded} photo(s) saved. Photo ${up.uploaded + 1} failed: ${up.error} Open the listing to try again.`
+                : `Listing saved but photos failed: ${up.error}`,
+            );
+            router.push(`/app/listings/${res.listingId}`);
+            return;
+          }
         }
         router.push(`/app/listings/${res.listingId}`);
         return;
@@ -188,6 +209,26 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
         setError(res.error);
         return;
       }
+
+      if (photoFiles.length > 0) {
+        const up = await uploadListingPhotos(
+          res.listingId,
+          photoFiles,
+          0,
+          (current, total) => setUploadLabel(`Uploading photo ${current} of ${total}…`),
+        );
+        setUploadLabel(null);
+        if (!up.ok) {
+          setError(
+            up.uploaded > 0
+              ? `Listing posted with ${up.uploaded} photo(s). Photo ${up.uploaded + 1} failed: ${up.error} You can add more from your listing.`
+              : `Listing posted but photos failed: ${up.error} You can add photos from your listing.`,
+          );
+          router.push(`/app/listings/${res.listingId}`);
+          return;
+        }
+      }
+
       router.push(`/app/listings/${res.listingId}`);
     });
   }
@@ -301,6 +342,11 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
       {error ? (
         <div role="alert" className="alert alert-warning text-sm">
           {error}
+        </div>
+      ) : null}
+      {uploadLabel ? (
+        <div role="status" className="alert alert-info text-sm py-2">
+          {uploadLabel}
         </div>
       ) : null}
 
@@ -511,10 +557,10 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
           <button
             type="button"
             className="btn btn-primary ml-auto min-w-[8rem]"
-            disabled={!canAdvance() || pending}
+            disabled={!canAdvance() || pending || !!uploadLabel}
             onClick={() => submit()}
           >
-            {pending ? (
+            {pending || uploadLabel ? (
               <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
             ) : editListing ? (
               "Save changes"
