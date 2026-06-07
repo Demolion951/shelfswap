@@ -305,6 +305,7 @@ export type ListingMessageRow = {
   sender_id: string;
   sender_display_name: string;
   body: string;
+  image_url: string | null;
   created_at: string;
 };
 
@@ -315,7 +316,7 @@ export async function fetchListingMessagesIfAllowed(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("listing_messages")
-    .select("id, listing_id, sender_id, sender_display_name, body, created_at")
+    .select("id, listing_id, sender_id, sender_display_name, body, image_url, created_at")
     .eq("listing_id", listingId)
     .order("created_at", { ascending: true })
     .limit(limit);

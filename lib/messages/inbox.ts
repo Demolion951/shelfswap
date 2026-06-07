@@ -164,7 +164,7 @@ export async function fetchInboxThreads(userId: string): Promise<InboxThread[]> 
 
   const { data: msgs } = await supabase
     .from("listing_messages")
-    .select("listing_id, body, created_at")
+    .select("listing_id, body, image_url, created_at")
     .in("listing_id", allIds)
     .order("created_at", { ascending: false })
     .limit(400);
@@ -174,9 +174,18 @@ export async function fetchInboxThreads(userId: string): Promise<InboxThread[]> 
     const lid = m.listing_id as string;
     if (lastMsg.has(lid)) continue;
     const body = (m.body as string) ?? "";
+    const imageUrl = (m.image_url as string | null) ?? null;
+    const preview =
+      body.length > 0
+        ? body.length > 72
+          ? `${body.slice(0, 72)}…`
+          : body
+        : imageUrl
+          ? "Photo"
+          : "";
     lastMsg.set(lid, {
       at: m.created_at as string,
-      preview: body.length > 72 ? `${body.slice(0, 72)}…` : body,
+      preview,
     });
   }
 

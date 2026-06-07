@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { storagePathFromListingPhotoPublicUrl } from "@/lib/storage/listingPhotosPublicPath";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
@@ -157,6 +158,119 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, url: publicUrl, sort });
   } catch (e) {
     console.error("[api/listings/photos]", e);
+    return NextResponse.json({ ok: false, error: "Unexpected server error." }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: userErr,
+    } = await supabase.auth.getUser();
+    if (userErr || !user) {
+      return NextResponse.json({ ok: false, error: "Sign in to manage photos." }, { status: 401 });
+    }
+
+    const photoId = new URL(req.url).searchParams.get("photo_id")?.trim();
+    if (!photoId) {
+      return NextResponse.json({ ok: false, error: "Missing photo." }, { status: 400 });
+    }
+
+    const { data: rpcData, error: rpcErr } = await supabase.rpc("delete_my_listing_photo", {
+      p_photo_id: photoId,
+    });
+
+    if (rpcErr) {
+      console.error("[api/listings/photos] delete rpc", rpcErr.message);
+      return NextResponse.json({ ok: false, error: rpcErr.message }, { status: 500 });
+    }
+
+    const pr = rpcData as { ok?: boolean; error?: string; url?: string } | null;
+    if (!pr || pr.ok !== true) {
+      const code = pr?.error ?? "";
+      const friendly =
+        code === "not_found"
+          ? "Photo not found."
+          : code === "not_authenticated"
+            ? "Sign in to manage photos."
+            : "Could not remove photo.";
+      return NextResponse.json({ ok: false, error: friendly }, { status: 400 });
+    }
+
+    const storagePath = pr.url ? storagePathFromListingPhotoPublicUrl(pr.url) : null;
+    if (storagePath) {
+      const { error: rmErr } = await supabase.storage.from("listing-photos").remove([storagePath]);
+      if (rmErr) {
+        console.error("[api/listings/photos] storage remove", rmErr.message);
+      }
+    }
+
+    revalidatePath("/app/profile/listings");
+    revalidatePath("/app/home");
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    console.error("[api/listings/photos] DELETE", e);
+    return NextResponse.json({ ok: false, error: "Unexpected server error." }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: Request) {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: userErr,
+    } = await supabase.auth.getUser();
+    if (userErr || !user) {
+      return NextResponse.json({ ok: false, error: "Sign in to manage photos." }, { status: 401 });
+    }
+
+    let body: { listing_id?: string; photo_ids?: string[] };
+    try {
+      body = (await req.json()) as { listing_id?: string; photo_ids?: string[] };
+    } catch {
+      return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
+    }
+
+    const listingId = String(body.listing_id ?? "").trim();
+    const photoIds = Array.isArray(body.photo_ids)
+      ? body.photo_ids.map((id) => String(id).trim()).filter(Boolean)
+      : null;
+
+    if (!listingId || !photoIds) {
+      return NextResponse.json({ ok: false, error: "Missing listing or photo order." }, { status: 400 });
+    }
+
+    const { data: rpcData, error: rpcErr } = await supabase.rpc("reorder_my_listing_photos", {
+      p_listing_id: listingId,
+      p_photo_ids: photoIds,
+    });
+
+    if (rpcErr) {
+      console.error("[api/listings/photos] reorder rpc", rpcErr.message);
+      return NextResponse.json({ ok: false, error: rpcErr.message }, { status: 500 });
+    }
+
+    const pr = rpcData as { ok?: boolean; error?: string } | null;
+    if (!pr || pr.ok !== true) {
+      const code = pr?.error ?? "";
+      const friendly =
+        code === "not_owner"
+          ? "You can only reorder photos on your own listings."
+          : code === "bad_order"
+            ? "Photo order is invalid. Refresh and try again."
+            : "Could not reorder photos.";
+      return NextResponse.json({ ok: false, error: friendly }, { status: 400 });
+    }
+
+    revalidatePath(`/app/listings/${listingId}`);
+    revalidatePath("/app/profile/listings");
+    revalidatePath("/app/home");
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    console.error("[api/listings/photos] PATCH", e);
     return NextResponse.json({ ok: false, error: "Unexpected server error." }, { status: 500 });
   }
 }

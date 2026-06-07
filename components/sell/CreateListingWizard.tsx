@@ -8,6 +8,7 @@
 import { createListing, updateListing } from "@/app/app/sell/actions";
 import { lookupIsbnAction } from "@/app/app/sell/lookup-action";
 import { isLikelyImageFile } from "@/lib/client/compressListingPhoto";
+import { deleteListingPhoto, reorderListingPhotos } from "@/lib/client/listingPhotoManage";
 import { uploadListingPhotos } from "@/lib/client/uploadListingPhotos";
 import { BarcodeScannerModal } from "@/components/sell/BarcodeScannerModal";
 import { CatalogueCoverPreview } from "@/components/sell/CatalogueCoverPreview";
@@ -17,6 +18,8 @@ import {
   Barcode,
   BookMarked,
   Camera,
+  ChevronDown,
+  ChevronUp,
   Images,
   Loader2,
 } from "lucide-react";
@@ -72,6 +75,8 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
   const [existingServerPhotos, setExistingServerPhotos] = useState<{ id: string; url: string }[]>(
     [],
   );
+  const [photoBusyId, setPhotoBusyId] = useState<string | null>(null);
+  const initialPhotoOrderRef = useRef<string[]>([]);
 
   useEffect(() => {
     if (!editListing) return;
@@ -86,6 +91,9 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
     setExistingServerPhotos(
       [...editListing.photos].sort((a, b) => a.sort - b.sort).map((p) => ({ id: p.id, url: p.url })),
     );
+    initialPhotoOrderRef.current = [...editListing.photos]
+      .sort((a, b) => a.sort - b.sort)
+      .map((p) => p.id);
   }, [editListing]);
 
   async function runLookup(overrideIsbn?: string) {
@@ -118,8 +126,11 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
     if (!files?.length) return;
     setError(null);
     const next = [...photos];
+    const maxNew = editListing
+      ? MAX_LISTING_PHOTOS - existingServerPhotos.length
+      : MAX_LISTING_PHOTOS;
     for (let i = 0; i < files.length; i++) {
-      if (next.length >= MAX_LISTING_PHOTOS) {
+      if (next.length >= maxNew) {
         setError(`You can add up to ${MAX_LISTING_PHOTOS} photos per listing.`);
         break;
       }
@@ -142,6 +153,29 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
       const copy = [...p];
       const [removed] = copy.splice(i, 1);
       if (removed) URL.revokeObjectURL(removed.url);
+      return copy;
+    });
+  }
+
+  async function removeExistingPhoto(photoId: string) {
+    setError(null);
+    setPhotoBusyId(photoId);
+    const res = await deleteListingPhoto(photoId);
+    setPhotoBusyId(null);
+    if (!res.ok) {
+      setError(res.error);
+      return;
+    }
+    setExistingServerPhotos((prev) => prev.filter((p) => p.id !== photoId));
+  }
+
+  function moveExistingPhoto(index: number, delta: -1 | 1) {
+    const target = index + delta;
+    if (target < 0 || target >= existingServerPhotos.length) return;
+    setExistingServerPhotos((prev) => {
+      const copy = [...prev];
+      const [item] = copy.splice(index, 1);
+      copy.splice(target, 0, item);
       return copy;
     });
   }
@@ -180,6 +214,17 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
         if ("error" in res) {
           setError(res.error);
           return;
+        }
+        const currentOrder = existingServerPhotos.map((p) => p.id);
+        const orderChanged =
+          currentOrder.length !== initialPhotoOrderRef.current.length ||
+          currentOrder.some((id, i) => id !== initialPhotoOrderRef.current[i]);
+        if (orderChanged) {
+          const reorder = await reorderListingPhotos(res.listingId, currentOrder);
+          if (!reorder.ok) {
+            setError(reorder.error);
+            return;
+          }
         }
         if (photoFiles.length > 0) {
           const sortStart = existingServerPhotos.length;
@@ -309,16 +354,52 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
           <div className="space-y-2 border-t border-base-300/40 pt-4">
             <p className="text-xs font-medium text-base-content/70">Photos on this listing</p>
             <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {existingServerPhotos.map((p) => (
-                <li key={p.id} className="aspect-square overflow-hidden rounded-lg border border-base-300/80">
+              {existingServerPhotos.map((p, i) => (
+                <li key={p.id} className="relative aspect-square">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.url} alt="" className="h-full w-full object-cover" />
+                  <img
+                    src={p.url}
+                    alt=""
+                    className="h-full w-full rounded-lg object-cover border border-base-300/80"
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-circle btn-xs btn-error absolute -right-1 -top-1"
+                    onClick={() => void removeExistingPhoto(p.id)}
+                    disabled={photoBusyId === p.id || pending}
+                    aria-label="Remove photo"
+                  >
+                    {photoBusyId === p.id ? (
+                      <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                    ) : (
+                      "×"
+                    )}
+                  </button>
+                  {existingServerPhotos.length > 1 ? (
+                    <div className="absolute bottom-1 left-1/2 flex -translate-x-1/2 gap-0.5">
+                      <button
+                        type="button"
+                        className="btn btn-xs btn-neutral min-h-0 h-6 px-1"
+                        disabled={i === 0 || pending}
+                        onClick={() => moveExistingPhoto(i, -1)}
+                        aria-label="Move photo earlier"
+                      >
+                        <ChevronUp className="h-3 w-3" aria-hidden />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-xs btn-neutral min-h-0 h-6 px-1"
+                        disabled={i === existingServerPhotos.length - 1 || pending}
+                        onClick={() => moveExistingPhoto(i, 1)}
+                        aria-label="Move photo later"
+                      >
+                        <ChevronDown className="h-3 w-3" aria-hidden />
+                      </button>
+                    </div>
+                  ) : null}
                 </li>
               ))}
             </ul>
-            <p className="text-[11px] text-base-content/50">
-              Add more photos below; existing ones stay on the listing.
-            </p>
           </div>
         ) : null}
       </div>
