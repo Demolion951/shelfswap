@@ -49,16 +49,10 @@ export default async function HomePage() {
     ...excludeNew,
     ...recommendedFilled.map((l) => l.id),
   ]);
-  // Explore = deeper catalog (skip first 24 by sort) minus anything already in New / Recommended.
-  const explore = all
-    .slice(24)
+  // Every listing not already in New or Recommended (nearest-first / personalised order preserved).
+  const exploreFilled = all
     .filter((l) => !shownAboveIds.has(l.id))
     .slice(0, 24);
-  // Still a small catalog: show any remaining listings not already above (no duplicate fallback).
-  const exploreFilled =
-    explore.length > 0
-      ? explore
-      : all.filter((l) => !shownAboveIds.has(l.id)).slice(0, 24);
 
   const savedListingIds = [...savedIdSet];
   const showSaveHearts = !!user;
@@ -102,7 +96,7 @@ export default async function HomePage() {
 
       <HomeSectionToggle
         title="Explore all books"
-        subtitle="More from the catalog — not shown in New or Recommended above."
+        subtitle="The next books in the catalog — none repeated from New or Recommended above."
         listings={exploreFilled}
         actionHref="/app/browse"
         actionLabel="View all"
