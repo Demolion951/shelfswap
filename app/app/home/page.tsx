@@ -11,10 +11,13 @@ import {
 import { recommendListingsForUser } from "@/lib/listings/recommendations";
 import { createClient } from "@/lib/supabase/server";
 
+/** Always fresh — feed sections depend on latest listings and viewer location. */
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const supabase = await createClient();
   const [recent, authRes] = await Promise.all([
-    fetchRecentListings(60),
+    fetchRecentListings(120),
     supabase.auth.getUser(),
   ]);
   const user = authRes.data.user;
@@ -35,24 +38,27 @@ export default async function HomePage() {
       ? fetchSavedListingIdsForUser(user.id, recentIds)
       : Promise.resolve(new Set<string>()),
   ]);
-  // Small catalog: everything can be in "New", leaving nothing for recommendations — fall back so the row isn’t blank.
+  // Small catalog: use the next batch after New so the row isn’t blank (never repeat New).
   let recommendedFilled =
     recommendedRaw.length > 0
       ? recommendedRaw
-      : notInNew.length > 0
-        ? notInNew.slice(0, 12)
-        : all.slice(0, 12);
+      : notInNew.slice(0, 12);
   recommendedFilled = sortListingsByDistanceThenRecency(recommendedFilled);
 
-  const excludeRecommended = new Set([
+  const shownAboveIds = new Set([
     ...excludeNew,
     ...recommendedFilled.map((l) => l.id),
   ]);
-  // `all` is already distance → recency; explore skips rows already in New / Recommended.
-  const exploreUnique = all
-    .filter((l) => !excludeRecommended.has(l.id))
+  // Explore = deeper catalog (skip first 24 by sort) minus anything already in New / Recommended.
+  const explore = all
+    .slice(24)
+    .filter((l) => !shownAboveIds.has(l.id))
     .slice(0, 24);
-  const explore = exploreUnique.length > 0 ? exploreUnique : all.slice(0, 24);
+  // Still a small catalog: show any remaining listings not already above (no duplicate fallback).
+  const exploreFilled =
+    explore.length > 0
+      ? explore
+      : all.filter((l) => !shownAboveIds.has(l.id)).slice(0, 24);
 
   const savedListingIds = [...savedIdSet];
   const showSaveHearts = !!user;
@@ -96,10 +102,12 @@ export default async function HomePage() {
 
       <HomeSectionToggle
         title="Explore all books"
-        listings={explore}
+        subtitle="More from the catalog — not shown in New or Recommended above."
+        listings={exploreFilled}
         actionHref="/app/browse"
         actionLabel="View all"
         defaultMode="shelf"
+        emptyMessage="No extra listings here yet — tap View all to browse the full catalog."
         showSaveHearts={showSaveHearts}
         savedListingIds={savedListingIds}
       />
