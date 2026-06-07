@@ -58,6 +58,27 @@ export async function fetchOpenLibraryCoverIdByIsbn(isbn: string): Promise<numbe
   }
 }
 
+/** Title/author search when ISBN endpoints have no cover yet. */
+export async function fetchOpenLibraryCoverIdByTitleAuthor(
+  title: string,
+  author?: string | null,
+): Promise<number | null> {
+  try {
+    const params = new URLSearchParams({ title: title.trim(), limit: "1" });
+    if (author?.trim()) params.set("author", author.trim());
+    const res = await fetch(`https://openlibrary.org/search.json?${params}`, {
+      next: { revalidate: 86_400 },
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { docs?: Array<{ cover_i?: number }> };
+    const id = json.docs?.[0]?.cover_i;
+    return typeof id === "number" && id > 0 ? id : null;
+  } catch (e) {
+    console.warn("[catalogueCoverResolve] OL title search", e);
+    return null;
+  }
+}
+
 type ResolveOpts = {
   size?: CoverSize;
   title?: string | null;
@@ -88,6 +109,14 @@ export async function resolveCatalogueCoverBytes(
   if (coverId != null) {
     const olId = await tryUrl(openLibraryCoverIdImageUrl(coverId, size));
     if (olId) return { ...olId, source: "open_library_search" };
+  }
+
+  if (title) {
+    const coverByTitle = await fetchOpenLibraryCoverIdByTitleAuthor(title, author);
+    if (coverByTitle != null) {
+      const olTitle = await tryUrl(openLibraryCoverIdImageUrl(coverByTitle, size));
+      if (olTitle) return { ...olTitle, source: "open_library_title_search" };
+    }
   }
 
   const googleIsbn = await lookupGoogleBooksByIsbn(isbn);

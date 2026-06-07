@@ -36,47 +36,59 @@ export function catalogueListingCoverSrc(
   return null;
 }
 
-/** Thumbnail + card hero: catalogue first, then first seller photo. */
-export function primaryListingCoverRaw(
-  listing: ListingWithRelations,
-  size: "S" | "M" | "L" = "M",
-): string | null {
-  const catalogue = catalogueListingCoverSrc(listing, size);
-  if (catalogue) return catalogue;
-  const photos = sortedListingPhotos(listing);
-  if (photos[0]?.url?.trim()) return photos[0].url.trim();
-  return null;
+function normalizeCoverKey(url: string): string {
+  const display = coverImageSrcForDisplay(url) ?? url;
+  try {
+    const u = new URL(display, "https://shelfswap.net");
+    return `${u.pathname}${u.search}`;
+  } catch {
+    return display;
+  }
 }
 
-/** Display-ready src (proxies Open Library URLs). */
+/** Ordered unique sources: catalogue → stored URL → seller photos. */
+export function listingCoverCandidates(
+  listing: ListingWithRelations,
+  size: "S" | "M" | "L" = "M",
+): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+
+  const add = (raw: string | null | undefined) => {
+    if (!raw?.trim()) return;
+    const display = coverImageSrcForDisplay(raw.trim()) ?? raw.trim();
+    const key = normalizeCoverKey(display);
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(display);
+  };
+
+  add(catalogueListingCoverSrc(listing, size));
+  add(listing.cover_url);
+  for (const ph of sortedListingPhotos(listing)) {
+    add(ph.url);
+  }
+
+  return out;
+}
+
+/** Thumbnail + card hero: first candidate. */
 export function primaryListingCoverSrc(
   listing: ListingWithRelations,
   size: "S" | "M" | "L" = "M",
 ): string | null {
-  const raw = primaryListingCoverRaw(listing, size);
-  if (!raw) return null;
-  return coverImageSrcForDisplay(raw) ?? raw;
+  return listingCoverCandidates(listing, size)[0] ?? null;
 }
 
-/** Fallback after a failed image load (skip the src that failed). */
+/** @deprecated Use listingCoverCandidates — kept for one-step fallback callers. */
 export function listingCoverFallbackSrc(
   listing: ListingWithRelations,
   failedSrc: string,
   size: "S" | "M" | "L" = "M",
 ): string | null {
-  const candidates: string[] = [];
-  const catalogue = catalogueListingCoverSrc(listing, size);
-  if (catalogue) candidates.push(catalogue);
-  if (listing.cover_url?.trim()) candidates.push(listing.cover_url.trim());
-  for (const ph of sortedListingPhotos(listing)) {
-    if (ph.url?.trim()) candidates.push(ph.url.trim());
-  }
-
-  const norm = (s: string) => coverImageSrcForDisplay(s) ?? s;
-  const failed = norm(failedSrc);
-  for (const c of candidates) {
-    const display = norm(c);
-    if (display !== failed) return display;
+  const failedKey = normalizeCoverKey(failedSrc);
+  for (const c of listingCoverCandidates(listing, size)) {
+    if (normalizeCoverKey(c) !== failedKey) return c;
   }
   return null;
 }

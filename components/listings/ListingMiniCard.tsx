@@ -5,12 +5,9 @@
  * Location: components/listings/ListingMiniCard.tsx
  */
 import { ListingCardSaveHeart } from "@/components/listings/ListingCardSaveHeart";
+import { ListingCoverImage } from "@/components/listings/ListingCoverImage";
 import { listingAreaLine } from "@/lib/listings/areaDisplay";
 import { formatUnlockCredits } from "@/lib/listings/format";
-import {
-  listingCoverFallbackSrc,
-  primaryListingCoverSrc,
-} from "@/lib/listings/listingCover";
 import type { ListingWithRelations } from "@/lib/listings/queries";
 import Link from "next/link";
 
@@ -30,7 +27,6 @@ export function ListingMiniCard({
   initiallySaved = false,
   priorityImage = false,
 }: Props) {
-  const thumb = primaryListingCoverSrc(listing, "M");
   const credits = listing.unlock_credits === 2 ? 2 : 1;
   const areaLine = listingAreaLine(listing.approx_area_text);
 
@@ -44,35 +40,18 @@ export function ListingMiniCard({
         <figure
           className={`aspect-[3/4] w-full overflow-hidden bg-base-300 ${compact ? "rounded" : "rounded-md"}`}
         >
-          {thumb ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={thumb}
-              alt=""
-              className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
-              loading={priorityImage ? "eager" : "lazy"}
-              fetchPriority={priorityImage ? "high" : "auto"}
-              referrerPolicy="no-referrer"
-              onError={(e) => {
-                const img = e.currentTarget;
-                if (img.dataset.fallbackApplied === "1") return;
-                const next = listingCoverFallbackSrc(listing, img.src, "M");
-                if (!next) return;
-                img.dataset.fallbackApplied = "1";
-                img.src = next;
-              }}
-            />
-          ) : (
-            <div
-              className={
-                compact
-                  ? "flex h-full items-center justify-center text-[9px] text-base-content/35 px-0.5 text-center"
-                  : "flex h-full items-center justify-center text-[10px] text-base-content/35 px-1 text-center"
-              }
-            >
-              No cover
-            </div>
-          )}
+          <ListingCoverImage
+            listing={listing}
+            size="M"
+            className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+            loading={priorityImage ? "eager" : "lazy"}
+            fetchPriority={priorityImage ? "high" : "auto"}
+            noCoverClassName={
+              compact
+                ? "flex h-full items-center justify-center text-[9px] text-base-content/35 px-0.5 text-center"
+                : "flex h-full items-center justify-center text-[10px] text-base-content/35 px-1 text-center"
+            }
+          />
         </figure>
 
         <div className={compact ? "mt-1.5 space-y-0.5" : "mt-2 space-y-0.5"}>
