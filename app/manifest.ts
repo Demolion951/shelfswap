@@ -10,7 +10,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "ShelfSwap",
     short_name: "ShelfSwap",
     description: "Local book marketplace — list, discover, and swap near you.",
-    start_url: "/",
+    start_url: "/app/home",
     scope: "/",
     display: "standalone",
     orientation: "portrait",

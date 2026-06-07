@@ -1,55 +1,10 @@
-import { MarketingFooter } from "@/components/marketing/MarketingFooter";
-import { shelfswapLogoSrc } from "@/lib/brand/logo";
-import { createClient } from "@/lib/supabase/server";
-import { ArrowRight } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
-export default async function LandingPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (user) {
-    redirect("/app/home");
-  }
-
-  return (
-    <div className="flex min-h-dvh flex-col bg-base-200">
-      <div className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center gap-10 px-6 py-16">
-        <div className="space-y-4 text-center">
-          <h1 className="flex flex-col items-center justify-center gap-0">
-            <span className="sr-only">ShelfSwap</span>
-            <Image
-              src={shelfswapLogoSrc()}
-              alt=""
-              width={635}
-              height={382}
-              priority
-              unoptimized
-              aria-hidden
-              className="h-28 w-auto max-w-[min(100%,18rem)] sm:h-36 sm:max-w-sm"
-            />
-          </h1>
-          <p className="text-base text-base-content/70 leading-relaxed">
-            List and discover books near you. Browse for free — unlock to meet up and chat.
-          </p>
-        </div>
-        <div className="flex flex-col gap-3">
-          <Link href="/app/home" className="btn btn-primary btn-lg gap-2 shadow-md">
-            Browse books
-            <ArrowRight className="h-5 w-5" aria-hidden />
-          </Link>
-          <Link href="/auth/sign-up" className="btn btn-outline btn-primary btn-lg">
-            Create account
-          </Link>
-          <Link href="/auth/sign-in" className="btn btn-ghost btn-lg border border-base-300">
-            Sign in
-          </Link>
-        </div>
-        <MarketingFooter />
-      </div>
-    </div>
-  );
+/**
+ * Root URL opens the browse feed — guests and signed-in users land on the same app home.
+ * Marketing/legal pages live at /faq, /contact, /terms, /privacy; auth at /auth/*.
+ * Location: app/page.tsx
+ */
+export default function RootPage() {
+  redirect("/app/home");
 }
