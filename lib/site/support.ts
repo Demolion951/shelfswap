@@ -13,3 +13,12 @@ export function supportEmail(): string {
 export function supportMailtoHref(): string {
   return `mailto:${supportEmail()}`;
 }
+
+/** Pre-filled mailto for reporting a problem on an active deal. */
+export function supportDealReportHref(listingId: string, listingTitle: string): string {
+  const subject = encodeURIComponent(`ShelfSwap deal issue — ${listingTitle}`);
+  const body = encodeURIComponent(
+    `Listing ID: ${listingId}\nBook: ${listingTitle}\n\nDescribe what happened:\n`,
+  );
+  return `mailto:${supportEmail()}?subject=${subject}&body=${body}`;
+}

@@ -37,6 +37,9 @@ function pickSellerUnlockRow(
         buyer_confirmed_at: string | null;
         seller_confirmed_at: string | null;
         completed_at: string | null;
+        created_at: string | null;
+        buyer_mutual_cancel_at: string | null;
+        seller_mutual_cancel_at: string | null;
       }>
     | null,
 ) {
@@ -100,6 +103,9 @@ export default async function ListingPage({ params }: Props) {
     buyerConfirmedAt: string | null;
     sellerConfirmedAt: string | null;
     completedAt: string | null;
+    unlockCreatedAt: string | null;
+    buyerMutualCancelAt: string | null;
+    sellerMutualCancelAt: string | null;
   } | null = null;
   let buyerOfferOptions: Array<{ id: string; title: string }> = [];
   let creditsPendingSellerReply = false;
@@ -200,7 +206,7 @@ export default async function ListingPage({ params }: Props) {
       const { data: unlockRows } = await supabase
         .from("listing_unlocks")
         .select(
-          "buyer_id, deal_type, swap_status, offered_listing_id, buyer_confirmed_at, seller_confirmed_at, completed_at, credits_spent, swap_credits_refunded",
+          "buyer_id, deal_type, swap_status, offered_listing_id, buyer_confirmed_at, seller_confirmed_at, completed_at, credits_spent, swap_credits_refunded, created_at, buyer_mutual_cancel_at, seller_mutual_cancel_at",
         )
         .eq("listing_id", id)
         .order("created_at", { ascending: false })
@@ -230,13 +236,16 @@ export default async function ListingPage({ params }: Props) {
           buyerConfirmedAt: (u.buyer_confirmed_at as any) ?? null,
           sellerConfirmedAt: (u.seller_confirmed_at as any) ?? null,
           completedAt: (u.completed_at as any) ?? null,
+          unlockCreatedAt: (u.created_at as any) ?? null,
+          buyerMutualCancelAt: (u.buyer_mutual_cancel_at as any) ?? null,
+          sellerMutualCancelAt: (u.seller_mutual_cancel_at as any) ?? null,
         };
       }
     } else if (viewerUnlocked) {
       const { data: u } = await supabase
         .from("listing_unlocks")
         .select(
-          "buyer_id, deal_type, swap_status, offered_listing_id, buyer_confirmed_at, seller_confirmed_at, completed_at, credits_spent, swap_credits_refunded",
+          "buyer_id, deal_type, swap_status, offered_listing_id, buyer_confirmed_at, seller_confirmed_at, completed_at, credits_spent, swap_credits_refunded, created_at, buyer_mutual_cancel_at, seller_mutual_cancel_at",
         )
         .eq("listing_id", id)
         .eq("buyer_id", user.id)
@@ -265,6 +274,9 @@ export default async function ListingPage({ params }: Props) {
           buyerConfirmedAt: (u.buyer_confirmed_at as any) ?? null,
           sellerConfirmedAt: (u.seller_confirmed_at as any) ?? null,
           completedAt: (u.completed_at as any) ?? null,
+          unlockCreatedAt: (u.created_at as any) ?? null,
+          buyerMutualCancelAt: (u.buyer_mutual_cancel_at as any) ?? null,
+          sellerMutualCancelAt: (u.seller_mutual_cancel_at as any) ?? null,
         };
       }
 

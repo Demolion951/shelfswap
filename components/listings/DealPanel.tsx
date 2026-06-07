@@ -6,7 +6,9 @@
  * Location: components/listings/DealPanel.tsx
  */
 import { proposeSwapAction, respondSwapAction } from "@/app/app/listings/actions";
+import { DealOptionsPanel } from "@/components/listings/DealOptionsPanel";
 import { swapEstimatedRefund, swapNetCredits } from "@/lib/listings/swapCredits";
+import type { DealOptionsEligibility } from "@/lib/listings/dealOptions";
 import { Check, Loader2, RefreshCw, Shuffle, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -24,6 +26,9 @@ export type UnlockDeal = {
   buyerConfirmedAt: string | null;
   sellerConfirmedAt: string | null;
   completedAt: string | null;
+  unlockCreatedAt: string | null;
+  buyerMutualCancelAt: string | null;
+  sellerMutualCancelAt: string | null;
 };
 
 type OfferOption = { id: string; title: string };
@@ -43,6 +48,7 @@ type Props = {
   listingOpenToSwaps: boolean;
   deal: UnlockDeal;
   myOfferOptions: OfferOption[];
+  dealOptionsEligibility: DealOptionsEligibility | null;
 };
 
 export function DealPanel({
@@ -54,6 +60,7 @@ export function DealPanel({
   listingOpenToSwaps,
   deal,
   myOfferOptions,
+  dealOptionsEligibility,
 }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -127,15 +134,25 @@ export function DealPanel({
               Deal
             </h2>
           </div>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm btn-circle"
-            onClick={() => router.refresh()}
-            aria-label="Refresh"
-            disabled={pending}
-          >
-            <RefreshCw className="h-4 w-4" aria-hidden />
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            {dealOptionsEligibility ? (
+              <DealOptionsPanel
+                listingId={listingId}
+                listingTitle={listingTitle}
+                deal={deal}
+                eligibility={dealOptionsEligibility}
+              />
+            ) : null}
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm btn-circle"
+              onClick={() => router.refresh()}
+              aria-label="Refresh"
+              disabled={pending}
+            >
+              <RefreshCw className="h-4 w-4" aria-hidden />
+            </button>
+          </div>
         </div>
 
         {error ? (

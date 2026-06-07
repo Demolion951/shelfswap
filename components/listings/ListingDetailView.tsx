@@ -1,4 +1,6 @@
 import { coverImageSrcForDisplay } from "@/lib/books/openLibraryCoverDisplay";
+import { computeDealOptionsEligibility } from "@/lib/listings/dealOptions";
+import type { DealOptionsEligibility } from "@/lib/listings/dealOptions";
 import { listingAreaLine } from "@/lib/listings/areaDisplay";
 import { CONDITION_LABELS, formatUnlockCredits } from "@/lib/listings/format";
 import type { ListingMessageRow, ListingWithRelations } from "@/lib/listings/queries";
@@ -39,6 +41,9 @@ type Props = {
     buyerConfirmedAt: string | null;
     sellerConfirmedAt: string | null;
     completedAt: string | null;
+    unlockCreatedAt: string | null;
+    buyerMutualCancelAt: string | null;
+    sellerMutualCancelAt: string | null;
   } | null;
   buyerOfferOptions: Array<{ id: string; title: string }>;
   currentUserId: string | null;
@@ -83,6 +88,16 @@ export function ListingDetailView({
     isbnCoverUrl ??
     (listing.cover_url ? coverImageSrcForDisplay(listing.cover_url) ?? listing.cover_url : null);
   const areaLine = !isOwner && isSignedIn ? listingAreaLine(listing.approx_area_text) : null;
+
+  const dealOptionsEligibility: DealOptionsEligibility | null = unlockDeal
+    ? computeDealOptionsEligibility({
+        isOwner,
+        currentUserId,
+        sellerId: listing.user_id,
+        deal: unlockDeal,
+        messages,
+      })
+    : null;
 
   return (
     <div className="space-y-4 pb-8">
@@ -205,6 +220,7 @@ export function ListingDetailView({
               listingOpenToSwaps={!!listing.open_to_swaps}
               deal={unlockDeal}
               myOfferOptions={buyerOfferOptions}
+              dealOptionsEligibility={dealOptionsEligibility}
             />
           ) : null}
         <div className="card bg-base-100 border border-base-300/80 shadow-sm">

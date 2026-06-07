@@ -275,3 +275,123 @@ export async function unconfirmDealCompleteAction(listingId: string): Promise<Un
   revalidatePath("/app/activity");
   return { ok: true };
 }
+
+type DealOptionRpc = { ok?: boolean; error?: string; completed?: boolean; refunded?: boolean };
+
+function mapDealOptionError(code: string | undefined): string {
+  switch (code) {
+    case "not_authenticated":
+      return "Sign in to continue.";
+    case "not_owner":
+    case "not_participant":
+      return "You are not part of this deal.";
+    case "no_active_deal":
+      return "This deal is no longer active.";
+    case "already_completed":
+      return "This deal is already completed.";
+    case "seller_has_replied":
+      return "The seller has already replied — withdraw is no longer available.";
+    case "withdraw_window_expired":
+      return "The 48-hour withdraw window has passed.";
+    case "seller_has_not_replied":
+      return "Wait until you have chatted before re-listing.";
+    case "buyer_still_active":
+      return "The buyer messaged within the last 14 days.";
+    case "seller_still_active":
+      return "The seller messaged within the last 14 days.";
+    case "use_withdraw_instead":
+      return "Use withdraw while the seller has not replied.";
+    default:
+      return code ?? "Could not complete this action.";
+  }
+}
+
+function revalidateDealPaths(listingId: string) {
+  revalidatePath(`/app/listings/${listingId}`);
+  revalidatePath("/app/home");
+  revalidatePath("/app/browse");
+  revalidatePath("/app/search");
+  revalidatePath("/app/profile");
+  revalidatePath("/app/credits");
+  revalidatePath("/app/activity");
+}
+
+export type DealOptionResult =
+  | { ok: true; completed?: boolean; refunded?: boolean }
+  | { ok: false; error: string };
+
+export async function withdrawFromDealAction(listingId: string): Promise<DealOptionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: userErr,
+  } = await supabase.auth.getUser();
+  if (userErr || !user) return { ok: false, error: "Sign in to continue." };
+
+  const { data, error } = await supabase.rpc("withdraw_from_deal", { p_listing_id: listingId });
+  if (error) {
+    console.error("[withdrawFromDealAction]", error.message);
+    return { ok: false, error: error.message };
+  }
+  const p = data as DealOptionRpc | null;
+  if (!p || p.ok !== true) return { ok: false, error: mapDealOptionError(p?.error) };
+  revalidateDealPaths(listingId);
+  return { ok: true, refunded: !!p.refunded };
+}
+
+export async function requestMutualCancelAction(listingId: string): Promise<DealOptionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: userErr,
+  } = await supabase.auth.getUser();
+  if (userErr || !user) return { ok: false, error: "Sign in to continue." };
+
+  const { data, error } = await supabase.rpc("request_mutual_cancel", { p_listing_id: listingId });
+  if (error) {
+    console.error("[requestMutualCancelAction]", error.message);
+    return { ok: false, error: error.message };
+  }
+  const p = data as DealOptionRpc | null;
+  if (!p || p.ok !== true) return { ok: false, error: mapDealOptionError(p?.error) };
+  revalidateDealPaths(listingId);
+  return { ok: true, completed: !!p.completed, refunded: false };
+}
+
+export async function sellerRelistStalledDealAction(listingId: string): Promise<DealOptionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: userErr,
+  } = await supabase.auth.getUser();
+  if (userErr || !user) return { ok: false, error: "Sign in to continue." };
+
+  const { data, error } = await supabase.rpc("seller_relist_stalled_deal", { p_listing_id: listingId });
+  if (error) {
+    console.error("[sellerRelistStalledDealAction]", error.message);
+    return { ok: false, error: error.message };
+  }
+  const p = data as DealOptionRpc | null;
+  if (!p || p.ok !== true) return { ok: false, error: mapDealOptionError(p?.error) };
+  revalidateDealPaths(listingId);
+  return { ok: true, refunded: false };
+}
+
+export async function buyerCloseStalledDealAction(listingId: string): Promise<DealOptionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: userErr,
+  } = await supabase.auth.getUser();
+  if (userErr || !user) return { ok: false, error: "Sign in to continue." };
+
+  const { data, error } = await supabase.rpc("buyer_close_stalled_deal", { p_listing_id: listingId });
+  if (error) {
+    console.error("[buyerCloseStalledDealAction]", error.message);
+    return { ok: false, error: error.message };
+  }
+  const p = data as DealOptionRpc | null;
+  if (!p || p.ok !== true) return { ok: false, error: mapDealOptionError(p?.error) };
+  revalidateDealPaths(listingId);
+  return { ok: true, refunded: false };
+}
