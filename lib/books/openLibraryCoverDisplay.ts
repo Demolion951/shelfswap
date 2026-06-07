@@ -18,7 +18,7 @@ export function coverImageSrcForDisplay(url: string | null | undefined): string 
     if (mIsbn) {
       const isbn = mIsbn[1];
       const size = mIsbn[2].toUpperCase();
-      return `/api/openlibrary-cover?isbn=${encodeURIComponent(isbn)}&size=${size}`;
+      return `/api/book-cover?isbn=${encodeURIComponent(isbn)}&size=${size}`;
     }
 
     const mId = parsed.pathname.match(/^\/b\/id\/(\d+)-([SML])\.jpg$/i);

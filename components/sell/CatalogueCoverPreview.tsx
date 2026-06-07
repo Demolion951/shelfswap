@@ -23,7 +23,7 @@ function buildCandidates(initialSrc: string, isbnDigits: string): string[] {
   const b = isbnDigits.replace(/\D/g, "");
   if (b && (b.length === 10 || b.length === 13)) {
     for (const size of ["L", "M", "S"] as const) {
-      const u = `/api/openlibrary-cover?isbn=${encodeURIComponent(b)}&size=${size}`;
+      const u = `/api/book-cover?isbn=${encodeURIComponent(b)}&size=${size}`;
       if (!out.includes(u)) out.push(u);
     }
   }

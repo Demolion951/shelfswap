@@ -6,7 +6,7 @@ import { NextResponse, type NextRequest } from "next/server";
  * Required for reliable SSR auth with @supabase/ssr (avoid stale tokens and random logouts).
  */
 /** Cover/blurb proxies are hot paths — skip auth round-trip per image request. */
-const FAST_API_PREFIXES = ["/api/openlibrary-cover", "/api/openlibrary-blurb"];
+const FAST_API_PREFIXES = ["/api/openlibrary-cover", "/api/openlibrary-blurb", "/api/book-cover"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

@@ -13,7 +13,7 @@ export function sortedListingPhotos(listing: ListingWithRelations) {
 function isbnCoverPath(isbn: string | null | undefined, size: "S" | "M" | "L"): string | null {
   const digits = isbn?.replace(/\D/g, "") ?? "";
   if (digits.length !== 10 && digits.length !== 13) return null;
-  return `/api/openlibrary-cover?isbn=${encodeURIComponent(digits)}&size=${size}`;
+  return `/api/book-cover?isbn=${encodeURIComponent(digits)}&size=${size}`;
 }
 
 /** Raw URL/path for the best thumbnail (seller photo first). */
@@ -44,10 +44,10 @@ export function catalogueListingCoverSrc(
   listing: ListingWithRelations,
   size: "S" | "M" | "L" = "L",
 ): string | null {
-  const fromIsbn = isbnCoverPath(listing.isbn, size);
-  if (fromIsbn) return fromIsbn;
-  if (!listing.cover_url?.trim()) return null;
-  return coverImageSrcForDisplay(listing.cover_url) ?? listing.cover_url;
+  if (listing.cover_url?.trim()) {
+    return coverImageSrcForDisplay(listing.cover_url) ?? listing.cover_url;
+  }
+  return isbnCoverPath(listing.isbn, size);
 }
 
 /** Fallback chain after a failed image load (skip the src that failed). */
