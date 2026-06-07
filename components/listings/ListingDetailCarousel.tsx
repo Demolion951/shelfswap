@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Listing detail photo carousel — seller photos first; catalogue cover only when no uploads.
+ * Listing detail carousel — official catalogue cover first, then seller photos.
  * Location: components/listings/ListingDetailCarousel.tsx
  */
 import { coverImageSrcForDisplay } from "@/lib/books/openLibraryCoverDisplay";
@@ -51,12 +51,10 @@ export function ListingDetailCarousel({ listing }: Props) {
   const catalogue = catalogueListingCoverSrc(listing, "L");
 
   const slides: string[] = [];
+  if (catalogue) slides.push(catalogue);
   for (const ph of photos) {
     if (!ph.url?.trim()) continue;
     slides.push(coverImageSrcForDisplay(ph.url) ?? ph.url);
-  }
-  if (slides.length === 0 && catalogue) {
-    slides.push(catalogue);
   }
 
   if (slides.length === 0) {
