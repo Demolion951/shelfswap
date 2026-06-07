@@ -1,13 +1,12 @@
 "use client";
 
 /**
- * Save (heart) control for listing detail: placed beside the title for visibility.
+ * Save (heart) on listing detail — instant toggle, no full-page refresh.
  * Location: components/listings/ListingSaveHeart.tsx
  */
-import { toggleSaveListingAction } from "@/app/app/saves/actions";
-import { Heart, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { setSaveListingAction } from "@/app/app/saves/actions";
+import { Heart } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 type Props = {
   listingId: string;
@@ -15,25 +14,35 @@ type Props = {
 };
 
 export function ListingSaveHeart({ listingId, initiallySaved }: Props) {
-  const router = useRouter();
   const [saved, setSaved] = useState(initiallySaved);
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const savedRef = useRef(initiallySaved);
+  const syncQueueRef = useRef(Promise.resolve());
 
   useEffect(() => {
+    savedRef.current = initiallySaved;
     setSaved(initiallySaved);
-  }, [initiallySaved]);
+  }, [listingId, initiallySaved]);
 
   function onToggle() {
     setError(null);
-    startTransition(async () => {
-      const res = await toggleSaveListingAction(listingId);
+    const target = !savedRef.current;
+    savedRef.current = target;
+    setSaved(target);
+
+    syncQueueRef.current = syncQueueRef.current.then(async () => {
+      const res = await setSaveListingAction(listingId, target);
       if (!res.ok) {
-        setError(res.error);
+        if (savedRef.current === target) {
+          const reverted = !target;
+          savedRef.current = reverted;
+          setSaved(reverted);
+          setError("Could not update saved.");
+        }
         return;
       }
+      savedRef.current = res.saved;
       setSaved(res.saved);
-      router.refresh();
     });
   }
 
@@ -42,7 +51,6 @@ export function ListingSaveHeart({ listingId, initiallySaved }: Props) {
       <button
         type="button"
         onClick={() => onToggle()}
-        disabled={pending}
         className={`btn btn-circle btn-ghost h-11 w-11 min-h-11 min-w-11 border ${
           saved
             ? "border-red-200/90 bg-red-50/95 text-red-600 hover:bg-red-100"
@@ -51,16 +59,12 @@ export function ListingSaveHeart({ listingId, initiallySaved }: Props) {
         aria-label={saved ? "Remove from saved" : "Save listing"}
         aria-pressed={saved}
       >
-        {pending ? (
-          <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
-        ) : (
-          <Heart
-            className="h-6 w-6"
-            strokeWidth={saved ? 2 : 1.75}
-            fill={saved ? "currentColor" : "none"}
-            aria-hidden
-          />
-        )}
+        <Heart
+          className="h-6 w-6"
+          strokeWidth={saved ? 2 : 1.75}
+          fill={saved ? "currentColor" : "none"}
+          aria-hidden
+        />
       </button>
       {error ? (
         <span className="text-[10px] text-error max-w-[8rem] text-center sm:text-right leading-tight">

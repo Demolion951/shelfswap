@@ -20,6 +20,8 @@ type Props = {
   /** Show save heart overlay (signed-in home/browse). */
   showSaveHeart?: boolean;
   initiallySaved?: boolean;
+  /** Eager-load cover for above-the-fold carousel items. */
+  priorityImage?: boolean;
 };
 
 function sortedPhotos(listing: ListingWithRelations) {
@@ -33,6 +35,7 @@ export function ListingCard({
   compact = false,
   showSaveHeart = false,
   initiallySaved = false,
+  priorityImage = false,
 }: Props) {
   const photos = sortedPhotos(listing);
   const coverFromIsbn = listing.isbn
@@ -62,7 +65,8 @@ export function ListingCard({
             src={thumb}
             alt=""
             className="h-full w-full object-cover"
-            loading="lazy"
+            loading={priorityImage ? "eager" : "lazy"}
+            fetchPriority={priorityImage ? "high" : "auto"}
             referrerPolicy="no-referrer"
             onError={(e) => {
               if (!coverFromIsbn) return;

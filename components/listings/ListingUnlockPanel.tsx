@@ -9,7 +9,6 @@ import { cancelUnlockHoldAction, requestUnlockHoldAction } from "@/app/app/listi
 import { formatUnlockCredits } from "@/lib/listings/format";
 import { Lock, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 type Props = {
@@ -31,7 +30,6 @@ export function ListingUnlockPanel({
   isSignedIn,
   initiallyUnlocked,
 }: Props) {
-  const router = useRouter();
   const [unlocked, setUnlocked] = useState(initiallyUnlocked);
   const [pendingRequest, setPendingRequest] = useState(initiallyPending);
   const [error, setError] = useState<string | null>(null);
@@ -49,11 +47,9 @@ export function ListingUnlockPanel({
       }
       if (res.alreadyUnlocked) {
         setUnlocked(true);
-        router.refresh();
         return;
       }
       setPendingRequest(true);
-      router.refresh();
     });
   }
 
@@ -66,7 +62,6 @@ export function ListingUnlockPanel({
         return;
       }
       setPendingRequest(false);
-      router.refresh();
     });
   }
 

@@ -15,10 +15,12 @@ export default async function AppShellLayout({
   children: React.ReactNode;
 }) {
   const user = await requireUser();
-  await ensureProfileRow();
   const supabase = await createClient();
-  const unreadNotifications = await getUnreadNotificationCountForUser(supabase, user.id);
-  const unreadMessages = await getUnreadMessageNotificationCountForUser(supabase, user.id);
+  const [, unreadNotifications, unreadMessages] = await Promise.all([
+    ensureProfileRow(),
+    getUnreadNotificationCountForUser(supabase, user.id),
+    getUnreadMessageNotificationCountForUser(supabase, user.id),
+  ]);
 
   return (
     <div className="flex min-h-dvh flex-col bg-base-200 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))]">

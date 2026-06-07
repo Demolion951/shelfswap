@@ -19,17 +19,22 @@ export default async function HomePage() {
   ]);
   const user = authRes.data.user;
 
-  // Nearest-first among the latest listings (signed-in + rough areas); falls back to newest-only when no km.
-  const all = sortListingsByDistanceThenRecency(
-    await attachDistanceKmToListings(recent, user?.id ?? null),
-  );
+  const allWithDistance = await attachDistanceKmToListings(recent, user?.id ?? null);
+  const all = sortListingsByDistanceThenRecency(allWithDistance);
   const newListings = all.slice(0, 12);
 
   const excludeNew = new Set(newListings.map((l) => l.id));
   const notInNew = all.filter((l) => !excludeNew.has(l.id));
-  const recommendedRaw = user
-    ? await recommendListingsForUser(user.id, all, 12, excludeNew)
-    : notInNew.slice(0, 12);
+  const recentIds = recent.map((l) => l.id);
+
+  const [recommendedRaw, savedIdSet] = await Promise.all([
+    user
+      ? recommendListingsForUser(user.id, all, 12, excludeNew)
+      : Promise.resolve(notInNew.slice(0, 12)),
+    user
+      ? fetchSavedListingIdsForUser(user.id, recentIds)
+      : Promise.resolve(new Set<string>()),
+  ]);
   // Small catalog: everything can be in "New", leaving nothing for recommendations — fall back so the row isn’t blank.
   let recommendedFilled =
     recommendedRaw.length > 0
@@ -49,16 +54,6 @@ export default async function HomePage() {
     .slice(0, 24);
   const explore = exploreUnique.length > 0 ? exploreUnique : all.slice(0, 24);
 
-  const feedListingIds = [
-    ...new Set([
-      ...newListings.map((l) => l.id),
-      ...recommendedFilled.map((l) => l.id),
-      ...explore.map((l) => l.id),
-    ]),
-  ];
-  const savedIdSet = user
-    ? await fetchSavedListingIdsForUser(user.id, feedListingIds)
-    : new Set<string>();
   const savedListingIds = [...savedIdSet];
   const showSaveHearts = !!user;
 

@@ -131,7 +131,10 @@ export function AutoApproxLocationUpdater() {
           if (shouldThrottle()) return;
           const coords = await getCoarseCoords();
           if (!coords) return;
-          const res = await setMyApproxLocationAction(coords.lat, coords.lng);
+          const lastLat = readNumber(LS_LAST_LAT);
+          const lastLng = readNumber(LS_LAST_LNG);
+          if (lastLat === coords.lat && lastLng === coords.lng) return;
+          const res = await setMyApproxLocationAction(coords.lat, coords.lng, { silent: true });
           if (!res.ok) return;
           writeNumber(LS_LAST_SYNC, nowMs());
           writeNumber(LS_LAST_LAT, coords.lat);

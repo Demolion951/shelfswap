@@ -8,7 +8,6 @@ import { sendListingMessageAction } from "@/app/app/listings/private-actions";
 import { LocalDateTimeText } from "@/components/messages/LocalDateTimeText";
 import type { ListingMessageRow } from "@/lib/listings/queries";
 import { Loader2, Send } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 type Props = {
@@ -18,41 +17,55 @@ type Props = {
 };
 
 export function ListingMessagesThread({ listingId, messages, currentUserId }: Props) {
-  const router = useRouter();
+  const [localMessages, setLocalMessages] = useState(messages);
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const bottomRef = useRef<HTMLDivElement>(null);
-  const lastId = messages.length ? messages[messages.length - 1]?.id : "";
+  const lastId = localMessages.length ? localMessages[localMessages.length - 1]?.id : "";
+
+  useEffect(() => {
+    setLocalMessages(messages);
+  }, [messages]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages.length, lastId]);
+  }, [localMessages.length, lastId]);
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = body.trim();
-    if (!trimmed) return;
+    if (!trimmed || !currentUserId) return;
     setError(null);
     const fd = new FormData();
     fd.set("listing_id", listingId);
     fd.set("body", trimmed);
+    const optimisticId = `optimistic-${Date.now()}`;
+    const optimistic: ListingMessageRow = {
+      id: optimisticId,
+      listing_id: listingId,
+      sender_id: currentUserId,
+      sender_display_name: "You",
+      body: trimmed,
+      created_at: new Date().toISOString(),
+    };
+    setBody("");
+    setLocalMessages((prev) => [...prev, optimistic]);
     startTransition(async () => {
       const res = await sendListingMessageAction(fd);
       if (!res.ok) {
+        setLocalMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+        setBody(trimmed);
         setError(res.error);
-        return;
       }
-      setBody("");
-      router.refresh();
     });
   }
 
   return (
     <div className="flex flex-col gap-3">
       <div className="max-h-64 space-y-2 overflow-y-auto rounded-lg border border-base-300/80 bg-base-200/30 p-3">
-        {messages.length === 0 ? null : (
-          messages.map((m) => {
+        {localMessages.length === 0 ? null : (
+          localMessages.map((m) => {
             const mine = currentUserId !== null && m.sender_id === currentUserId;
             return (
               <div

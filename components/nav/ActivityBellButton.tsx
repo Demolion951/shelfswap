@@ -1,14 +1,13 @@
 "use client";
 
 /**
- * Activity entry in the header: marks all notifications read on tap so the badge clears immediately,
- * then navigates to the activity feed.
+ * Activity bell: navigate immediately; mark read in background (no full-page refresh).
  * Location: components/nav/ActivityBellButton.tsx
  */
 import { markAllNotificationsReadAction } from "@/app/app/notifications/actions";
 import { Bell } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Props = {
   unreadCount: number;
@@ -18,19 +17,19 @@ export function ActivityBellButton({ unreadCount }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const activityActive = pathname.startsWith("/app/activity");
-  const badge =
-    unreadCount > 9 ? "9+" : unreadCount > 0 ? String(unreadCount) : null;
-  const [busy, setBusy] = useState(false);
+  const [localUnread, setLocalUnread] = useState(unreadCount);
 
-  async function onNavigate() {
-    if (unreadCount > 0) {
-      setBusy(true);
-      try {
-        await markAllNotificationsReadAction();
-        router.refresh();
-      } finally {
-        setBusy(false);
-      }
+  useEffect(() => {
+    setLocalUnread(unreadCount);
+  }, [unreadCount]);
+
+  const badge =
+    localUnread > 9 ? "9+" : localUnread > 0 ? String(localUnread) : null;
+
+  function onNavigate() {
+    if (localUnread > 0) {
+      setLocalUnread(0);
+      void markAllNotificationsReadAction();
     }
     router.push("/app/activity");
   }
@@ -38,14 +37,13 @@ export function ActivityBellButton({ unreadCount }: Props) {
   return (
     <button
       type="button"
-      onClick={() => void onNavigate()}
-      disabled={busy}
+      onClick={() => onNavigate()}
       className={`btn btn-ghost btn-circle btn-sm indicator ${
         activityActive ? "text-primary" : "text-base-content/55 hover:text-base-content"
       }`}
       aria-label={
-        unreadCount > 0
-          ? `Activity, ${unreadCount} unread notification${unreadCount === 1 ? "" : "s"}`
+        localUnread > 0
+          ? `Activity, ${localUnread} unread notification${localUnread === 1 ? "" : "s"}`
           : "Activity"
       }
     >

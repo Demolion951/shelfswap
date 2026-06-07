@@ -20,10 +20,16 @@ function revalidateLocationPaths() {
   revalidatePath("/app", "layout");
 }
 
+type BrowseLocationOptions = {
+  /** Background GPS sync: update DB only, no layout revalidation or geocode wait. */
+  silent?: boolean;
+};
+
 /** Current area while browsing (Home, Search, Browse distances). Does not move your listings. */
 export async function setMyBrowseLocationAction(
   lat: number,
   lng: number,
+  options?: BrowseLocationOptions,
 ): Promise<LocationActionResult> {
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
     return { ok: false, error: "Invalid coordinates." };
@@ -54,22 +60,24 @@ export async function setMyBrowseLocationAction(
     };
   }
 
-  try {
-    const areaText = await reverseGeocodeAreaText(lat, lng);
-    if (areaText) {
-      const { error: upErr } = await supabase
-        .from("profiles")
-        .update({ approx_area_text: areaText })
-        .eq("id", user.id);
-      if (upErr) {
-        console.warn("[setMyBrowseLocationAction] approx_area_text", upErr.message);
+  if (!options?.silent) {
+    try {
+      const areaText = await reverseGeocodeAreaText(lat, lng);
+      if (areaText) {
+        const { error: upErr } = await supabase
+          .from("profiles")
+          .update({ approx_area_text: areaText })
+          .eq("id", user.id);
+        if (upErr) {
+          console.warn("[setMyBrowseLocationAction] approx_area_text", upErr.message);
+        }
       }
+    } catch (e) {
+      console.warn("[setMyBrowseLocationAction] reverse geocode failed", e);
     }
-  } catch (e) {
-    console.warn("[setMyBrowseLocationAction] reverse geocode failed", e);
+    revalidateLocationPaths();
   }
 
-  revalidateLocationPaths();
   return { ok: true };
 }
 
@@ -77,8 +85,9 @@ export async function setMyBrowseLocationAction(
 export async function setMyApproxLocationAction(
   lat: number,
   lng: number,
+  options?: BrowseLocationOptions,
 ): Promise<LocationActionResult> {
-  return setMyBrowseLocationAction(lat, lng);
+  return setMyBrowseLocationAction(lat, lng, options);
 }
 
 /** Home area from UK postcode — listings show town/area only, not the postcode. */

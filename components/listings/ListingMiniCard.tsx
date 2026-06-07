@@ -17,6 +17,7 @@ type Props = {
   compact?: boolean;
   showSaveHeart?: boolean;
   initiallySaved?: boolean;
+  priorityImage?: boolean;
 };
 
 export function ListingMiniCard({
@@ -24,6 +25,7 @@ export function ListingMiniCard({
   compact = false,
   showSaveHeart = false,
   initiallySaved = false,
+  priorityImage = false,
 }: Props) {
   const photos = listing.listing_photos ?? [];
   const coverFromIsbn = listing.isbn
@@ -39,6 +41,7 @@ export function ListingMiniCard({
 
   return (
     <Link
+      prefetch
       href={`/app/listings/${listing.id}`}
       className="group rounded-lg border border-base-300/80 bg-base-100 shadow-sm transition hover:border-primary/30"
     >
@@ -52,7 +55,8 @@ export function ListingMiniCard({
               src={thumb}
               alt=""
               className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
-              loading="lazy"
+              loading={priorityImage ? "eager" : "lazy"}
+              fetchPriority={priorityImage ? "high" : "auto"}
               referrerPolicy="no-referrer"
             />
           ) : (

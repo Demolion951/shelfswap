@@ -14,8 +14,6 @@ export type SaveToggleResult =
 
 function revalidateSavePaths(listingId: string) {
   revalidatePath(`/app/listings/${listingId}`);
-  revalidatePath("/app/home");
-  revalidatePath("/app/profile");
   revalidatePath("/app/profile/saved");
 }
 
