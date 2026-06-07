@@ -37,9 +37,12 @@ export default async function LandingPage() {
           </p>
         </div>
         <div className="flex flex-col gap-3">
-          <Link href="/auth/sign-up" className="btn btn-primary btn-lg gap-2 shadow-md">
-            Get started
+          <Link href="/app/home" className="btn btn-primary btn-lg gap-2 shadow-md">
+            Browse books
             <ArrowRight className="h-5 w-5" aria-hidden />
+          </Link>
+          <Link href="/auth/sign-up" className="btn btn-outline btn-primary btn-lg">
+            Create account
           </Link>
           <Link href="/auth/sign-in" className="btn btn-ghost btn-lg border border-base-300">
             Sign in

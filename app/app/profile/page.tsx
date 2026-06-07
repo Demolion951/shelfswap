@@ -1,3 +1,4 @@
+import { GuestAccountPrompt } from "@/components/auth/GuestAccountPrompt";
 import { SignOutForm } from "@/components/auth/SignOutForm";
 import { SettingsRow } from "@/components/SettingsRow";
 import {
@@ -5,19 +6,25 @@ import {
   fetchMyRehomedListings,
   getSavedListingsCount,
 } from "@/lib/listings/queries";
+import { getOptionalUser } from "@/lib/auth/requireUser";
 import { createClient } from "@/lib/supabase/server";
-import { ChevronRight, Coins, Heart, Home, Library, Settings2 } from "lucide-react";
+import { ChevronRight, Coins, Heart, Home, Library, Settings2, UserRound } from "lucide-react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
 export default async function ProfilePage() {
-  const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getUser();
-  const user = authData?.user ?? null;
+  const user = await getOptionalUser();
   if (!user) {
-    redirect("/auth/sign-in?next=%2Fapp%2Fprofile");
+    return (
+      <GuestAccountPrompt
+        title="Your account"
+        description="Sign in to list books, save favourites, unlock titles, and manage your wallet."
+        Icon={UserRound}
+        returnTo="/app/profile"
+      />
+    );
   }
 
+  const supabase = await createClient();
   const { data: profile } = await supabase
     .from("profiles")
     .select("display_name, avatar_url, credit_balance")

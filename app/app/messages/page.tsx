@@ -1,5 +1,6 @@
+import { GuestAccountPrompt } from "@/components/auth/GuestAccountPrompt";
 import { MessagesInboxList } from "@/components/messages/MessagesInboxList";
-import { requireUser } from "@/lib/auth/requireUser";
+import { getOptionalUser } from "@/lib/auth/requireUser";
 import { fetchInboxThreads } from "@/lib/messages/inbox";
 import { MessageCircle } from "lucide-react";
 
@@ -8,7 +9,18 @@ import { MessageCircle } from "lucide-react";
  * Location: app/app/messages/page.tsx
  */
 export default async function MessagesPage() {
-  const user = await requireUser({ returnTo: "/app/messages" });
+  const user = await getOptionalUser();
+  if (!user) {
+    return (
+      <GuestAccountPrompt
+        title="Messages"
+        description="Sign in to chat with sellers and buyers after you unlock a listing."
+        Icon={MessageCircle}
+        returnTo="/app/messages"
+      />
+    );
+  }
+
   const threads = await fetchInboxThreads(user.id);
 
   return (

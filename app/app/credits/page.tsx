@@ -1,8 +1,11 @@
+import { GuestAccountPrompt } from "@/components/auth/GuestAccountPrompt";
 import { CreditPurchaseSection } from "@/components/credits/CreditPurchaseSection";
+import { getOptionalUser } from "@/lib/auth/requireUser";
 import { CREDIT_PACKS } from "@/lib/credits/packs";
 import { stripePriceIdForPack } from "@/lib/stripe/prices";
 import { getStripe } from "@/lib/stripe/server";
 import { createClient } from "@/lib/supabase/server";
+import { Coins } from "lucide-react";
 import Link from "next/link";
 
 /**
@@ -20,22 +23,27 @@ type PageProps = {
 };
 
 export default async function CreditsPage({ searchParams }: PageProps) {
+  const user = await getOptionalUser();
+  if (!user) {
+    return (
+      <GuestAccountPrompt
+        title="Credits"
+        description="Sign in to view your wallet and buy credits for unlocking listings."
+        Icon={Coins}
+        returnTo="/app/credits"
+      />
+    );
+  }
+
   const sp = await searchParams;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  let initialBalance = 0;
-  if (user) {
-    const { data: row } = await supabase
-      .from("profiles")
-      .select("credit_balance")
-      .eq("id", user.id)
-      .maybeSingle();
-    const raw = row?.credit_balance;
-    initialBalance = typeof raw === "number" ? raw : Number(raw ?? 0) || 0;
-  }
+  const { data: row } = await supabase
+    .from("profiles")
+    .select("credit_balance")
+    .eq("id", user.id)
+    .maybeSingle();
+  const raw = row?.credit_balance;
+  const initialBalance = typeof raw === "number" ? raw : Number(raw ?? 0) || 0;
 
   const devPurchasesEnabled = process.env.ALLOW_DEV_CREDIT_PURCHASE === "1";
   const checkoutPackIds = stripeCheckoutPackIds();
