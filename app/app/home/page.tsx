@@ -96,7 +96,6 @@ export default async function HomePage() {
 
       <HomeSectionToggle
         title="Explore all books"
-        subtitle="The next books in the catalog — none repeated from New or Recommended above."
         listings={exploreFilled}
         actionHref="/app/browse"
         actionLabel="View all"
