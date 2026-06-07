@@ -62,8 +62,14 @@ export function listingCoverFallbackSrc(
     if (ph.url?.trim()) candidates.push(ph.url.trim());
   }
   if (listing.cover_url?.trim()) candidates.push(listing.cover_url.trim());
-  const isbn = isbnCoverPath(listing.isbn, size);
-  if (isbn) candidates.push(isbn);
+  let isbnPath = isbnCoverPath(listing.isbn, size);
+  if (isbnPath && listing.title?.trim()) {
+    const q = new URLSearchParams({ isbn: listing.isbn!.replace(/\D/g, ""), size });
+    q.set("title", listing.title.trim());
+    if (listing.author?.trim()) q.set("author", listing.author.trim());
+    isbnPath = `/api/book-cover?${q.toString()}`;
+  }
+  if (isbnPath) candidates.push(isbnPath);
 
   const norm = (s: string) => coverImageSrcForDisplay(s) ?? s;
   const failed = norm(failedSrc);

@@ -66,3 +66,44 @@ export async function lookupGoogleBooksByIsbn(
     return null;
   }
 }
+
+/** Title/author search when ISBN lookup misses (common for very new titles). */
+export async function lookupGoogleBooksByTitleAuthor(
+  title: string,
+  author?: string | null,
+): Promise<GoogleBooksLookup | null> {
+  const t = title.trim();
+  if (!t) return null;
+  const parts = [`intitle:${t}`];
+  const a = author?.trim();
+  if (a) parts.push(`inauthor:${a}`);
+  const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(parts.join("+"))}&maxResults=3`;
+  try {
+    const res = await fetch(url, { next: { revalidate: 86_400 } });
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      items?: Array<{
+        volumeInfo?: {
+          title?: string;
+          authors?: string[];
+          imageLinks?: Record<string, string>;
+        };
+      }>;
+    };
+    for (const item of json.items ?? []) {
+      const info = item.volumeInfo;
+      if (!info?.title?.trim()) continue;
+      const cover = pickCoverImage(info.imageLinks);
+      if (!cover) continue;
+      return {
+        title: info.title.trim(),
+        author: info.authors?.[0]?.trim() ?? null,
+        coverUrl: cover,
+      };
+    }
+    return null;
+  } catch (e) {
+    console.warn("[lookupGoogleBooksByTitleAuthor]", e);
+    return null;
+  }
+}

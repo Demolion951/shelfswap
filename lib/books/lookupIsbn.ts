@@ -1,9 +1,15 @@
 /**
- * Server-side ISBN lookup: Open Library first, Google Books fallback.
+ * Server-side ISBN lookup: Open Library first, extended cover fallbacks for newer books.
  * Used by the sell flow to prefill title, author, cover.
  * Location: lib/books/lookupIsbn.ts
  */
-import { lookupGoogleBooksByIsbn } from "@/lib/books/googleBooksLookup";
+import {
+  catalogueCoverUrlForListing,
+  fetchOpenLibraryCoverIdByIsbn,
+  openLibraryCoverIdImageUrl,
+  resolveCatalogueCoverBytes,
+} from "@/lib/books/catalogueCoverResolve";
+import { lookupGoogleBooksByIsbn, lookupGoogleBooksByTitleAuthor } from "@/lib/books/googleBooksLookup";
 import {
   normalizeCoverImageUrl,
   openLibraryIsbnCoverUrl,
@@ -48,7 +54,6 @@ async function lookupOpenLibrary(
   const fromApi = normalizeCoverImageUrl(
     row.cover?.large ?? row.cover?.medium ?? row.cover?.small,
   );
-  const coverUrl = fromApi ?? openLibraryIsbnCoverUrl(isbn);
 
   return {
     isbn,
@@ -59,17 +64,45 @@ async function lookupOpenLibrary(
   };
 }
 
+/** Pick the best storable cover URL after extended resolution. */
+async function resolveCoverUrlForIsbn(
+  isbn: string,
+  title: string,
+  author: string | null,
+  directApiCover: string | null,
+): Promise<string> {
+  if (directApiCover) return directApiCover;
+
+  const resolved = await resolveCatalogueCoverBytes(isbn, { title, author, size: "L" });
+  if (resolved?.source === "open_library_search") {
+    const coverId = await fetchOpenLibraryCoverIdByIsbn(isbn);
+    if (coverId != null) return openLibraryCoverIdImageUrl(coverId, "L");
+  }
+  if (resolved) {
+    if (resolved.source.startsWith("google_books")) {
+      const g =
+        (await lookupGoogleBooksByIsbn(isbn)) ??
+        (await lookupGoogleBooksByTitleAuthor(title, author));
+      if (g?.coverUrl) return g.coverUrl;
+    }
+    return catalogueCoverUrlForListing(isbn, "L");
+  }
+
+  const google =
+    (await lookupGoogleBooksByIsbn(isbn)) ??
+    (await lookupGoogleBooksByTitleAuthor(title, author));
+  if (google?.coverUrl) return google.coverUrl;
+
+  return catalogueCoverUrlForListing(isbn, "L");
+}
+
 export async function lookupIsbn(rawIsbn: string): Promise<IsbnLookupResult | null> {
   const isbn = cleanIsbn(rawIsbn);
   if (!isbn) return null;
 
   const ol = await lookupOpenLibrary(isbn);
   if (ol) {
-    let coverUrl = ol.coverUrl;
-    if (!ol.apiCover) {
-      const google = await lookupGoogleBooksByIsbn(isbn);
-      if (google?.coverUrl) coverUrl = google.coverUrl;
-    }
+    const coverUrl = await resolveCoverUrlForIsbn(isbn, ol.title, ol.author, ol.apiCover);
     const { apiCover: _drop, ...rest } = ol;
     return { ...rest, coverUrl, source: "open_library" };
   }
@@ -77,11 +110,15 @@ export async function lookupIsbn(rawIsbn: string): Promise<IsbnLookupResult | nu
   const google = await lookupGoogleBooksByIsbn(isbn);
   if (!google) return null;
 
+  const coverUrl =
+    google.coverUrl ??
+    (await resolveCoverUrlForIsbn(isbn, google.title, google.author, null));
+
   return {
     isbn,
     title: google.title,
     author: google.author,
-    coverUrl: google.coverUrl ?? openLibraryIsbnCoverUrl(isbn),
+    coverUrl,
     source: "google_books",
   };
 }
