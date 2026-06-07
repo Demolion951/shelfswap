@@ -1,9 +1,12 @@
 "use client";
 
 import { ListingCardSaveHeart } from "@/components/listings/ListingCardSaveHeart";
-import { coverImageSrcForDisplay } from "@/lib/books/openLibraryCoverDisplay";
 import { listingAreaLine } from "@/lib/listings/areaDisplay";
 import { CONDITION_LABELS, formatUnlockCredits } from "@/lib/listings/format";
+import {
+  listingCoverFallbackSrc,
+  primaryListingCoverSrc,
+} from "@/lib/listings/listingCover";
 import type { ListingWithRelations } from "@/lib/listings/queries";
 import Link from "next/link";
 
@@ -24,10 +27,6 @@ type Props = {
   priorityImage?: boolean;
 };
 
-function sortedPhotos(listing: ListingWithRelations) {
-  const photos = listing.listing_photos ?? [];
-  return [...photos].sort((a, b) => a.sort - b.sort);
-}
 
 export function ListingCard({
   listing,
@@ -37,15 +36,7 @@ export function ListingCard({
   initiallySaved = false,
   priorityImage = false,
 }: Props) {
-  const photos = sortedPhotos(listing);
-  const coverFromIsbn = listing.isbn
-    ? `/api/openlibrary-cover?isbn=${encodeURIComponent(listing.isbn.replace(/\D/g, ""))}&size=M`
-    : null;
-  const catalogueCover =
-    coverFromIsbn ??
-    (listing.cover_url ? coverImageSrcForDisplay(listing.cover_url) ?? listing.cover_url : null);
-  const thumbRaw = catalogueCover ?? photos[0]?.url;
-  const thumb = thumbRaw ? coverImageSrcForDisplay(thumbRaw) ?? thumbRaw : null;
+  const thumb = primaryListingCoverSrc(listing, "M");
   const cond = CONDITION_LABELS[listing.condition] ?? listing.condition;
   const credits = listing.unlock_credits === 2 ? 2 : 1;
   const areaLine = listingAreaLine(listing.approx_area_text);
@@ -69,11 +60,12 @@ export function ListingCard({
             fetchPriority={priorityImage ? "high" : "auto"}
             referrerPolicy="no-referrer"
             onError={(e) => {
-              if (!coverFromIsbn) return;
               const img = e.currentTarget;
               if (img.dataset.fallbackApplied === "1") return;
+              const next = listingCoverFallbackSrc(listing, img.src, "M");
+              if (!next) return;
               img.dataset.fallbackApplied = "1";
-              img.src = coverFromIsbn;
+              img.src = next;
             }}
           />
         ) : (

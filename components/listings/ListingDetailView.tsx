@@ -1,9 +1,4 @@
-import { coverImageSrcForDisplay } from "@/lib/books/openLibraryCoverDisplay";
-import { computeDealOptionsEligibility } from "@/lib/listings/dealOptions";
-import type { DealOptionsEligibility } from "@/lib/listings/dealOptions";
-import { listingAreaLine } from "@/lib/listings/areaDisplay";
-import { CONDITION_LABELS, formatUnlockCredits } from "@/lib/listings/format";
-import type { ListingMessageRow, ListingWithRelations } from "@/lib/listings/queries";
+import { ListingDetailCarousel } from "@/components/listings/ListingDetailCarousel";
 import { OpenLibraryBlurbLoader } from "@/components/listings/OpenLibraryBlurbLoader";
 import { ListingSaveHeart } from "@/components/listings/ListingSaveHeart";
 import { DealHandoffPanel } from "@/components/listings/DealHandoffPanel";
@@ -12,6 +7,11 @@ import { ListingMessagesThread } from "@/components/listings/ListingMessagesThre
 import { ListingUnlockPanel } from "@/components/listings/ListingUnlockPanel";
 import { ListingViewTracker } from "@/components/listings/ListingViewTracker";
 import { UnlockRequestsPanel, type PendingUnlockRequest } from "@/components/listings/UnlockRequestsPanel";
+import { computeDealOptionsEligibility } from "@/lib/listings/dealOptions";
+import type { DealOptionsEligibility } from "@/lib/listings/dealOptions";
+import { listingAreaLine } from "@/lib/listings/areaDisplay";
+import { CONDITION_LABELS, formatUnlockCredits } from "@/lib/listings/format";
+import type { ListingMessageRow, ListingWithRelations } from "@/lib/listings/queries";
 import { MapPin } from "lucide-react";
 import Link from "next/link";
 
@@ -53,11 +53,6 @@ type Props = {
   creditsPendingSellerReply?: boolean;
 };
 
-function sortPhotos(listing: ListingWithRelations) {
-  const p = listing.listing_photos ?? [];
-  return [...p].sort((a, b) => a.sort - b.sort);
-}
-
 export function ListingDetailView({
   listing,
   isOwner,
@@ -75,18 +70,9 @@ export function ListingDetailView({
   distanceKm: _distanceKm,
   creditsPendingSellerReply = false,
 }: Props) {
-  const photos = sortPhotos(listing);
   const seller = listing.profiles?.display_name?.trim() || "member";
   const cond = CONDITION_LABELS[listing.condition] ?? listing.condition;
   const credits = listing.unlock_credits === 2 ? 2 : 1;
-  const isbnDigits = listing.isbn ? listing.isbn.replace(/\D/g, "") : "";
-  const isbnCoverUrl =
-    isbnDigits.length === 10 || isbnDigits.length === 13
-      ? `/api/openlibrary-cover?isbn=${encodeURIComponent(isbnDigits)}&size=L`
-      : null;
-  const catalogueCover =
-    isbnCoverUrl ??
-    (listing.cover_url ? coverImageSrcForDisplay(listing.cover_url) ?? listing.cover_url : null);
   const areaLine = !isOwner && isSignedIn ? listingAreaLine(listing.approx_area_text) : null;
 
   const dealOptionsEligibility: DealOptionsEligibility | null = unlockDeal
@@ -102,41 +88,7 @@ export function ListingDetailView({
   return (
     <div className="space-y-4 pb-8">
       <ListingViewTracker listingId={listing.id} enabled={isSignedIn && !isOwner} />
-      <div className="carousel carousel-center w-full gap-2 rounded-xl bg-base-200/50 p-2">
-        {catalogueCover ? (
-          <div className="carousel-item w-[85%] max-w-sm first:pl-0">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={catalogueCover}
-              alt=""
-              className="max-h-80 w-full rounded-lg object-contain bg-base-300/30"
-              referrerPolicy="no-referrer"
-            />
-          </div>
-        ) : null}
-        {photos.map((ph) => {
-          const src = coverImageSrcForDisplay(ph.url) ?? ph.url;
-          return (
-            <div
-              key={ph.id}
-              className="carousel-item w-[85%] max-w-sm first:pl-0"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={src}
-                alt=""
-                className="max-h-80 w-full rounded-lg object-contain bg-base-300/30"
-                referrerPolicy="no-referrer"
-              />
-            </div>
-          );
-        })}
-        {!catalogueCover && photos.length === 0 ? (
-          <div className="carousel-item flex min-h-[14rem] w-full items-center justify-center rounded-lg bg-base-300/40 text-sm text-base-content/45">
-            No cover image for this listing
-          </div>
-        ) : null}
-      </div>
+      <ListingDetailCarousel listing={listing} />
 
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1 space-y-1">
