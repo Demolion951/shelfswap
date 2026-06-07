@@ -38,21 +38,18 @@ export default async function HomePage() {
       ? fetchSavedListingIdsForUser(user.id, recentIds)
       : Promise.resolve(new Set<string>()),
   ]);
-  // Small catalog: use the next batch after New so the row isn’t blank (never repeat New).
+  // Small catalog: if nothing left after New, still show picks from the full pool (may overlap New).
   let recommendedFilled =
     recommendedRaw.length > 0
       ? recommendedRaw
-      : notInNew.slice(0, 12);
+      : notInNew.length > 0
+        ? notInNew.slice(0, 12)
+        : all.slice(0, 12);
   recommendedFilled = sortListingsByDistanceThenRecency(recommendedFilled);
 
-  const shownAboveIds = new Set([
-    ...excludeNew,
-    ...recommendedFilled.map((l) => l.id),
-  ]);
-  // Every listing not already in New or Recommended (nearest-first / personalised order preserved).
-  const exploreFilled = all
-    .filter((l) => !shownAboveIds.has(l.id))
-    .slice(0, 24);
+  // Shelf preview of the full local catalog (same order as Browse). Overlap with rows above is fine —
+  // New/Recommended are curated carousels; Explore is “see everything nearby”.
+  const exploreListings = all.slice(0, 24);
 
   const savedListingIds = [...savedIdSet];
   const showSaveHearts = !!user;
@@ -96,11 +93,10 @@ export default async function HomePage() {
 
       <HomeSectionToggle
         title="Explore all books"
-        listings={exploreFilled}
+        listings={exploreListings}
         actionHref="/app/browse"
         actionLabel="View all"
         defaultMode="shelf"
-        emptyMessage="No extra listings here yet — tap View all to browse the full catalog."
         showSaveHearts={showSaveHearts}
         savedListingIds={savedListingIds}
       />
