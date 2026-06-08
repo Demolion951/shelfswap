@@ -1,10 +1,10 @@
 "use client";
 
 /**
- * Listing cover with catalogue-first chain; steps through seller photos on error; never shows broken icon.
+ * Listing cover with catalogue-first chain; steps through seller photos on error.
  * Location: components/listings/ListingCoverImage.tsx
  */
-import { listingCoverCandidates } from "@/lib/listings/listingCover";
+import { firstSellerPhotoSrc, listingCoverCandidates } from "@/lib/listings/listingCover";
 import type { ListingWithRelations } from "@/lib/listings/queries";
 import { useMemo, useState } from "react";
 
@@ -23,14 +23,19 @@ export function ListingCoverImage({
   className = "h-full w-full object-cover",
   loading = "lazy",
   fetchPriority = "auto",
-  noCoverClassName = "flex h-full items-center justify-center text-[10px] text-base-content/35 px-1 text-center",
+  noCoverClassName = "h-full w-full bg-base-300/45",
 }: Props) {
-  const candidates = useMemo(() => listingCoverCandidates(listing, size), [listing, size]);
+  const candidates = useMemo(() => {
+    const chain = listingCoverCandidates(listing, size);
+    if (chain.length > 0) return chain;
+    const fallback = firstSellerPhotoSrc(listing);
+    return fallback ? [fallback] : [];
+  }, [listing, size]);
   const [index, setIndex] = useState(0);
 
   const src = candidates[index];
   if (!src || index >= candidates.length) {
-    return <div className={noCoverClassName}>No cover</div>;
+    return <div className={noCoverClassName} aria-hidden />;
   }
 
   return (

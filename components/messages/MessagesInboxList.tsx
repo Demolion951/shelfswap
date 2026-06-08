@@ -45,9 +45,7 @@ export function MessagesInboxList({ threads }: Props) {
                       referrerPolicy="no-referrer"
                     />
                   ) : (
-                    <div className="flex h-full items-center justify-center text-[9px] text-base-content/35 px-0.5 text-center">
-                      No cover
-                    </div>
+                    <div className="h-full w-full bg-base-300/50" aria-hidden />
                   )}
                 </figure>
                 <div className="min-w-0 flex-1">

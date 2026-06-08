@@ -47,6 +47,7 @@ const listingFeedSelectWithUnlockCredits = `
       open_to_swaps,
       description,
       created_at,
+      listing_photos ( id, url, sort ),
       profiles!listings_user_id_fkey ( display_name, avatar_url )
     `;
 
@@ -63,6 +64,7 @@ const listingFeedSelectNoUnlockCredits = `
       open_to_swaps,
       description,
       created_at,
+      listing_photos ( id, url, sort ),
       profiles!listings_user_id_fkey ( display_name, avatar_url )
     `;
 
@@ -208,11 +210,9 @@ async function withUnlockCreditsRetry<T>(
 export async function fetchRecentListings(
   limit = 24,
   excludeUserId: string | null = null,
-  options?: { lite?: boolean },
 ): Promise<ListingWithRelations[]> {
   const supabase = await createClient();
   const myUserId = excludeUserId;
-  const lite = options?.lite !== false;
 
   const run = (selectClause: string) => {
     let q = supabase
@@ -224,22 +224,15 @@ export async function fetchRecentListings(
   };
 
   const res = await withUnlockCreditsRetry(
-    () =>
-      run(
-        lite ? listingFeedSelectWithUnlockCredits : listingSelectWithUnlockCredits,
-      ),
-    () =>
-      run(lite ? listingFeedSelectNoUnlockCredits : listingSelectNoUnlockCredits),
+    () => run(listingFeedSelectWithUnlockCredits),
+    () => run(listingFeedSelectNoUnlockCredits),
   );
 
   if (res.error) {
     console.error("[fetchRecentListings]", res.error.message);
     return [] as ListingWithRelations[];
   }
-  const rows = listingRowsFromQueryData(res.data).map((r) => ({
-    ...r,
-    listing_photos: lite ? null : (r.listing_photos ?? null),
-  }));
+  const rows = listingRowsFromQueryData(res.data);
   return attachPublicProfilesToListings(rows.map((r) => normalizeListingRow(r)));
 }
 
@@ -298,9 +291,7 @@ export async function searchListingsByText(
     console.error("[searchListingsByText]", res.error.message);
     return [] as ListingWithRelations[];
   }
-  const normalized = listingRowsFromQueryData(res.data).map((r) =>
-    normalizeListingRow({ ...r, listing_photos: null }),
-  );
+  const normalized = listingRowsFromQueryData(res.data).map((r) => normalizeListingRow(r));
   return attachPublicProfilesToListings(normalized);
 }
 

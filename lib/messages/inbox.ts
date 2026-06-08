@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { primaryListingCoverSrc } from "@/lib/listings/listingCover";
+import type { ListingWithRelations } from "@/lib/listings/queries";
 
 export type InboxThread = {
   listingId: string;
@@ -42,7 +44,7 @@ export async function fetchInboxThreads(userId: string): Promise<InboxThread[]> 
       .eq("status", "pending"),
     supabase
       .from("listings")
-      .select("id, title, cover_url, author, created_at")
+      .select("id, title, cover_url, author, created_at, listing_photos ( id, url, sort )")
       .eq("user_id", userId)
       .eq("status", "active"),
   ]);
@@ -151,7 +153,7 @@ export async function fetchInboxThreads(userId: string): Promise<InboxThread[]> 
   const [{ data: listingsMeta, error: lErr }, { data: msgs }] = await Promise.all([
     supabase
       .from("listings")
-      .select("id, title, cover_url, author")
+      .select("id, title, cover_url, author, listing_photos ( id, url, sort )")
       .in("id", allIds)
       .eq("status", "active"),
     supabase
@@ -195,10 +197,11 @@ export async function fetchInboxThreads(userId: string): Promise<InboxThread[]> 
       const meta = metaMap.get(a.listingId)!;
       const lm = lastMsg.get(a.listingId);
       const lastActivityAt = lm?.at ?? a.sortFallback;
+      const coverSrc = primaryListingCoverSrc(meta as ListingWithRelations, "S");
       return {
         listingId: a.listingId,
         title: meta.title as string,
-        coverUrl: (meta.cover_url as string | null) ?? null,
+        coverUrl: coverSrc,
         author: (meta.author as string | null) ?? null,
         role: a.role,
         lastActivityAt,

@@ -72,12 +72,19 @@ export function listingCoverCandidates(
   return out;
 }
 
+/** First seller-uploaded photo URL, if any. */
+export function firstSellerPhotoSrc(listing: ListingWithRelations): string | null {
+  const ph = sortedListingPhotos(listing)[0];
+  if (!ph?.url?.trim()) return null;
+  return coverImageSrcForDisplay(ph.url.trim()) ?? ph.url.trim();
+}
+
 /** Thumbnail + card hero: first candidate. */
 export function primaryListingCoverSrc(
   listing: ListingWithRelations,
   size: "S" | "M" | "L" = "M",
 ): string | null {
-  return listingCoverCandidates(listing, size)[0] ?? null;
+  return listingCoverCandidates(listing, size)[0] ?? firstSellerPhotoSrc(listing);
 }
 
 /** @deprecated Use listingCoverCandidates — kept for one-step fallback callers. */

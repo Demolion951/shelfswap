@@ -4,7 +4,7 @@
  * Listing detail carousel — official catalogue first (with fallbacks), then seller photos.
  * Location: components/listings/ListingDetailCarousel.tsx
  */
-import { listingCoverCandidates, sortedListingPhotos } from "@/lib/listings/listingCover";
+import { firstSellerPhotoSrc, listingCoverCandidates, sortedListingPhotos } from "@/lib/listings/listingCover";
 import { coverImageSrcForDisplay } from "@/lib/books/openLibraryCoverDisplay";
 import type { ListingWithRelations } from "@/lib/listings/queries";
 import { useMemo, useState } from "react";
@@ -19,9 +19,7 @@ function HeroCoverSlide({ candidates }: { candidates: string[] }) {
 
   if (!src || index >= candidates.length) {
     return (
-      <div className="carousel-item flex min-h-[14rem] w-[85%] max-w-sm items-center justify-center rounded-lg bg-base-300/40 text-sm text-base-content/45 first:pl-0">
-        No cover image
-      </div>
+      <div className="carousel-item flex min-h-[14rem] w-[85%] max-w-sm items-center justify-center rounded-lg bg-base-300/40 first:pl-0" aria-hidden />
     );
   }
 
@@ -40,15 +38,18 @@ function HeroCoverSlide({ candidates }: { candidates: string[] }) {
 }
 
 export function ListingDetailCarousel({ listing }: Props) {
-  const candidates = useMemo(() => listingCoverCandidates(listing, "L"), [listing]);
+  const candidates = useMemo(() => {
+    const chain = listingCoverCandidates(listing, "L");
+    if (chain.length > 0) return chain;
+    const fallback = firstSellerPhotoSrc(listing);
+    return fallback ? [fallback] : [];
+  }, [listing]);
   const photos = sortedListingPhotos(listing);
 
   if (candidates.length === 0 && photos.length === 0) {
     return (
       <div className="carousel carousel-center w-full gap-2 rounded-xl bg-base-200/50 p-2">
-        <div className="carousel-item flex min-h-[14rem] w-full items-center justify-center rounded-lg bg-base-300/40 text-sm text-base-content/45">
-          No cover image for this listing
-        </div>
+        <div className="carousel-item flex min-h-[14rem] w-full items-center justify-center rounded-lg bg-base-300/40" aria-hidden />
       </div>
     );
   }
