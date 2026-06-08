@@ -28,11 +28,11 @@ export function catalogueListingCoverSrc(
   listing: ListingWithRelations,
   size: "S" | "M" | "L" = "L",
 ): string | null {
-  const fromApi = catalogueCoverApiPath(listing, size);
-  if (fromApi) return fromApi;
   if (listing.cover_url?.trim()) {
     return coverImageSrcForDisplay(listing.cover_url) ?? listing.cover_url;
   }
+  const fromApi = catalogueCoverApiPath(listing, size);
+  if (fromApi) return fromApi;
   return null;
 }
 

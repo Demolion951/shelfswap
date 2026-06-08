@@ -16,9 +16,16 @@ type Props = {
   listingId: string;
   messages: ListingMessageRow[];
   currentUserId: string | null;
+  /** When false, show thread read-only (e.g. seller with no buyers yet). */
+  canCompose?: boolean;
 };
 
-export function ListingMessagesThread({ listingId, messages, currentUserId }: Props) {
+export function ListingMessagesThread({
+  listingId,
+  messages,
+  currentUserId,
+  canCompose = true,
+}: Props) {
   const [localMessages, setLocalMessages] = useState(messages);
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +78,7 @@ export function ListingMessagesThread({ listingId, messages, currentUserId }: Pr
     e.preventDefault();
     const trimmed = body.trim();
     if (!currentUserId) return;
+    if (!canCompose) return;
     if (!trimmed && !attachFile) return;
     setError(null);
 
@@ -174,6 +182,7 @@ export function ListingMessagesThread({ listingId, messages, currentUserId }: Pr
         )}
         <div ref={bottomRef} />
       </div>
+      {canCompose ? (
       <form className="flex flex-col gap-2" onSubmit={onSubmit}>
         {attachPreview ? (
           <div className="relative inline-block w-fit">
@@ -242,6 +251,7 @@ export function ListingMessagesThread({ listingId, messages, currentUserId }: Pr
           </button>
         </div>
       </form>
+      ) : null}
     </div>
   );
 }

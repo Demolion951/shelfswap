@@ -9,6 +9,7 @@ import { ListingViewTracker } from "@/components/listings/ListingViewTracker";
 import { UnlockRequestsPanel, type PendingUnlockRequest } from "@/components/listings/UnlockRequestsPanel";
 import { computeDealOptionsEligibility } from "@/lib/listings/dealOptions";
 import type { DealOptionsEligibility } from "@/lib/listings/dealOptions";
+import { sellerCanComposeMessages } from "@/lib/listings/messageCompose";
 import { listingAreaLine } from "@/lib/listings/areaDisplay";
 import { CONDITION_LABELS, formatUnlockCredits } from "@/lib/listings/format";
 import type { ListingMessageRow, ListingWithRelations } from "@/lib/listings/queries";
@@ -84,6 +85,13 @@ export function ListingDetailView({
         messages,
       })
     : null;
+
+  const canComposeMessages =
+    !isOwner ||
+    sellerCanComposeMessages(listing.user_id, messages, {
+      pendingUnlockCount: pendingRequestsForSeller.length,
+      hasActiveUnlock: !!unlockDeal,
+    });
 
   return (
     <div className="space-y-4 pb-8">
@@ -200,11 +208,16 @@ export function ListingDetailView({
               <p className="text-sm text-base-content/60 leading-snug">
                 Deal completed — this listing is archived and hidden from discovery.
               </p>
+            ) : !canComposeMessages ? (
+              <p className="text-sm text-base-content/60 leading-snug">
+                Messages appear here when a buyer requests unlock or unlocks your listing.
+              </p>
             ) : null}
             <ListingMessagesThread
               listingId={listing.id}
               messages={messages}
               currentUserId={currentUserId}
+              canCompose={canComposeMessages}
             />
           </div>
         </div>

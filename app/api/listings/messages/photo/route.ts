@@ -115,6 +115,8 @@ export async function POST(req: Request) {
       const friendly =
         code === "not_participant"
           ? "You can't message on this listing (unlock it first, or list it yourself)."
+          : code === "no_buyer_yet"
+            ? "Messages open when a buyer requests unlock or unlocks your listing."
           : code === "too_long"
             ? "Caption is too long (max 2000 characters)."
             : code === "bad_image_url"

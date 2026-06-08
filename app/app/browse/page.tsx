@@ -1,10 +1,12 @@
 import { BrowseListingsViewToggle } from "@/components/browse/BrowseListingsViewToggle";
+import { getCachedAuthUser } from "@/lib/auth/session";
 import {
   attachDistanceKmToListings,
   sortListingsByDistanceThenRecency,
 } from "@/lib/listings/distance";
 import { fetchRecentListings } from "@/lib/listings/queries";
-import { createClient } from "@/lib/supabase/server";
+
+const BROWSE_POOL_LIMIT = 72;
 
 /**
  * Browse page: non-swipe discovery with instant client-side Gallery/List toggle.
@@ -17,13 +19,10 @@ export default async function BrowsePage({
 }) {
   const sp = await searchParams;
   const initialView = sp.view === "list" ? "list" : "gallery";
-  const supabase = await createClient();
-  const [recent, authRes] = await Promise.all([
-    fetchRecentListings(120),
-    supabase.auth.getUser(),
-  ]);
+  const user = await getCachedAuthUser();
+  const recent = await fetchRecentListings(BROWSE_POOL_LIMIT, user?.id ?? null);
   const all = sortListingsByDistanceThenRecency(
-    await attachDistanceKmToListings(recent, authRes.data.user?.id ?? null),
+    await attachDistanceKmToListings(recent, user?.id ?? null),
   );
 
   return (

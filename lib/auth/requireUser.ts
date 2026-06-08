@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { getCachedAuthUser } from "@/lib/auth/session";
 import type { User } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 
@@ -15,11 +15,9 @@ export type RequireUserOptions = {
  */
 export async function requireUser(options?: RequireUserOptions): Promise<User> {
   const loginPath = options?.loginPath ?? "/auth/sign-in";
-  const supabase = await createClient();
-  const { data: authData, error } = await supabase.auth.getUser();
-  const user = authData?.user ?? null;
+  const user = await getCachedAuthUser();
 
-  if (error || !user) {
+  if (!user) {
     const next = options?.returnTo;
     const dest =
       next && next.startsWith("/")
@@ -35,7 +33,5 @@ export async function requireUser(options?: RequireUserOptions): Promise<User> {
  * Same as getUser() but returns null instead of redirecting. Use for optional auth UI.
  */
 export async function getOptionalUser() {
-  const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getUser();
-  return authData?.user ?? null;
+  return getCachedAuthUser();
 }

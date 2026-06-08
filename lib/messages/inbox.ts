@@ -26,31 +26,33 @@ type ThreadAcc = {
 export async function fetchInboxThreads(userId: string): Promise<InboxThread[]> {
   const supabase = await createClient();
 
-  const { data: unlockRows, error: uErr } = await supabase
-    .from("listing_unlocks")
-    .select("listing_id, created_at")
-    .eq("buyer_id", userId);
+  const [
+    { data: unlockRows, error: uErr },
+    { data: pendingBuyerReqs, error: pbErr },
+    { data: ownedRows, error: oErr },
+  ] = await Promise.all([
+    supabase
+      .from("listing_unlocks")
+      .select("listing_id, created_at")
+      .eq("buyer_id", userId),
+    supabase
+      .from("listing_unlock_requests")
+      .select("listing_id, created_at")
+      .eq("buyer_id", userId)
+      .eq("status", "pending"),
+    supabase
+      .from("listings")
+      .select("id, title, cover_url, author, created_at")
+      .eq("user_id", userId)
+      .eq("status", "active"),
+  ]);
 
   if (uErr) {
     console.error("[fetchInboxThreads] listing_unlocks", uErr.message);
   }
-
-  const { data: pendingBuyerReqs, error: pbErr } = await supabase
-    .from("listing_unlock_requests")
-    .select("listing_id, created_at")
-    .eq("buyer_id", userId)
-    .eq("status", "pending");
-
   if (pbErr) {
     console.error("[fetchInboxThreads] listing_unlock_requests buyer", pbErr.message);
   }
-
-  const { data: ownedRows, error: oErr } = await supabase
-    .from("listings")
-    .select("id, title, cover_url, author, created_at")
-    .eq("user_id", userId)
-    .eq("status", "active");
-
   if (oErr) {
     console.error("[fetchInboxThreads] listings owned", oErr.message);
   }
@@ -59,21 +61,19 @@ export async function fetchInboxThreads(userId: string): Promise<InboxThread[]> 
   const sellerActiveListingIds = new Set<string>();
 
   if (ownedIds.length > 0) {
-    const { data: unlocksOnOwned } = await supabase
-      .from("listing_unlocks")
-      .select("listing_id")
-      .in("listing_id", ownedIds);
-
-    const { data: pendingOnOwned } = await supabase
-      .from("listing_unlock_requests")
-      .select("listing_id")
-      .in("listing_id", ownedIds)
-      .eq("status", "pending");
-
-    const { data: msgsOnOwned } = await supabase
-      .from("listing_messages")
-      .select("listing_id")
-      .in("listing_id", ownedIds);
+    const [
+      { data: unlocksOnOwned },
+      { data: pendingOnOwned },
+      { data: msgsOnOwned },
+    ] = await Promise.all([
+      supabase.from("listing_unlocks").select("listing_id").in("listing_id", ownedIds),
+      supabase
+        .from("listing_unlock_requests")
+        .select("listing_id")
+        .in("listing_id", ownedIds)
+        .eq("status", "pending"),
+      supabase.from("listing_messages").select("listing_id").in("listing_id", ownedIds).neq("sender_id", userId),
+    ]);
 
     for (const r of unlocksOnOwned ?? []) {
       sellerActiveListingIds.add(r.listing_id as string);
@@ -148,11 +148,19 @@ export async function fetchInboxThreads(userId: string): Promise<InboxThread[]> 
   const allIds = [...new Set(acc.map((a) => a.listingId))];
   if (allIds.length === 0) return [];
 
-  const { data: listingsMeta, error: lErr } = await supabase
-    .from("listings")
-    .select("id, title, cover_url, author")
-    .in("id", allIds)
-    .eq("status", "active");
+  const [{ data: listingsMeta, error: lErr }, { data: msgs }] = await Promise.all([
+    supabase
+      .from("listings")
+      .select("id, title, cover_url, author")
+      .in("id", allIds)
+      .eq("status", "active"),
+    supabase
+      .from("listing_messages")
+      .select("listing_id, body, image_url, created_at")
+      .in("listing_id", allIds)
+      .order("created_at", { ascending: false })
+      .limit(Math.min(allIds.length * 3, 120)),
+  ]);
 
   if (lErr) {
     console.error("[fetchInboxThreads] listings meta", lErr.message);
@@ -161,13 +169,6 @@ export async function fetchInboxThreads(userId: string): Promise<InboxThread[]> 
 
   const metaMap = new Map((listingsMeta ?? []).map((row) => [row.id as string, row]));
   const filtered = acc.filter((a) => metaMap.has(a.listingId));
-
-  const { data: msgs } = await supabase
-    .from("listing_messages")
-    .select("listing_id, body, image_url, created_at")
-    .in("listing_id", allIds)
-    .order("created_at", { ascending: false })
-    .limit(400);
 
   const lastMsg = new Map<string, { at: string; preview: string }>();
   for (const m of msgs ?? []) {

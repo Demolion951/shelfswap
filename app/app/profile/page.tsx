@@ -2,8 +2,8 @@ import { GuestAccountPrompt } from "@/components/auth/GuestAccountPrompt";
 import { SignOutForm } from "@/components/auth/SignOutForm";
 import { SettingsRow } from "@/components/SettingsRow";
 import {
-  fetchMyListings,
-  fetchMyRehomedListings,
+  getMyActiveListingsCount,
+  getMyRehomedCount,
   getSavedListingsCount,
 } from "@/lib/listings/queries";
 import { getOptionalUser } from "@/lib/auth/requireUser";
@@ -25,18 +25,17 @@ export default async function ProfilePage() {
   }
 
   const supabase = await createClient();
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("display_name, avatar_url, credit_balance")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  const [myListings, rehomedListings, savedCount] = await Promise.all([
-    fetchMyListings(user.id),
-    fetchMyRehomedListings(user.id),
+  const [profileRes, listingsCount, rehomedCount, savedCount] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("display_name, avatar_url, credit_balance")
+      .eq("id", user.id)
+      .maybeSingle(),
+    getMyActiveListingsCount(user.id),
+    getMyRehomedCount(user.id),
     getSavedListingsCount(user.id),
   ]);
-  const rehomedCount = rehomedListings.pickups.length + rehomedListings.swaps.length;
+  const profile = profileRes.data;
 
   return (
     <div className="space-y-6 pt-2">
@@ -120,7 +119,7 @@ export default async function ProfilePage() {
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-1">
-              <p className="text-2xl font-bold sm:text-3xl">{myListings.length}</p>
+              <p className="text-2xl font-bold sm:text-3xl">{listingsCount}</p>
               <ChevronRight
                 className="h-4 w-4 text-base-content/35"
                 aria-hidden

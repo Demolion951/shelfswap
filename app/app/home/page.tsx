@@ -1,5 +1,6 @@
 import { EmptyFeed } from "@/components/home/EmptyFeed";
 import { HomeSectionToggle } from "@/components/home/HomeSectionToggle";
+import { getCachedAuthUser } from "@/lib/auth/session";
 import {
   attachDistanceKmToListings,
   sortListingsByDistanceThenRecency,
@@ -9,18 +10,15 @@ import {
   fetchSavedListingIdsForUser,
 } from "@/lib/listings/queries";
 import { recommendListingsForUser } from "@/lib/listings/recommendations";
-import { createClient } from "@/lib/supabase/server";
 
 /** Always fresh — feed sections depend on latest listings and viewer location. */
 export const dynamic = "force-dynamic";
 
+const HOME_POOL_LIMIT = 64;
+
 export default async function HomePage() {
-  const supabase = await createClient();
-  const [recent, authRes] = await Promise.all([
-    fetchRecentListings(120),
-    supabase.auth.getUser(),
-  ]);
-  const user = authRes.data.user;
+  const user = await getCachedAuthUser();
+  const recent = await fetchRecentListings(HOME_POOL_LIMIT, user?.id ?? null);
 
   const allWithDistance = await attachDistanceKmToListings(recent, user?.id ?? null);
   const all = sortListingsByDistanceThenRecency(allWithDistance);

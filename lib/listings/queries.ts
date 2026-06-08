@@ -33,6 +33,39 @@ type PublicProfileRow = {
   avatar_url: string | null;
 };
 
+const listingFeedSelectWithUnlockCredits = `
+      id,
+      user_id,
+      isbn,
+      title,
+      author,
+      cover_url,
+      condition,
+      price_cents,
+      unlock_credits,
+      approx_area_text,
+      open_to_swaps,
+      description,
+      created_at,
+      profiles!listings_user_id_fkey ( display_name, avatar_url )
+    `;
+
+const listingFeedSelectNoUnlockCredits = `
+      id,
+      user_id,
+      isbn,
+      title,
+      author,
+      cover_url,
+      condition,
+      price_cents,
+      approx_area_text,
+      open_to_swaps,
+      description,
+      created_at,
+      profiles!listings_user_id_fkey ( display_name, avatar_url )
+    `;
+
 const listingSelectNoUnlockCredits = `
       id,
       user_id,
@@ -123,6 +156,11 @@ async function attachPublicProfilesToListings<T extends ListingWithRelations>(
   listings: T[],
 ): Promise<T[]> {
   if (listings.length === 0) return listings;
+  const needsFetch = listings.some(
+    (l) => !(l.profiles?.display_name && l.profiles.display_name.trim().length > 0),
+  );
+  if (!needsFetch) return listings;
+
   const supabase = await createClient();
   const ids = Array.from(new Set(listings.map((l) => l.user_id).filter(Boolean)));
   if (ids.length === 0) return listings;
@@ -169,12 +207,12 @@ async function withUnlockCreditsRetry<T>(
 
 export async function fetchRecentListings(
   limit = 24,
+  excludeUserId: string | null = null,
+  options?: { lite?: boolean },
 ): Promise<ListingWithRelations[]> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const myUserId = user?.id ?? null;
+  const myUserId = excludeUserId;
+  const lite = options?.lite !== false;
 
   const run = (selectClause: string) => {
     let q = supabase
@@ -187,28 +225,31 @@ export async function fetchRecentListings(
 
   const res = await withUnlockCreditsRetry(
     () =>
-      run(listingSelectWithUnlockCredits),
+      run(
+        lite ? listingFeedSelectWithUnlockCredits : listingSelectWithUnlockCredits,
+      ),
     () =>
-      run(listingSelectNoUnlockCredits),
+      run(lite ? listingFeedSelectNoUnlockCredits : listingSelectNoUnlockCredits),
   );
 
   if (res.error) {
     console.error("[fetchRecentListings]", res.error.message);
     return [] as ListingWithRelations[];
   }
-  const rows = listingRowsFromQueryData(res.data);
+  const rows = listingRowsFromQueryData(res.data).map((r) => ({
+    ...r,
+    listing_photos: lite ? null : (r.listing_photos ?? null),
+  }));
   return attachPublicProfilesToListings(rows.map((r) => normalizeListingRow(r)));
 }
 
 export async function searchListingsByText(
   q: string,
   limit = 30,
+  excludeUserId: string | null = null,
 ): Promise<ListingWithRelations[]> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const myUserId = user?.id ?? null;
+  const myUserId = excludeUserId;
 
   const safe = q.trim().replace(/[^\w\s-]/g, "").trim();
   if (!safe) return [] as ListingWithRelations[];
@@ -245,24 +286,21 @@ export async function searchListingsByText(
   const res = await withUnlockCreditsRetry(
     () =>
       qLen < 8
-        ? runIlike(listingSelectWithUnlockCredits)
-        : runText(listingSelectWithUnlockCredits),
+        ? runIlike(listingFeedSelectWithUnlockCredits)
+        : runText(listingFeedSelectWithUnlockCredits),
     () =>
       qLen < 8
-        ? runIlike(listingSelectNoUnlockCredits)
-        : runText(listingSelectNoUnlockCredits),
+        ? runIlike(listingFeedSelectNoUnlockCredits)
+        : runText(listingFeedSelectNoUnlockCredits),
   );
 
   if (res.error) {
     console.error("[searchListingsByText]", res.error.message);
     return [] as ListingWithRelations[];
   }
-  const normalized = (res.data ?? [])
-    .map((r) => {
-      if (!r || typeof r !== "object") return null;
-      return normalizeListingRow(r as unknown as Record<string, unknown>);
-    })
-    .filter((x): x is ListingWithRelations => !!x);
+  const normalized = listingRowsFromQueryData(res.data).map((r) =>
+    normalizeListingRow({ ...r, listing_photos: null }),
+  );
   return attachPublicProfilesToListings(normalized);
 }
 
@@ -621,4 +659,73 @@ export async function fetchMyListings(
   const rows = listingRowsFromQueryData(res.data);
   const normalized = rows.map((r) => normalizeListingRow(r));
   return attachPublicProfilesToListings(normalized);
+}
+
+/** Count-only helper for profile dashboard (avoids loading full listing rows). */
+export async function getMyActiveListingsCount(userId: string): Promise<number> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("listings")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("status", "active");
+
+  if (error) {
+    console.error("[getMyActiveListingsCount]", error.message);
+    return 0;
+  }
+  return count ?? 0;
+}
+
+/** Count-only rehomed books for profile dashboard. */
+export async function getMyRehomedCount(userId: string): Promise<number> {
+  const supabase = await createClient();
+
+  const { data: archivedRows, error: archivedErr } = await supabase
+    .from("listings")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("status", "archived");
+
+  if (archivedErr) {
+    console.error("[getMyRehomedCount] archived", archivedErr.message);
+    return 0;
+  }
+
+  const archivedIds = (archivedRows ?? []).map((r) => String(r.id)).filter(Boolean);
+  if (archivedIds.length === 0) return 0;
+
+  const unlockSelect =
+    "listing_id, offered_listing_id, deal_type, completed_at, buyer_confirmed_at, seller_confirmed_at";
+
+  const [{ data: soldUnlocks, error: soldErr }, { data: swapAwayUnlocks, error: swapErr }] =
+    await Promise.all([
+      supabase.from("listing_unlocks").select(unlockSelect).in("listing_id", archivedIds),
+      supabase
+        .from("listing_unlocks")
+        .select(unlockSelect)
+        .in("offered_listing_id", archivedIds)
+        .eq("buyer_id", userId),
+    ]);
+
+  if (soldErr) console.error("[getMyRehomedCount] sold unlocks", soldErr.message);
+  if (swapErr) console.error("[getMyRehomedCount] swap-away unlocks", swapErr.message);
+
+  const rehomedIds = new Set<string>();
+
+  for (const row of soldUnlocks ?? []) {
+    if (!unlockRowIsCompleted(row)) continue;
+    const soldId = row.listing_id;
+    if (!soldId || !archivedIds.includes(String(soldId))) continue;
+    rehomedIds.add(String(soldId));
+  }
+
+  for (const row of swapAwayUnlocks ?? []) {
+    if (!unlockRowIsCompleted(row)) continue;
+    const offeredId = row.offered_listing_id;
+    if (!offeredId || !archivedIds.includes(String(offeredId))) continue;
+    rehomedIds.add(String(offeredId));
+  }
+
+  return rehomedIds.size;
 }

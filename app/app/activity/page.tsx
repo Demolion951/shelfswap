@@ -1,7 +1,9 @@
 import { LocalDateTimeText } from "@/components/messages/LocalDateTimeText";
+import { getCachedAuthUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { Bell, Gift, Library, Lock, MessageCircle, Shuffle, Sparkles, Timer } from "lucide-react";
 import Link from "next/link";
+import { after } from "next/server";
 
 type EventRow = {
   id: string;
@@ -115,10 +117,7 @@ function listingTitle(
  * Location: app/app/activity/page.tsx
  */
 export default async function ActivityPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCachedAuthUser();
 
   if (!user) {
     return (
@@ -136,21 +135,28 @@ export default async function ActivityPage() {
     );
   }
 
-  const { data: events, error: evErr } = await supabase
-    .from("events")
-    .select("id, type, listing_id, payload, created_at")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(50);
+  const supabase = await createClient();
+
+  const [{ data: events, error: evErr }, { data: ownedListings }, { data: notifRows, error: notifErr }] =
+    await Promise.all([
+      supabase
+        .from("events")
+        .select("id, type, listing_id, payload, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(50),
+      supabase.from("listings").select("id").eq("user_id", user.id),
+      supabase
+        .from("notifications")
+        .select("id, type, listing_id, payload, read_at, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(40),
+    ]);
 
   if (evErr) {
     console.error("[ActivityPage] events", evErr.message);
   }
-
-  const { data: ownedListings } = await supabase
-    .from("listings")
-    .select("id")
-    .eq("user_id", user.id);
 
   const ownedIds = (ownedListings ?? []).map((r) => r.id as string);
 
@@ -175,13 +181,6 @@ export default async function ActivityPage() {
       sellerUnlocks = uRows ?? [];
     }
   }
-
-  const { data: notifRows, error: notifErr } = await supabase
-    .from("notifications")
-    .select("id, type, listing_id, payload, read_at, created_at")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(40);
 
   if (notifErr) {
     const m = notifErr.message.toLowerCase();
@@ -392,18 +391,21 @@ export default async function ActivityPage() {
     }
   }
 
-  const { error: markReadErr } = await supabase
-    .from("notifications")
-    .update({ read_at: new Date().toISOString() })
-    .eq("user_id", user.id)
-    .is("read_at", null);
+  after(async () => {
+    const bg = await createClient();
+    const { error: markReadErr } = await bg
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("user_id", user.id)
+      .is("read_at", null);
 
-  if (markReadErr) {
-    const m = markReadErr.message.toLowerCase();
-    if (!m.includes("relation") && !m.includes("does not exist") && !m.includes("schema cache")) {
-      console.error("[ActivityPage] mark notifications read", markReadErr.message);
+    if (markReadErr) {
+      const m = markReadErr.message.toLowerCase();
+      if (!m.includes("relation") && !m.includes("does not exist") && !m.includes("schema cache")) {
+        console.error("[ActivityPage] mark notifications read", markReadErr.message);
+      }
     }
-  }
+  });
 
   if (items.length === 0) {
     return (

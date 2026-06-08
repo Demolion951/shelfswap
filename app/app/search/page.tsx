@@ -1,8 +1,8 @@
 import { ListingCard } from "@/components/listings/ListingCard";
 import { SearchBar } from "@/components/search/SearchBar";
+import { getCachedAuthUser } from "@/lib/auth/session";
 import { attachDistanceKmToListings } from "@/lib/listings/distance";
 import { searchListingsByText } from "@/lib/listings/queries";
-import { createClient } from "@/lib/supabase/server";
 import { Suspense } from "react";
 
 type Props = { searchParams: Promise<{ q?: string }> };
@@ -10,13 +10,12 @@ type Props = { searchParams: Promise<{ q?: string }> };
 export default async function SearchPage({ searchParams }: Props) {
   const { q } = await searchParams;
   const query = q?.trim() ?? "";
-  const supabase = await createClient();
-  const [searchRows, authRes] = await Promise.all([
-    query ? searchListingsByText(query) : Promise.resolve([]),
-    supabase.auth.getUser(),
-  ]);
+  const user = await getCachedAuthUser();
+  const searchRows = query
+    ? await searchListingsByText(query, 30, user?.id ?? null)
+    : [];
   const results = query
-    ? await attachDistanceKmToListings(searchRows, authRes.data.user?.id ?? null)
+    ? await attachDistanceKmToListings(searchRows, user?.id ?? null)
     : [];
 
   return (

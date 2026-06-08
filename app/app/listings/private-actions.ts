@@ -87,7 +87,9 @@ export async function sendListingMessageAction(
       const code = payload?.error ?? "";
       const friendly =
         code === "not_participant"
-          ? "You can’t message on this listing (unlock it first, or list it yourself)."
+          ? "You can't message on this listing (unlock it first, or list it yourself)."
+          : code === "no_buyer_yet"
+            ? "Messages open when a buyer requests unlock or unlocks your listing."
           : code === "too_long"
             ? "Message is too long (max 2000 characters)."
             : code === "empty_body"
