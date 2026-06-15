@@ -39,11 +39,6 @@ export default function FaqPage() {
       </p>
 
       <h2 id="cancellations">Cancellations & refunds</h2>
-      <p>
-        The guide below lists every situation where credits are held, charged, released, or refunded —
-        including all cut-off times (24 hours, 48 hours, and 14 days). Card refunds for purchased packs
-        are not automatic — contact us if you need help.
-      </p>
       <CreditsCancellationGuide />
 
       <h2>What happens when I request an unlock?</h2>
@@ -56,25 +51,10 @@ export default function FaqPage() {
 
       <h2>Can I cancel after requesting?</h2>
       <p>
-        Yes — tap <strong>Cancel request</strong> on the listing while it is still pending. Your held credits
-        are released immediately. If you do nothing, the request expires after <strong>24 hours</strong> and
-        the hold is released automatically.
+        Yes — tap <strong>Cancel request</strong> while the seller has not replied. The hold is released
+        immediately. Otherwise it expires after <strong>24 hours</strong>. Full details are in the guide
+        above.
       </p>
-
-      <h2>Can I get credits back during a deal?</h2>
-      <p>
-        <strong>Before the seller replies:</strong> cancel anytime, wait for the 24-hour expiry, or use{" "}
-        <strong>Withdraw</strong> within <strong>48 hours</strong> if the deal started but the seller still
-        has not messaged (⋯ menu).
-      </p>
-      <p>
-        <strong>After chat has started:</strong> if the seller stops replying, you can{" "}
-        <strong>Close &amp; refund</strong> once they have been silent for <strong>14+ days</strong> — you
-        must have sent at least one message first. Mutual cancel and seller re-list when the buyer went
-        quiet do <strong>not</strong> refund credits. Swaps may give a <strong>partial refund</strong> if
-        your offered book is worth more credits than the net swap cost.
-      </p>
-      <p>See the full table in the guide above for every scenario.</p>
 
       <h2>Can more than one buyer unlock the same listing?</h2>
       <p>
