@@ -1,3 +1,4 @@
+import { effectiveBookCategory } from "@/lib/books/bookCategory";
 import { createClient } from "@/lib/supabase/server";
 import { isUnlockCreditsColumnMissing } from "@/lib/listings/unlockCreditsPostgrest";
 
@@ -20,6 +21,7 @@ export type ListingWithRelations = {
   open_to_swaps: boolean;
   description: string | null;
   book_category: string | null;
+  metadata?: Record<string, unknown> | null;
   approx_area_text?: string | null;
   created_at: string;
   listing_photos: ListingPhotoRow[] | null;
@@ -48,6 +50,7 @@ const listingFeedSelectWithUnlockCredits = `
       open_to_swaps,
       description,
       book_category,
+      metadata,
       created_at,
       listing_photos ( id, url, sort ),
       profiles!listings_user_id_fkey ( display_name, avatar_url )
@@ -66,6 +69,7 @@ const listingFeedSelectNoUnlockCredits = `
       open_to_swaps,
       description,
       book_category,
+      metadata,
       created_at,
       listing_photos ( id, url, sort ),
       profiles!listings_user_id_fkey ( display_name, avatar_url )
@@ -84,6 +88,7 @@ const listingSelectNoUnlockCredits = `
       open_to_swaps,
       description,
       book_category,
+      metadata,
       created_at,
       listing_photos ( id, url, sort ),
       profiles!listings_user_id_fkey ( display_name, avatar_url )
@@ -103,6 +108,7 @@ const listingSelectWithUnlockCredits = `
       open_to_swaps,
       description,
       book_category,
+      metadata,
       created_at,
       listing_photos ( id, url, sort ),
       profiles!listings_user_id_fkey ( display_name, avatar_url )
@@ -151,9 +157,21 @@ export function normalizeListingRow(
   const uc = row.unlock_credits;
   const unlock_credits = uc === 2 || uc === "2" ? 2 : 1;
   const bc = row.book_category;
-  const book_category =
+  let book_category: string | null =
     bc === "fiction" || bc === "non_fiction" || bc === "childrens" ? bc : null;
-  return { ...row, unlock_credits, book_category } as ListingWithRelations;
+  const metadata =
+    row.metadata && typeof row.metadata === "object"
+      ? (row.metadata as Record<string, unknown>)
+      : null;
+  if (!book_category) {
+    book_category = effectiveBookCategory({
+      book_category: null,
+      metadata,
+      title: String(row.title ?? ""),
+      author: (row.author as string | null) ?? null,
+    });
+  }
+  return { ...row, unlock_credits, book_category, metadata } as ListingWithRelations;
 }
 
 /** Supabase occasionally returns sparse arrays; never pass null entries to normalizeListingRow. */

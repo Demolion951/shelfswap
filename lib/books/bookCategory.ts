@@ -65,3 +65,23 @@ export function classifyBookCategory(
 export function isBookCategory(value: string | null | undefined): value is BookCategory {
   return value === "fiction" || value === "non_fiction" || value === "childrens";
 }
+
+/** Subjects saved at list time from Open Library enrichment (`metadata.subjects`). */
+export function subjectsFromListingMetadata(metadata: unknown): string[] {
+  if (!metadata || typeof metadata !== "object") return [];
+  const subjects = (metadata as Record<string, unknown>).subjects;
+  if (!Array.isArray(subjects)) return [];
+  return subjects.filter((s): s is string => typeof s === "string");
+}
+
+/** Stored column, else classify from catalogue subjects or title/author. */
+export function effectiveBookCategory(listing: {
+  book_category: string | null;
+  metadata?: unknown;
+  title: string;
+  author: string | null;
+}): BookCategory {
+  if (isBookCategory(listing.book_category)) return listing.book_category;
+  const subjects = subjectsFromListingMetadata(listing.metadata);
+  return classifyBookCategory(subjects, listing.title, listing.author ?? "");
+}

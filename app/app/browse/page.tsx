@@ -5,7 +5,9 @@ import {
   attachDistanceKmToListings,
   sortListingsByDistanceThenRecency,
 } from "@/lib/listings/distance";
+import { backfillMissingBookCategories } from "@/lib/listings/backfillBookCategories";
 import { fetchRecentListings } from "@/lib/listings/queries";
+import { after } from "next/server";
 
 const BROWSE_POOL_LIMIT = 72;
 
@@ -26,6 +28,10 @@ export default async function BrowsePage({
   const all = sortListingsByDistanceThenRecency(
     await attachDistanceKmToListings(recent, user?.id ?? null),
   );
+
+  after(async () => {
+    await backfillMissingBookCategories();
+  });
 
   return (
     <div className="pb-8 pt-1">

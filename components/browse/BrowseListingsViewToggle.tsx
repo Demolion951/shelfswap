@@ -54,7 +54,8 @@ export function BrowseListingsViewToggle({ listings, initialView, initialGenre }
       childrens: 0,
     };
     for (const l of listings) {
-      if (isBookCategory(l.book_category)) counts[l.book_category] += 1;
+      const cat = l.book_category;
+      if (isBookCategory(cat)) counts[cat] += 1;
     }
     return counts;
   }, [listings]);
