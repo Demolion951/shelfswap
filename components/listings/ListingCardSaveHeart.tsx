@@ -4,7 +4,7 @@
  * Save heart for listing cards — inline beside location; instant toggle, queued sync.
  * Location: components/listings/ListingCardSaveHeart.tsx
  */
-import { setSaveListingAction } from "@/app/app/saves/actions";
+import { syncSaveListing } from "@/lib/client/syncSaveListing";
 import { Heart } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -38,7 +38,7 @@ export function ListingCardSaveHeart({
     setSaved(target);
 
     syncQueueRef.current = syncQueueRef.current.then(async () => {
-      const res = await setSaveListingAction(listingId, target);
+      const res = await syncSaveListing(listingId, target);
       if (!res.ok) {
         if (savedRef.current === target) {
           const reverted = !target;
@@ -58,6 +58,10 @@ export function ListingCardSaveHeart({
     <button
       type="button"
       onClick={onToggle}
+      onPointerDown={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
       className={`btn btn-ghost shrink-0 min-h-0 h-auto border-0 bg-transparent p-0 shadow-none hover:bg-transparent ${
         saved ? "text-error hover:text-error" : "text-base-content/35 hover:text-base-content/55"
       }`}

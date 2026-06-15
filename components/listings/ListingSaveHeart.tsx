@@ -4,7 +4,7 @@
  * Save (heart) on listing detail — instant toggle, no full-page refresh.
  * Location: components/listings/ListingSaveHeart.tsx
  */
-import { setSaveListingAction } from "@/app/app/saves/actions";
+import { syncSaveListing } from "@/lib/client/syncSaveListing";
 import { Heart } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -31,7 +31,7 @@ export function ListingSaveHeart({ listingId, initiallySaved }: Props) {
     setSaved(target);
 
     syncQueueRef.current = syncQueueRef.current.then(async () => {
-      const res = await setSaveListingAction(listingId, target);
+      const res = await syncSaveListing(listingId, target);
       if (!res.ok) {
         if (savedRef.current === target) {
           const reverted = !target;
