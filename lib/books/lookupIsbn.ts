@@ -4,9 +4,9 @@
  * Location: lib/books/lookupIsbn.ts
  */
 import {
-  catalogueCoverUrlForListing,
   fetchOpenLibraryCoverIdByIsbn,
   openLibraryCoverIdImageUrl,
+  openLibraryIsbnImageUrl,
   resolveCatalogueCoverBytes,
 } from "@/lib/books/catalogueCoverResolve";
 import { lookupGoogleBooksByIsbn, lookupGoogleBooksByTitleAuthor } from "@/lib/books/googleBooksLookup";
@@ -85,7 +85,12 @@ async function resolveCoverUrlForIsbn(
         (await lookupGoogleBooksByTitleAuthor(title, author));
       if (g?.coverUrl) return g.coverUrl;
     }
-    return catalogueCoverUrlForListing(isbn, "L");
+    if (resolved.source.startsWith("open_library")) {
+      const coverId = await fetchOpenLibraryCoverIdByIsbn(isbn);
+      if (coverId != null) return openLibraryCoverIdImageUrl(coverId, "L");
+      return openLibraryIsbnImageUrl(isbn, "L");
+    }
+    return openLibraryIsbnImageUrl(isbn, "L");
   }
 
   const google =
@@ -93,7 +98,7 @@ async function resolveCoverUrlForIsbn(
     (await lookupGoogleBooksByTitleAuthor(title, author));
   if (google?.coverUrl) return google.coverUrl;
 
-  return catalogueCoverUrlForListing(isbn, "L");
+  return openLibraryIsbnImageUrl(isbn, "L");
 }
 
 export async function lookupIsbn(rawIsbn: string): Promise<IsbnLookupResult | null> {

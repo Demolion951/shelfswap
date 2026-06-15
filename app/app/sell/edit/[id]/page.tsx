@@ -32,7 +32,7 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
     isbn: listing.isbn,
     cover_url: listing.cover_url,
     condition: listing.condition,
-    unlock_credits: listing.unlock_credits === 2 ? 2 : 1,
+    binding: listing.unlock_credits === 2 ? "hardback" : "paperback",
     open_to_swaps: listing.open_to_swaps,
     description: listing.description,
     photos: photos.map((p) => ({ id: p.id, url: p.url, sort: p.sort })),

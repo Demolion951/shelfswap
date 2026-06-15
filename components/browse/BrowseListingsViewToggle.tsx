@@ -1,31 +1,74 @@
 "use client";
 
 /**
- * Instant Gallery/List switch for Browse: keeps listings in memory (no navigation).
- * Optionally syncs ?view= to the address bar via replaceState for sharing/bookmarks.
+ * Instant Gallery/List switch for Browse with genre filter chips.
  * Location: components/browse/BrowseListingsViewToggle.tsx
  */
+import { BrowseGenreFilter } from "@/components/browse/BrowseGenreFilter";
 import { ListingCard } from "@/components/listings/ListingCard";
 import { ListingMiniCard } from "@/components/listings/ListingMiniCard";
+import {
+  BOOK_CATEGORY_LABELS,
+  type BookCategory,
+  isBookCategory,
+} from "@/lib/books/bookCategory";
+import { prefetchCoverImages } from "@/lib/client/prefetchCoverImages";
+import { primaryListingCoverSrc } from "@/lib/listings/listingCover";
 import type { ListingWithRelations } from "@/lib/listings/queries";
 import { Grid3X3, List } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type ViewMode = "gallery" | "list";
 
 type Props = {
   listings: ListingWithRelations[];
   initialView: ViewMode;
+  initialGenre: BookCategory | null;
 };
 
-export function BrowseListingsViewToggle({ listings, initialView }: Props) {
+function buildBrowsePath(view: ViewMode, genre: BookCategory | null): string {
+  const params = new URLSearchParams();
+  if (view === "list") params.set("view", "list");
+  if (genre) params.set("genre", genre);
+  const q = params.toString();
+  return q ? `/app/browse?${q}` : "/app/browse";
+}
+
+export function BrowseListingsViewToggle({ listings, initialView, initialGenre }: Props) {
   const [view, setView] = useState<ViewMode>(initialView);
+  const [genre, setGenre] = useState<BookCategory | null>(initialGenre);
 
   useEffect(() => {
-    const path =
-      view === "list" ? "/app/browse?view=list" : "/app/browse";
-    window.history.replaceState(null, "", path);
-  }, [view]);
+    setGenre(initialGenre);
+  }, [initialGenre]);
+
+  useEffect(() => {
+    window.history.replaceState(null, "", buildBrowsePath(view, genre));
+  }, [view, genre]);
+
+  const genreCounts = useMemo(() => {
+    const counts: Record<BookCategory | "all", number> = {
+      all: listings.length,
+      fiction: 0,
+      non_fiction: 0,
+      childrens: 0,
+    };
+    for (const l of listings) {
+      if (isBookCategory(l.book_category)) counts[l.book_category] += 1;
+    }
+    return counts;
+  }, [listings]);
+
+  const filtered = useMemo(() => {
+    if (!genre) return listings;
+    return listings.filter((l) => l.book_category === genre);
+  }, [listings, genre]);
+
+  useEffect(() => {
+    prefetchCoverImages(
+      filtered.slice(0, 18).map((l) => primaryListingCoverSrc(l, "M")),
+    );
+  }, [filtered]);
 
   return (
     <div className="space-y-4">
@@ -55,18 +98,34 @@ export function BrowseListingsViewToggle({ listings, initialView }: Props) {
         </div>
       </div>
 
-      {view === "list" ? (
+      <BrowseGenreFilter active={genre} onChange={setGenre} counts={genreCounts} />
+
+      {filtered.length === 0 ? (
+        <div className="rounded-xl border border-base-300/80 bg-base-100 p-8 text-center text-sm text-base-content/60">
+          {genre ? (
+            <p>
+              No {BOOK_CATEGORY_LABELS[genre].toLowerCase()} listings nearby yet. Try{" "}
+              <button type="button" className="link link-primary" onClick={() => setGenre(null)}>
+                all genres
+              </button>
+              .
+            </p>
+          ) : (
+            <p>No listings to browse yet.</p>
+          )}
+        </div>
+      ) : view === "list" ? (
         <ul className="flex flex-col gap-3">
-          {listings.map((l) => (
+          {filtered.map((l, i) => (
             <li key={l.id}>
-              <ListingCard listing={l} variant="row" />
+              <ListingCard listing={l} variant="row" priorityImage={i < 8} />
             </li>
           ))}
         </ul>
       ) : (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3 md:grid-cols-5 lg:grid-cols-6">
-          {listings.map((l) => (
-            <ListingMiniCard key={l.id} listing={l} />
+          {filtered.map((l, i) => (
+            <ListingMiniCard key={l.id} listing={l} priorityImage={i < 12} />
           ))}
         </div>
       )}

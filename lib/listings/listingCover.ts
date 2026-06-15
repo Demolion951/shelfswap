@@ -1,7 +1,9 @@
 /**
  * Cover priority: official catalogue art first, seller photos as extras / fallback.
+ * Prefers direct CDN URLs over same-origin proxy for faster first paint.
  * Location: lib/listings/listingCover.ts
  */
+import { openLibraryIsbnImageUrl, type CoverSize } from "@/lib/books/catalogueCoverResolve";
 import { coverImageSrcForDisplay } from "@/lib/books/openLibraryCoverDisplay";
 import type { ListingWithRelations } from "@/lib/listings/queries";
 
@@ -10,30 +12,52 @@ export function sortedListingPhotos(listing: ListingWithRelations) {
   return [...photos].sort((a, b) => a.sort - b.sort);
 }
 
-/** Same-origin cover API with full OL → Google fallback chain. */
-export function catalogueCoverApiPath(
-  listing: ListingWithRelations,
-  size: "S" | "M" | "L" = "M",
-): string | null {
+function isbnDigits(listing: ListingWithRelations): string | null {
   const digits = listing.isbn?.replace(/\D/g, "") ?? "";
   if (digits.length !== 10 && digits.length !== 13) return null;
+  return digits;
+}
+
+/** Direct Open Library CDN (fast browser load; no app server round-trip). */
+export function directCatalogueCoverUrl(
+  listing: ListingWithRelations,
+  size: CoverSize = "M",
+): string | null {
+  const digits = isbnDigits(listing);
+  if (!digits) return null;
+  return openLibraryIsbnImageUrl(digits, size);
+}
+
+/** Same-origin cover API — last resort when CDN URLs 404. */
+export function catalogueCoverApiPath(
+  listing: ListingWithRelations,
+  size: CoverSize = "M",
+): string | null {
+  const digits = isbnDigits(listing);
+  if (!digits) return null;
   const q = new URLSearchParams({ isbn: digits, size });
   if (listing.title?.trim()) q.set("title", listing.title.trim());
   if (listing.author?.trim()) q.set("author", listing.author.trim());
   return `/api/book-cover?${q.toString()}`;
 }
 
-/** Official / catalogue cover (stored URL or ISBN API). */
+function isProxyCoverUrl(url: string): boolean {
+  return url.includes("/api/book-cover");
+}
+
+/** Official / catalogue cover (stored URL, direct CDN, or ISBN API). */
 export function catalogueListingCoverSrc(
   listing: ListingWithRelations,
-  size: "S" | "M" | "L" = "L",
+  size: CoverSize = "L",
 ): string | null {
-  if (listing.cover_url?.trim()) {
-    return coverImageSrcForDisplay(listing.cover_url) ?? listing.cover_url;
+  const stored = listing.cover_url?.trim();
+  if (stored && !isProxyCoverUrl(stored)) {
+    return coverImageSrcForDisplay(stored) ?? stored;
   }
-  const fromApi = catalogueCoverApiPath(listing, size);
-  if (fromApi) return fromApi;
-  return null;
+  const direct = directCatalogueCoverUrl(listing, size);
+  if (direct) return direct;
+  if (stored) return coverImageSrcForDisplay(stored) ?? stored;
+  return catalogueCoverApiPath(listing, size);
 }
 
 function normalizeCoverKey(url: string): string {
@@ -46,10 +70,10 @@ function normalizeCoverKey(url: string): string {
   }
 }
 
-/** Ordered unique sources: catalogue → stored URL → seller photos. */
+/** Ordered unique sources: catalogue CDN → stored URL → seller photos → proxy API. */
 export function listingCoverCandidates(
   listing: ListingWithRelations,
-  size: "S" | "M" | "L" = "M",
+  size: CoverSize = "M",
 ): string[] {
   const out: string[] = [];
   const seen = new Set<string>();
@@ -64,10 +88,14 @@ export function listingCoverCandidates(
   };
 
   add(catalogueListingCoverSrc(listing, size));
-  add(listing.cover_url);
+  add(directCatalogueCoverUrl(listing, size));
+  if (listing.cover_url?.trim() && !isProxyCoverUrl(listing.cover_url)) {
+    add(listing.cover_url);
+  }
   for (const ph of sortedListingPhotos(listing)) {
     add(ph.url);
   }
+  add(catalogueCoverApiPath(listing, size));
 
   return out;
 }
@@ -82,7 +110,7 @@ export function firstSellerPhotoSrc(listing: ListingWithRelations): string | nul
 /** Thumbnail + card hero: first candidate. */
 export function primaryListingCoverSrc(
   listing: ListingWithRelations,
-  size: "S" | "M" | "L" = "M",
+  size: CoverSize = "M",
 ): string | null {
   return listingCoverCandidates(listing, size)[0] ?? firstSellerPhotoSrc(listing);
 }
@@ -91,7 +119,7 @@ export function primaryListingCoverSrc(
 export function listingCoverFallbackSrc(
   listing: ListingWithRelations,
   failedSrc: string,
-  size: "S" | "M" | "L" = "M",
+  size: CoverSize = "M",
 ): string | null {
   const failedKey = normalizeCoverKey(failedSrc);
   for (const c of listingCoverCandidates(listing, size)) {

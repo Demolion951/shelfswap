@@ -58,6 +58,10 @@ export default function RootLayout({
       data-theme="shelfswap"
       className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
     >
+      <head>
+        <link rel="preconnect" href="https://covers.openlibrary.org" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://covers.openlibrary.org" />
+      </head>
       <body className="min-h-full flex flex-col bg-base-100 text-base-content font-sans">
         {children}
       </body>

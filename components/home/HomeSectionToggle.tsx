@@ -6,10 +6,12 @@
  */
 import { ListingCard } from "@/components/listings/ListingCard";
 import { ListingMiniCard } from "@/components/listings/ListingMiniCard";
+import { prefetchCoverImages } from "@/lib/client/prefetchCoverImages";
+import { primaryListingCoverSrc } from "@/lib/listings/listingCover";
 import type { ListingWithRelations } from "@/lib/listings/queries";
 import { Star } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Props = {
   title: string;
@@ -43,6 +45,10 @@ export function HomeSectionToggle({
   const [mode, setMode] = useState<"cards" | "shelf">(defaultMode);
   const isEmpty = listings.length === 0;
   const savedSet = new Set(savedListingIds);
+
+  useEffect(() => {
+    prefetchCoverImages(listings.slice(0, 12).map((l) => primaryListingCoverSrc(l, "M")));
+  }, [listings]);
 
   return (
     <section className="space-y-3">

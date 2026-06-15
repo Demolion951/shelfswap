@@ -19,6 +19,7 @@ export type ListingWithRelations = {
   unlock_credits: number;
   open_to_swaps: boolean;
   description: string | null;
+  book_category: string | null;
   approx_area_text?: string | null;
   created_at: string;
   listing_photos: ListingPhotoRow[] | null;
@@ -46,6 +47,7 @@ const listingFeedSelectWithUnlockCredits = `
       approx_area_text,
       open_to_swaps,
       description,
+      book_category,
       created_at,
       listing_photos ( id, url, sort ),
       profiles!listings_user_id_fkey ( display_name, avatar_url )
@@ -63,6 +65,7 @@ const listingFeedSelectNoUnlockCredits = `
       approx_area_text,
       open_to_swaps,
       description,
+      book_category,
       created_at,
       listing_photos ( id, url, sort ),
       profiles!listings_user_id_fkey ( display_name, avatar_url )
@@ -80,6 +83,7 @@ const listingSelectNoUnlockCredits = `
       approx_area_text,
       open_to_swaps,
       description,
+      book_category,
       created_at,
       listing_photos ( id, url, sort ),
       profiles!listings_user_id_fkey ( display_name, avatar_url )
@@ -98,6 +102,7 @@ const listingSelectWithUnlockCredits = `
       approx_area_text,
       open_to_swaps,
       description,
+      book_category,
       created_at,
       listing_photos ( id, url, sort ),
       profiles!listings_user_id_fkey ( display_name, avatar_url )
@@ -145,7 +150,10 @@ export function normalizeListingRow(
 ): ListingWithRelations {
   const uc = row.unlock_credits;
   const unlock_credits = uc === 2 || uc === "2" ? 2 : 1;
-  return { ...row, unlock_credits } as ListingWithRelations;
+  const bc = row.book_category;
+  const book_category =
+    bc === "fiction" || bc === "non_fiction" || bc === "childrens" ? bc : null;
+  return { ...row, unlock_credits, book_category } as ListingWithRelations;
 }
 
 /** Supabase occasionally returns sparse arrays; never pass null entries to normalizeListingRow. */

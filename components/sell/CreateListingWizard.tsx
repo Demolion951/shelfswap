@@ -38,7 +38,7 @@ export type EditListingInitial = {
   isbn: string | null;
   cover_url: string | null;
   condition: string;
-  unlock_credits: 1 | 2;
+  binding: "hardback" | "paperback";
   open_to_swaps: boolean;
   description: string | null;
   photos: { id: string; url: string; sort: number }[];
@@ -69,7 +69,7 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const [condition, setCondition] = useState<string>("good");
-  const [unlockCredits, setUnlockCredits] = useState<1 | 2>(1);
+  const [binding, setBinding] = useState<"hardback" | "paperback">("paperback");
   const [openToSwaps, setOpenToSwaps] = useState(false);
   const [description, setDescription] = useState("");
   const [existingServerPhotos, setExistingServerPhotos] = useState<{ id: string; url: string }[]>(
@@ -85,7 +85,7 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
     setIsbnInput(editListing.isbn?.replace(/\D/g, "") ?? "");
     setCoverUrl(editListing.cover_url ?? "");
     setCondition(CONDITIONS.has(editListing.condition) ? editListing.condition : "good");
-    setUnlockCredits(editListing.unlock_credits === 2 ? 2 : 1);
+    setBinding(editListing.binding);
     setOpenToSwaps(editListing.open_to_swaps);
     setDescription(editListing.description ?? "");
     setExistingServerPhotos(
@@ -183,7 +183,7 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
   function canAdvance() {
     if (step === 0) return title.trim().length > 0;
     if (step === 1) {
-      return condition.length > 0 && (unlockCredits === 1 || unlockCredits === 2);
+      return condition.length > 0 && (binding === "paperback" || binding === "hardback");
     }
     return false;
   }
@@ -204,7 +204,7 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
       fd.append("cover_url", coverUrl);
       fd.append("description", description);
       fd.append("condition", condition);
-      fd.append("unlock_credits", String(unlockCredits));
+      fd.append("binding", binding);
       if (openToSwaps) fd.append("open_to_swaps", "on");
       fd.append("use_profile_area", "on");
 
@@ -548,7 +548,7 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
         <div className="card bg-base-100 border border-base-300/80 shadow-sm">
           <div className="card-body gap-4">
             <h2 className="shelfswap-heading text-lg font-semibold text-primary">
-              Condition & credits
+              Condition & format
             </h2>
             <div className="space-y-3">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,11rem)_minmax(0,20rem)] sm:items-center sm:gap-x-5">
@@ -569,19 +569,19 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
               </div>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,11rem)_minmax(0,20rem)] sm:items-start sm:gap-x-5">
                 <span className="text-sm font-medium text-base-content pt-0.5 sm:pt-2.5 sm:text-end">
-                  Credits to unlock
+                  Format
                 </span>
                 <div className="flex min-w-0 flex-col gap-1">
                   <select
                     className="select select-bordered w-full"
-                    value={String(unlockCredits)}
+                    value={binding}
                     onChange={(e) =>
-                      setUnlockCredits(e.target.value === "2" ? 2 : 1)
+                      setBinding(e.target.value === "hardback" ? "hardback" : "paperback")
                     }
-                    aria-label="Credits required to unlock this listing"
+                    aria-label="Book format"
                   >
-                    <option value="1">1 credit</option>
-                    <option value="2">2 credits</option>
+                    <option value="paperback">Paperback — 1 credit to unlock</option>
+                    <option value="hardback">Hardback — 2 credits to unlock</option>
                   </select>
                 </div>
               </div>

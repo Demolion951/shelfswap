@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { classifyBookCategory } from "@/lib/books/bookCategory";
 import { fetchOpenLibraryEnrichmentByIsbn } from "@/lib/books/openLibraryEnrichment";
 import { reverseGeocodeAreaText } from "@/lib/geo/reverseGeocode";
 import { isUnlockCreditsColumnMissing } from "@/lib/listings/unlockCreditsPostgrest";
@@ -37,9 +38,10 @@ export async function createListing(
   const coverUrl = String(formData.get("cover_url") ?? "").trim() || null;
   const description = String(formData.get("description") ?? "").trim() || null;
   const condition = String(formData.get("condition") ?? "");
-  const unlockRaw = Number.parseInt(String(formData.get("unlock_credits") ?? "1"), 10);
-  const unlockCredits = unlockRaw === 2 ? 2 : 1;
+  const binding = String(formData.get("binding") ?? "paperback").trim();
+  const unlockCredits = binding === "hardback" ? 2 : 1;
   const openToSwaps = formData.get("open_to_swaps") === "on";
+  const bookCategory = classifyBookCategory([], title, author ?? "");
 
   if (!title) {
     return { error: "Title is required." };
@@ -67,6 +69,7 @@ export async function createListing(
     .insert({
       ...rowBase,
       unlock_credits: unlockCredits,
+      book_category: bookCategory,
     })
     .select("id")
     .single();
@@ -76,6 +79,18 @@ export async function createListing(
       "[createListing] listings.unlock_credits missing — retry without column. Run database/migrations/20260410_listing_unlock_credits.sql",
     );
     insertRes = await supabase.from("listings").insert(rowBase).select("id").single();
+  }
+
+  if (
+    insertRes.error?.message?.includes("book_category") &&
+    (insertRes.error.message.includes("column") || insertRes.error.message.includes("schema cache"))
+  ) {
+    console.warn("[createListing] book_category missing — retry without column.");
+    insertRes = await supabase
+      .from("listings")
+      .insert({ ...rowBase, unlock_credits: unlockCredits })
+      .select("id")
+      .single();
   }
 
   const { data: listing, error: insertErr } = insertRes;
@@ -136,6 +151,7 @@ export async function createListing(
     try {
       const enrich = await fetchOpenLibraryEnrichmentByIsbn(isbn);
       if (enrich && enrich.subjects.length > 0) {
+        const category = classifyBookCategory(enrich.subjects, title, author ?? "");
         const { data: row, error: metaErr } = await supabase
           .from("listings")
           .select("metadata")
@@ -149,18 +165,33 @@ export async function createListing(
           ...prev,
           openlibrary: { workKey: enrich.workKey, sourceUrl: enrich.sourceUrl },
           subjects: enrich.subjects,
+          binding,
         };
         const { error: upErr } = await supabase
           .from("listings")
-          .update({ metadata: nextMeta })
+          .update({ metadata: nextMeta, book_category: category })
           .eq("id", listingId);
         if (upErr) {
           console.warn("[createListing] update metadata subjects", upErr.message);
         }
+      } else {
+        await supabase
+          .from("listings")
+          .update({ metadata: { binding } })
+          .eq("id", listingId);
       }
     } catch (e) {
       console.warn("[createListing] open library enrichment", e);
+      await supabase
+        .from("listings")
+        .update({ metadata: { binding } })
+        .eq("id", listingId);
     }
+  } else {
+    await supabase
+      .from("listings")
+      .update({ metadata: { binding } })
+      .eq("id", listingId);
   }
 
   await supabase.from("events").insert({
@@ -209,8 +240,8 @@ export async function updateListing(formData: FormData): Promise<UpdateListingRe
   const coverUrl = String(formData.get("cover_url") ?? "").trim() || null;
   const description = String(formData.get("description") ?? "").trim() || null;
   const condition = String(formData.get("condition") ?? "");
-  const unlockRaw = Number.parseInt(String(formData.get("unlock_credits") ?? "1"), 10);
-  const unlockCredits = unlockRaw === 2 ? 2 : 1;
+  const binding = String(formData.get("binding") ?? "paperback").trim();
+  const unlockCredits = binding === "hardback" ? 2 : 1;
   const openToSwaps = formData.get("open_to_swaps") === "on";
 
   if (!title) {
@@ -243,31 +274,38 @@ export async function updateListing(formData: FormData): Promise<UpdateListingRe
     return { error: upRes.error.message ?? "Could not update listing." };
   }
 
+  const { data: metaRow } = await supabase
+    .from("listings")
+    .select("metadata")
+    .eq("id", listingId)
+    .maybeSingle();
+  const prevMeta = (metaRow?.metadata as Record<string, unknown> | null) ?? {};
+  await supabase
+    .from("listings")
+    .update({ metadata: { ...prevMeta, binding } })
+    .eq("id", listingId);
+
   if (isbn) {
     const enrich = await fetchOpenLibraryEnrichmentByIsbn(isbn);
     if (enrich && enrich.subjects.length > 0) {
-      const { data: row, error: metaErr } = await supabase
-        .from("listings")
-        .select("metadata")
-        .eq("id", listingId)
-        .maybeSingle();
-      if (metaErr) {
-        console.warn("[updateListing] fetch metadata", metaErr.message);
-      }
-      const prev = (row?.metadata as Record<string, unknown> | null) ?? {};
+      const category = classifyBookCategory(enrich.subjects, title, author ?? "");
       const nextMeta = {
-        ...prev,
+        ...prevMeta,
+        binding,
         openlibrary: { workKey: enrich.workKey, sourceUrl: enrich.sourceUrl },
         subjects: enrich.subjects,
       };
       const { error: upMetaErr } = await supabase
         .from("listings")
-        .update({ metadata: nextMeta })
+        .update({ metadata: nextMeta, book_category: category })
         .eq("id", listingId);
       if (upMetaErr) {
         console.warn("[updateListing] update metadata subjects", upMetaErr.message);
       }
     }
+  } else {
+    const category = classifyBookCategory([], title, author ?? "");
+    await supabase.from("listings").update({ book_category: category }).eq("id", listingId);
   }
 
   revalidatePath("/app/home");
