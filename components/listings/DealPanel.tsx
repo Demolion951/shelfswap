@@ -9,9 +9,8 @@ import { proposeSwapAction, respondSwapAction } from "@/app/app/listings/actions
 import { DealOptionsPanel } from "@/components/listings/DealOptionsPanel";
 import { swapEstimatedRefund, swapNetCredits } from "@/lib/listings/swapCredits";
 import type { DealOptionsEligibility } from "@/lib/listings/dealOptions";
-import { Check, Loader2, RefreshCw, Shuffle, X } from "lucide-react";
+import { Check, Loader2, Shuffle, X } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
 export type UnlockDeal = {
@@ -49,6 +48,8 @@ type Props = {
   deal: UnlockDeal;
   myOfferOptions: OfferOption[];
   dealOptionsEligibility: DealOptionsEligibility | null;
+  onDealUpdated?: (deal: UnlockDeal | null) => void;
+  onSyncActivity?: () => void | Promise<void>;
 };
 
 export function DealPanel({
@@ -61,8 +62,9 @@ export function DealPanel({
   deal,
   myOfferOptions,
   dealOptionsEligibility,
+  onDealUpdated,
+  onSyncActivity,
 }: Props) {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [offerId, setOfferId] = useState<string>(myOfferOptions[0]?.id ?? "");
@@ -109,7 +111,7 @@ export function DealPanel({
         setError(res.error);
         return;
       }
-      router.refresh();
+      await onSyncActivity?.();
     });
   }
 
@@ -121,7 +123,7 @@ export function DealPanel({
         setError(res.error);
         return;
       }
-      router.refresh();
+      await onSyncActivity?.();
     });
   }
 
@@ -141,17 +143,10 @@ export function DealPanel({
                 listingTitle={listingTitle}
                 deal={deal}
                 eligibility={dealOptionsEligibility}
+                onDealUpdated={onDealUpdated}
+                onSyncActivity={onSyncActivity}
               />
             ) : null}
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm btn-circle"
-              onClick={() => router.refresh()}
-              aria-label="Refresh"
-              disabled={pending}
-            >
-              <RefreshCw className="h-4 w-4" aria-hidden />
-            </button>
           </div>
         </div>
 

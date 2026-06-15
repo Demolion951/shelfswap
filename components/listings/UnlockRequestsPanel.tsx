@@ -6,7 +6,6 @@
  */
 import { respondUnlockHoldAction } from "@/app/app/listings/actions";
 import { Loader2, X } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 export type PendingUnlockRequest = {
@@ -20,22 +19,30 @@ export type PendingUnlockRequest = {
 type Props = {
   listingId: string;
   requests: PendingUnlockRequest[];
+  onRequestDeclined?: (requestId: string) => void;
+  onSyncActivity?: () => void | Promise<void>;
 };
 
-export function UnlockRequestsPanel({ listingId, requests }: Props) {
-  const router = useRouter();
+export function UnlockRequestsPanel({
+  listingId,
+  requests,
+  onRequestDeclined,
+  onSyncActivity,
+}: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   function onRespond(id: string, accept: boolean) {
     setError(null);
+    if (!accept) onRequestDeclined?.(id);
     startTransition(async () => {
       const res = await respondUnlockHoldAction(id, accept);
       if (!res.ok) {
         setError(res.error);
+        await onSyncActivity?.();
         return;
       }
-      router.refresh();
+      await onSyncActivity?.();
     });
   }
 

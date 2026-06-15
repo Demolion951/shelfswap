@@ -11,17 +11,22 @@ import {
 } from "@/app/app/listings/actions";
 import type { UnlockDeal } from "@/components/listings/DealPanel";
 import { Check, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
 type Props = {
   listingId: string;
   currentUserId: string | null;
   deal: UnlockDeal;
+  onDealUpdated?: (deal: UnlockDeal | null) => void;
+  onSyncActivity?: () => void | Promise<void>;
 };
 
-export function DealHandoffPanel({ listingId, currentUserId, deal }: Props) {
-  const router = useRouter();
+export function DealHandoffPanel({
+  listingId,
+  currentUserId,
+  deal,
+  onSyncActivity,
+}: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -49,7 +54,7 @@ export function DealHandoffPanel({ listingId, currentUserId, deal }: Props) {
         setError(res.error);
         return;
       }
-      router.refresh();
+      await onSyncActivity?.();
     });
   }
 
@@ -61,7 +66,7 @@ export function DealHandoffPanel({ listingId, currentUserId, deal }: Props) {
         setError(res.error);
         return;
       }
-      router.refresh();
+      await onSyncActivity?.();
     });
   }
 

@@ -9,16 +9,16 @@ import { cancelUnlockHoldAction, requestUnlockHoldAction } from "@/app/app/listi
 import { formatUnlockCredits } from "@/lib/listings/format";
 import { Lock, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 type Props = {
   listingId: string;
   creditsRequired: number;
   creditBalance: number;
   heldCredits?: number;
-  initiallyPending?: boolean;
+  isPending?: boolean;
+  isUnlocked?: boolean;
   isSignedIn: boolean;
-  initiallyUnlocked: boolean;
 };
 
 export function ListingUnlockPanel({
@@ -26,14 +26,19 @@ export function ListingUnlockPanel({
   creditsRequired,
   creditBalance,
   heldCredits = 0,
-  initiallyPending = false,
+  isPending = false,
+  isUnlocked = false,
   isSignedIn,
-  initiallyUnlocked,
 }: Props) {
-  const [unlocked, setUnlocked] = useState(initiallyUnlocked);
-  const [pendingRequest, setPendingRequest] = useState(initiallyPending);
+  const [unlocked, setUnlocked] = useState(isUnlocked);
+  const [pendingRequest, setPendingRequest] = useState(isPending);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  useEffect(() => {
+    setUnlocked(isUnlocked);
+    setPendingRequest(isPending);
+  }, [isUnlocked, isPending]);
 
   const nextPath = `/app/listings/${listingId}`;
 

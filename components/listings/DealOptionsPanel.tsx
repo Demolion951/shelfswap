@@ -15,7 +15,6 @@ import type { DealOptionsEligibility } from "@/lib/listings/dealOptions";
 import { supportDealReportHref } from "@/lib/site/support";
 import { AlertTriangle, Loader2, MoreHorizontal, RotateCcw, UserX, XCircle } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 
 type Props = {
@@ -23,6 +22,8 @@ type Props = {
   listingTitle: string;
   deal: UnlockDeal;
   eligibility: DealOptionsEligibility;
+  onDealUpdated?: (deal: UnlockDeal | null) => void;
+  onSyncActivity?: () => void | Promise<void>;
 };
 
 type ConfirmKind =
@@ -37,8 +38,9 @@ export function DealOptionsPanel({
   listingTitle,
   deal,
   eligibility,
+  onDealUpdated,
+  onSyncActivity,
 }: Props) {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [confirmKind, setConfirmKind] = useState<ConfirmKind>(null);
@@ -69,7 +71,7 @@ export function DealOptionsPanel({
     if (!confirmKind) return;
     setError(null);
     startTransition(async () => {
-      let res: { ok: boolean; error?: string };
+      let res: { ok: boolean; error?: string; completed?: boolean };
       if (confirmKind === "withdraw") {
         res = await withdrawFromDealAction(listingId);
       } else if (confirmKind === "mutual_cancel") {
@@ -85,8 +87,13 @@ export function DealOptionsPanel({
         setError(res.error ?? "Something went wrong.");
         return;
       }
+      if (confirmKind === "mutual_cancel") {
+        if (res.completed) onDealUpdated?.(null);
+      } else {
+        onDealUpdated?.(null);
+      }
       closeConfirm();
-      router.refresh();
+      await onSyncActivity?.();
     });
   }
 

@@ -376,7 +376,7 @@ export async function sellerRelistStalledDealAction(listingId: string): Promise<
   const p = data as DealOptionRpc | null;
   if (!p || p.ok !== true) return { ok: false, error: mapDealOptionError(p?.error) };
   revalidateDealPaths(listingId);
-  return { ok: true, refunded: false };
+  return { ok: true, refunded: !!p.refunded };
 }
 
 export async function buyerCloseStalledDealAction(listingId: string): Promise<DealOptionResult> {
@@ -395,5 +395,5 @@ export async function buyerCloseStalledDealAction(listingId: string): Promise<De
   const p = data as DealOptionRpc | null;
   if (!p || p.ok !== true) return { ok: false, error: mapDealOptionError(p?.error) };
   revalidateDealPaths(listingId);
-  return { ok: true, refunded: false };
+  return { ok: true, refunded: !!p.refunded };
 }

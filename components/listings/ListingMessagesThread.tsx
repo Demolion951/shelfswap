@@ -18,6 +18,8 @@ type Props = {
   currentUserId: string | null;
   /** When false, show thread read-only (e.g. seller with no buyers yet). */
   canCompose?: boolean;
+  onMessageSent?: (message: ListingMessageRow) => void;
+  onSyncActivity?: () => void | Promise<void>;
 };
 
 export function ListingMessagesThread({
@@ -25,6 +27,8 @@ export function ListingMessagesThread({
   messages,
   currentUserId,
   canCompose = true,
+  onMessageSent,
+  onSyncActivity,
 }: Props) {
   const [localMessages, setLocalMessages] = useState(messages);
   const [body, setBody] = useState("");
@@ -98,6 +102,7 @@ export function ListingMessagesThread({
     setBody("");
     clearAttachment(false);
     setLocalMessages((prev) => [...prev, optimistic]);
+    onMessageSent?.(optimistic);
 
     startTransition(async () => {
       let res: { ok: boolean; error?: string };
@@ -139,8 +144,12 @@ export function ListingMessagesThread({
           setAttachPreview(savedPreview ?? URL.createObjectURL(savedFile));
         }
         setError(res.error ?? "Could not send message.");
-      } else if (savedPreview?.startsWith("blob:")) {
-        URL.revokeObjectURL(savedPreview);
+        void onSyncActivity?.();
+      } else {
+        if (savedPreview?.startsWith("blob:")) {
+          URL.revokeObjectURL(savedPreview);
+        }
+        void onSyncActivity?.();
       }
     });
   }
