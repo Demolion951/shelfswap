@@ -1,25 +1,64 @@
 "use client";
 
 /**
- * Listing detail carousel — official catalogue first (with fallbacks), then seller photos.
+ * Listing detail carousel — reliable cover first, seller photos; no visible image cascade.
  * Location: components/listings/ListingDetailCarousel.tsx
  */
-import { firstSellerPhotoSrc, listingCoverCandidates, sortedListingPhotos } from "@/lib/listings/listingCover";
+import { probeImageUrl } from "@/lib/client/probeImageUrl";
+import {
+  firstSellerPhotoSrc,
+  hasReliableCatalogueCover,
+  listingCoverCandidates,
+  sortedListingPhotos,
+} from "@/lib/listings/listingCover";
 import { coverImageSrcForDisplay } from "@/lib/books/openLibraryCoverDisplay";
 import type { ListingWithRelations } from "@/lib/listings/queries";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Props = {
   listing: ListingWithRelations;
 };
 
-function HeroCoverSlide({ candidates }: { candidates: string[] }) {
-  const [index, setIndex] = useState(0);
-  const src = candidates[index];
+function normalizeKey(url: string): string {
+  try {
+    const u = new URL(url, "https://shelfswap.net");
+    return u.pathname;
+  } catch {
+    return url;
+  }
+}
 
-  if (!src || index >= candidates.length) {
+function HeroCoverSlide({ candidates }: { candidates: string[] }) {
+  const [src, setSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setSrc(null);
+    if (candidates.length === 0) return;
+    if (candidates.length === 1) {
+      setSrc(candidates[0]);
+      return;
+    }
+    void (async () => {
+      for (const url of candidates) {
+        if (cancelled) return;
+        if (await probeImageUrl(url, 6000)) {
+          if (!cancelled) setSrc(url);
+          return;
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [candidates]);
+
+  if (!src) {
     return (
-      <div className="carousel-item flex min-h-[14rem] w-[85%] max-w-sm items-center justify-center rounded-lg bg-base-300/40 first:pl-0" aria-hidden />
+      <div
+        className="carousel-item flex min-h-[14rem] w-[85%] max-w-sm items-center justify-center rounded-lg bg-base-300/40 first:pl-0"
+        aria-hidden
+      />
     );
   }
 
@@ -30,35 +69,48 @@ function HeroCoverSlide({ candidates }: { candidates: string[] }) {
         src={src}
         alt=""
         className="max-h-80 w-full rounded-lg object-contain bg-base-300/30"
+        decoding="async"
         referrerPolicy="no-referrer"
-        onError={() => setIndex((i) => i + 1)}
       />
     </div>
   );
 }
 
 export function ListingDetailCarousel({ listing }: Props) {
-  const candidates = useMemo(() => {
+  const heroCandidates = useMemo(() => {
+    const seller = firstSellerPhotoSrc(listing);
+    if (seller && !hasReliableCatalogueCover(listing)) {
+      return [seller];
+    }
     const chain = listingCoverCandidates(listing, "L");
     if (chain.length > 0) return chain;
-    const fallback = firstSellerPhotoSrc(listing);
-    return fallback ? [fallback] : [];
+    return seller ? [seller] : [];
   }, [listing]);
-  const photos = sortedListingPhotos(listing);
 
-  if (candidates.length === 0 && photos.length === 0) {
+  const photos = sortedListingPhotos(listing);
+  const heroKeys = new Set(heroCandidates.map(normalizeKey));
+
+  const extraPhotos = photos.filter((ph) => {
+    if (!ph.url?.trim()) return false;
+    const src = coverImageSrcForDisplay(ph.url) ?? ph.url;
+    return !heroKeys.has(normalizeKey(src));
+  });
+
+  if (heroCandidates.length === 0 && extraPhotos.length === 0) {
     return (
       <div className="carousel carousel-center w-full gap-2 rounded-xl bg-base-200/50 p-2">
-        <div className="carousel-item flex min-h-[14rem] w-full items-center justify-center rounded-lg bg-base-300/40" aria-hidden />
+        <div
+          className="carousel-item flex min-h-[14rem] w-full items-center justify-center rounded-lg bg-base-300/40"
+          aria-hidden
+        />
       </div>
     );
   }
 
   return (
     <div className="carousel carousel-center w-full gap-2 rounded-xl bg-base-200/50 p-2">
-      {candidates.length > 0 ? <HeroCoverSlide candidates={candidates} /> : null}
-      {photos.map((ph) => {
-        if (!ph.url?.trim()) return null;
+      {heroCandidates.length > 0 ? <HeroCoverSlide candidates={heroCandidates} /> : null}
+      {extraPhotos.map((ph) => {
         const src = coverImageSrcForDisplay(ph.url) ?? ph.url;
         return (
           <div key={ph.id} className="carousel-item w-[85%] max-w-sm first:pl-0">
@@ -67,6 +119,8 @@ export function ListingDetailCarousel({ listing }: Props) {
               src={src}
               alt=""
               className="max-h-80 w-full rounded-lg object-contain bg-base-300/30"
+              loading="lazy"
+              decoding="async"
               referrerPolicy="no-referrer"
             />
           </div>

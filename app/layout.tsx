@@ -61,6 +61,12 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://covers.openlibrary.org" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://covers.openlibrary.org" />
+        {process.env.NEXT_PUBLIC_SUPABASE_URL ? (
+          <>
+            <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} crossOrigin="anonymous" />
+            <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
+          </>
+        ) : null}
       </head>
       <body className="min-h-full flex flex-col bg-base-100 text-base-content font-sans">
         {children}

@@ -66,7 +66,7 @@ export function BrowseListingsViewToggle({ listings, initialView, initialGenre }
 
   useEffect(() => {
     prefetchCoverImages(
-      filtered.slice(0, 18).map((l) => primaryListingCoverSrc(l, "M")),
+      filtered.slice(0, 24).map((l) => primaryListingCoverSrc(l, "M")),
     );
   }, [filtered]);
 
@@ -125,7 +125,7 @@ export function BrowseListingsViewToggle({ listings, initialView, initialGenre }
       ) : (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3 md:grid-cols-5 lg:grid-cols-6">
           {filtered.map((l, i) => (
-            <ListingMiniCard key={l.id} listing={l} priorityImage={i < 12} />
+            <ListingMiniCard key={l.id} listing={l} priorityImage={i < 18} />
           ))}
         </div>
       )}

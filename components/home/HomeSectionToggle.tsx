@@ -47,7 +47,7 @@ export function HomeSectionToggle({
   const savedSet = new Set(savedListingIds);
 
   useEffect(() => {
-    prefetchCoverImages(listings.slice(0, 12).map((l) => primaryListingCoverSrc(l, "M")));
+    prefetchCoverImages(listings.slice(0, 16).map((l) => primaryListingCoverSrc(l, "M")));
   }, [listings]);
 
   return (
@@ -95,7 +95,7 @@ export function HomeSectionToggle({
                 compact
                 showSaveHeart={showSaveHearts}
                 initiallySaved={savedSet.has(l.id)}
-                priorityImage={i < 4}
+                priorityImage={i < 6}
               />
             </div>
           ))}
@@ -109,7 +109,7 @@ export function HomeSectionToggle({
               compact
               showSaveHeart={showSaveHearts}
               initiallySaved={savedSet.has(l.id)}
-              priorityImage={i < 8}
+              priorityImage={i < 10}
             />
           ))}
         </div>
