@@ -580,8 +580,8 @@ export function CreateListingWizard({ editListing = null }: WizardProps) {
                     }
                     aria-label="Book format"
                   >
-                    <option value="paperback">Paperback — 1 credit to unlock</option>
-                    <option value="hardback">Hardback — 2 credits to unlock</option>
+                    <option value="paperback">Paperback</option>
+                    <option value="hardback">Hardback</option>
                   </select>
                 </div>
               </div>
