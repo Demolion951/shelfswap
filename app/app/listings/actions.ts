@@ -301,6 +301,8 @@ function mapDealOptionError(code: string | undefined): string {
       return "The seller messaged within the last 14 days.";
     case "use_withdraw_instead":
       return "Use withdraw while the seller has not replied.";
+    case "buyer_has_not_messaged":
+      return "Send at least one message before closing for seller inactivity.";
     default:
       return code ?? "Could not complete this action.";
   }

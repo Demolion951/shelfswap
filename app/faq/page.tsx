@@ -40,17 +40,18 @@ export default function FaqPage() {
 
       <h2 id="cancellations">Cancellations & refunds</h2>
       <p>
-        The chart below shows when credits are held, charged, or returned. Card refunds for purchased packs
+        The guide below lists every situation where credits are held, charged, released, or refunded —
+        including all cut-off times (24 hours, 48 hours, and 14 days). Card refunds for purchased packs
         are not automatic — contact us if you need help.
       </p>
       <CreditsCancellationGuide />
 
       <h2>What happens when I request an unlock?</h2>
       <p>
-        Your credits are <strong>held</strong> until the seller engages or the request expires. You can
-        message as soon as you&apos;ve requested — when the seller sends their first reply, that counts as
-        accepting your request and your credits are charged. The seller can also decline to release your
-        hold without messaging.
+        Your credits are <strong>held</strong> (reserved, not spent) until the seller sends their first
+        reply. You can message as soon as you&apos;ve requested — that first seller reply accepts your
+        request and charges your credits. The seller can also decline without messaging, which releases
+        your hold.
       </p>
 
       <h2>Can I cancel after requesting?</h2>
@@ -62,11 +63,18 @@ export default function FaqPage() {
 
       <h2>Can I get credits back during a deal?</h2>
       <p>
-        If the seller has <strong>never messaged</strong>, you can <strong>Withdraw</strong> within{" "}
-        <strong>48 hours</strong> (⋯ menu on the listing) and your unlock credits return to your wallet. After
-        chat has started, mutual cancel and stalled-deal exits do <strong>not</strong> refund credits — see
-        the chart above.
+        <strong>Before the seller replies:</strong> cancel anytime, wait for the 24-hour expiry, or use{" "}
+        <strong>Withdraw</strong> within <strong>48 hours</strong> if the deal started but the seller still
+        has not messaged (⋯ menu).
       </p>
+      <p>
+        <strong>After chat has started:</strong> if the seller stops replying, you can{" "}
+        <strong>Close &amp; refund</strong> once they have been silent for <strong>14+ days</strong> — you
+        must have sent at least one message first. Mutual cancel and seller re-list when the buyer went
+        quiet do <strong>not</strong> refund credits. Swaps may give a <strong>partial refund</strong> if
+        your offered book is worth more credits than the net swap cost.
+      </p>
+      <p>See the full table in the guide above for every scenario.</p>
 
       <h2>Can more than one buyer unlock the same listing?</h2>
       <p>

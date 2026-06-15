@@ -85,6 +85,7 @@ export function computeDealOptionsEligibility(input: Input): DealOptionsEligibil
   const canRequestMutualCancel = !iRequestedCancel;
   const mutualCancelWaitingOnOther = iRequestedCancel && !otherRequestedCancel;
 
+  const buyerHasMessaged = messages.some((m) => m.sender_id === deal.buyerId);
   const lastBuyerMsg = lastMessageAt(messages, deal.buyerId);
   const lastSellerMsg = lastMessageAt(messages, sellerId);
 
@@ -104,7 +105,7 @@ export function computeDealOptionsEligibility(input: Input): DealOptionsEligibil
     canRequestMutualCancel,
     mutualCancelWaitingOnOther,
     canSellerRelistStalled: isOwner && buyerInactive,
-    canBuyerCloseStalled: isBuyer && sellerInactive,
+    canBuyerCloseStalled: isBuyer && sellerInactive && buyerHasMessaged,
     canReportProblem: true,
   };
 }

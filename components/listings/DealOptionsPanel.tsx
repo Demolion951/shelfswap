@@ -113,8 +113,8 @@ export function DealOptionsPanel({
       case "buyer_close":
         return {
           title: "Close this deal?",
-          body: "The seller has not messaged in over 14 days. This listing will be open again. Credits are not refunded.",
-          action: "Close deal",
+          body: "The seller has not messaged in over 14 days. Your unlock credits will be refunded and this listing will be open again.",
+          action: "Close & refund",
         };
       default:
         return null;
@@ -184,7 +184,7 @@ export function DealOptionsPanel({
                 onClick={() => openConfirm("buyer_close")}
               >
                 <UserX className="h-4 w-4 shrink-0" aria-hidden />
-                Close (seller inactive)
+                Close & refund (seller inactive)
               </button>
             </li>
           ) : null}
