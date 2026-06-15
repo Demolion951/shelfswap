@@ -55,20 +55,22 @@ function HeroCoverSlide({ candidates }: { candidates: string[] }) {
 
   if (!src) {
     return (
-      <div
-        className="carousel-item flex min-h-[14rem] w-[85%] max-w-sm items-center justify-center rounded-lg bg-base-300/40 first:pl-0"
-        aria-hidden
-      />
+      <div className="carousel-item flex justify-center first:pl-0">
+        <div
+          className="h-56 w-36 animate-pulse rounded-lg bg-base-300/30"
+          aria-hidden
+        />
+      </div>
     );
   }
 
   return (
-    <div className="carousel-item w-[85%] max-w-sm first:pl-0">
+    <div className="carousel-item flex justify-center first:pl-0">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}
         alt=""
-        className="max-h-80 w-full rounded-lg object-contain bg-base-300/30"
+        className="max-h-80 max-w-[min(85vw,20rem)] w-auto rounded-lg shadow-md"
         decoding="async"
         referrerPolicy="no-referrer"
       />
@@ -98,27 +100,24 @@ export function ListingDetailCarousel({ listing }: Props) {
 
   if (heroCandidates.length === 0 && extraPhotos.length === 0) {
     return (
-      <div className="carousel carousel-center w-full gap-2 rounded-xl bg-base-200/50 p-2">
-        <div
-          className="carousel-item flex min-h-[14rem] w-full items-center justify-center rounded-lg bg-base-300/40"
-          aria-hidden
-        />
+      <div className="flex justify-center py-1">
+        <div className="h-56 w-36 rounded-lg bg-base-300/30" aria-hidden />
       </div>
     );
   }
 
   return (
-    <div className="carousel carousel-center w-full gap-2 rounded-xl bg-base-200/50 p-2">
+    <div className="carousel carousel-center w-full gap-3 py-1">
       {heroCandidates.length > 0 ? <HeroCoverSlide candidates={heroCandidates} /> : null}
       {extraPhotos.map((ph) => {
         const src = coverImageSrcForDisplay(ph.url) ?? ph.url;
         return (
-          <div key={ph.id} className="carousel-item w-[85%] max-w-sm first:pl-0">
+          <div key={ph.id} className="carousel-item flex justify-center first:pl-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={src}
               alt=""
-              className="max-h-80 w-full rounded-lg object-contain bg-base-300/30"
+              className="max-h-80 max-w-[min(85vw,20rem)] w-auto rounded-lg shadow-md"
               loading="lazy"
               decoding="async"
               referrerPolicy="no-referrer"

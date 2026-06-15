@@ -147,9 +147,9 @@ export function ListingMessagesThread({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="max-h-64 space-y-2 overflow-y-auto rounded-lg border border-base-300/80 bg-base-200/30 p-3">
-        {localMessages.length === 0 ? null : (
-          localMessages.map((m) => {
+      {localMessages.length > 0 ? (
+        <div className="max-h-64 space-y-2 overflow-y-auto rounded-lg border border-base-300/80 bg-base-200/30 p-3">
+          {localMessages.map((m) => {
             const mine = currentUserId !== null && m.sender_id === currentUserId;
             return (
               <div
@@ -178,10 +178,12 @@ export function ListingMessagesThread({
                 </div>
               </div>
             );
-          })
-        )}
-        <div ref={bottomRef} />
-      </div>
+          })}
+          <div ref={bottomRef} />
+        </div>
+      ) : (
+        <div ref={bottomRef} className="hidden" aria-hidden />
+      )}
       {canCompose ? (
       <form className="flex flex-col gap-2" onSubmit={onSubmit}>
         {attachPreview ? (

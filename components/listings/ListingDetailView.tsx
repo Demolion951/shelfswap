@@ -213,12 +213,14 @@ export function ListingDetailView({
                 Messages appear here when a buyer requests unlock or unlocks your listing.
               </p>
             ) : null}
-            <ListingMessagesThread
-              listingId={listing.id}
-              messages={messages}
-              currentUserId={currentUserId}
-              canCompose={canComposeMessages}
-            />
+            {messages.length > 0 || canComposeMessages ? (
+              <ListingMessagesThread
+                listingId={listing.id}
+                messages={messages}
+                currentUserId={currentUserId}
+                canCompose={canComposeMessages}
+              />
+            ) : null}
           </div>
         </div>
         </>
