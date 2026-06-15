@@ -94,59 +94,83 @@ export function ListingCard({
             </p>
           ) : null}
         </div>
-        <p
-          className={
-            variant === "row"
-              ? "text-[0.9rem] font-semibold tabular-nums tracking-tight text-primary"
-              : compact
-                ? "text-[0.78rem] font-semibold tabular-nums text-primary"
-                : "text-[0.9rem] font-semibold tabular-nums text-primary"
-          }
-        >
-          {formatUnlockCredits(credits)}
-        </p>
-        <div
-          className={
-            variant === "row"
-              ? "flex flex-wrap items-center gap-1"
-              : "flex flex-wrap items-center gap-1"
-          }
-        >
-          <span className="badge badge-xs badge-ghost shrink-0 border-primary/20 text-primary">
-            {cond}
-          </span>
-          {listing.open_to_swaps ? (
-            <span className="badge badge-xs shrink-0 badge-accent badge-outline">Swaps</span>
-          ) : null}
-        </div>
-        {areaLine || showSaveHeart ? (
-          <div
-            className={`flex items-end justify-between gap-1 ${variant === "row" ? "mt-auto" : ""}`}
-          >
-            {areaLine ? (
-              <p
-                className={
-                  variant === "row"
-                    ? "min-w-0 flex-1 text-[0.68rem] leading-snug line-clamp-2 text-base-content/65"
-                    : compact
-                      ? "min-w-0 flex-1 text-[0.6rem] leading-snug line-clamp-2 text-base-content/65"
-                      : "min-w-0 flex-1 text-[0.68rem] leading-snug line-clamp-2 text-base-content/65"
-                }
-              >
-                {areaLine}
-              </p>
-            ) : (
-              <span className="flex-1" aria-hidden />
-            )}
-            {showSaveHeart ? (
-              <ListingCardSaveHeart
-                listingId={listing.id}
-                initiallySaved={initiallySaved}
-                compact={compact}
-              />
+        {variant === "row" ? (
+          <>
+            <p className="text-[0.9rem] font-semibold tabular-nums tracking-tight text-primary">
+              {formatUnlockCredits(credits)}
+            </p>
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="badge badge-xs badge-ghost shrink-0 border-primary/20 text-primary">
+                {cond}
+              </span>
+              {listing.open_to_swaps ? (
+                <span className="badge badge-xs shrink-0 badge-accent badge-outline">Swaps</span>
+              ) : null}
+            </div>
+            {areaLine || showSaveHeart ? (
+              <div className="mt-auto flex items-end justify-between gap-1">
+                {areaLine ? (
+                  <p className="min-w-0 flex-1 text-[0.68rem] leading-snug line-clamp-2 text-base-content/65">
+                    {areaLine}
+                  </p>
+                ) : (
+                  <span className="flex-1" aria-hidden />
+                )}
+                {showSaveHeart ? (
+                  <ListingCardSaveHeart
+                    listingId={listing.id}
+                    initiallySaved={initiallySaved}
+                    compact={compact}
+                  />
+                ) : null}
+              </div>
             ) : null}
-          </div>
-        ) : null}
+          </>
+        ) : (
+          <>
+            <p
+              className={
+                compact
+                  ? "text-[0.78rem] font-semibold tabular-nums text-primary"
+                  : "text-[0.9rem] font-semibold tabular-nums text-primary"
+              }
+            >
+              {formatUnlockCredits(credits)}
+            </p>
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="badge badge-xs badge-ghost shrink-0 border-primary/20 text-primary">
+                {cond}
+              </span>
+              {listing.open_to_swaps ? (
+                <span className="badge badge-xs shrink-0 badge-accent badge-outline">Swaps</span>
+              ) : null}
+            </div>
+            {(areaLine || showSaveHeart) ? (
+              <div className="flex items-end justify-between gap-1">
+                {areaLine ? (
+                  <p
+                    className={
+                      compact
+                        ? "min-w-0 flex-1 line-clamp-2 text-[0.6rem] leading-snug text-base-content/65"
+                        : "min-w-0 flex-1 line-clamp-2 text-[0.68rem] leading-snug text-base-content/65"
+                    }
+                  >
+                    {areaLine}
+                  </p>
+                ) : (
+                  <span className="flex-1" aria-hidden />
+                )}
+                {showSaveHeart ? (
+                  <ListingCardSaveHeart
+                    listingId={listing.id}
+                    initiallySaved={initiallySaved}
+                    compact={compact}
+                  />
+                ) : null}
+              </div>
+            ) : null}
+          </>
+        )}
       </div>
     </>
   );
@@ -157,8 +181,8 @@ export function ListingCard({
       href={`/app/listings/${listing.id}`}
       className={
         variant === "row"
-          ? "card card-side card-compact bg-base-100 border border-base-300/80 shadow-sm transition hover:border-primary/30 hover:shadow-md"
-          : "card card-compact bg-base-100 border border-base-300/80 shadow-sm transition hover:border-primary/30 hover:shadow-md"
+          ? "card card-side card-compact self-start bg-base-100 border border-base-300/80 shadow-sm transition hover:border-primary/30 hover:shadow-md"
+          : "card card-compact self-start bg-base-100 border border-base-300/80 shadow-sm transition hover:border-primary/30 hover:shadow-md"
       }
     >
       {variant === "row" ? (

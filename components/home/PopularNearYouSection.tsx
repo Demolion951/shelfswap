@@ -49,7 +49,7 @@ export function PopularNearYouSection({ listings }: Props) {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-3 items-start gap-2 sm:grid-cols-4">
           {listings.map((l) => (
             <ListingMiniCard key={l.id} listing={l} />
           ))}

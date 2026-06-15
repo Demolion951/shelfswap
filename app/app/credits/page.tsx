@@ -74,6 +74,10 @@ export default async function CreditsPage({ searchParams }: PageProps) {
       />
 
       <p className="text-center text-xs text-base-content/50">
+        <Link href="/faq#cancellations" className="link link-primary">
+          When can I cancel or get credits back?
+        </Link>
+        {" · "}
         <Link href="/app/profile" className="link link-primary">
           Back to profile
         </Link>

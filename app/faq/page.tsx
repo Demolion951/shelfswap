@@ -1,3 +1,4 @@
+import { CreditsCancellationGuide } from "@/components/faq/CreditsCancellationGuide";
 import { LegalDocShell } from "@/components/marketing/LegalDocShell";
 import type { Metadata } from "next";
 
@@ -27,7 +28,8 @@ export default function FaqPage() {
       <h2>What are credits for?</h2>
       <p>
         Credits are used when you request to unlock a listing so you can message the seller about that book.
-        Sellers choose whether their listing costs 1 or 2 credits to unlock.
+        When listing, sellers choose <strong>paperback</strong> (1 credit to unlock) or{" "}
+        <strong>hardback</strong> (2 credits).
       </p>
 
       <h2>How do I get credits?</h2>
@@ -36,12 +38,34 @@ export default function FaqPage() {
         grants may exist — never rely on those in production.
       </p>
 
+      <h2 id="cancellations">Cancellations & refunds</h2>
+      <p>
+        The chart below shows when credits are held, charged, or returned. Card refunds for purchased packs
+        are not automatic — contact us if you need help.
+      </p>
+      <CreditsCancellationGuide />
+
       <h2>What happens when I request an unlock?</h2>
       <p>
         Your credits are <strong>held</strong> until the seller engages or the request expires. You can
         message as soon as you&apos;ve requested — when the seller sends their first reply, that counts as
         accepting your request and your credits are charged. The seller can also decline to release your
         hold without messaging.
+      </p>
+
+      <h2>Can I cancel after requesting?</h2>
+      <p>
+        Yes — tap <strong>Cancel request</strong> on the listing while it is still pending. Your held credits
+        are released immediately. If you do nothing, the request expires after <strong>24 hours</strong> and
+        the hold is released automatically.
+      </p>
+
+      <h2>Can I get credits back during a deal?</h2>
+      <p>
+        If the seller has <strong>never messaged</strong>, you can <strong>Withdraw</strong> within{" "}
+        <strong>48 hours</strong> (⋯ menu on the listing) and your unlock credits return to your wallet. After
+        chat has started, mutual cancel and stalled-deal exits do <strong>not</strong> refund credits — see
+        the chart above.
       </p>
 
       <h2>Can more than one buyer unlock the same listing?</h2>

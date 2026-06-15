@@ -34,7 +34,7 @@ export function ListingMiniCard({
     <Link
       prefetch
       href={`/app/listings/${listing.id}`}
-      className="group rounded-lg border border-base-300/80 bg-base-100 shadow-sm transition hover:border-primary/30"
+      className="group block w-full self-start rounded-lg border border-base-300/80 bg-base-100 shadow-sm transition hover:border-primary/30"
     >
       <div className={compact ? "p-1.5" : "p-2"}>
         <figure
@@ -54,12 +54,12 @@ export function ListingMiniCard({
           />
         </figure>
 
-        <div className={compact ? "mt-1.5 space-y-0.5" : "mt-2 space-y-0.5"}>
+        <div className={`min-h-0 ${compact ? "mt-1.5" : "mt-2"}`}>
           <h3
             className={
               compact
                 ? "shelfswap-heading line-clamp-2 text-[10px] font-semibold leading-snug"
-                : "shelfswap-heading line-clamp-1 text-[11px] font-semibold leading-snug"
+                : "shelfswap-heading line-clamp-2 text-[11px] font-semibold leading-snug"
             }
           >
             {listing.title}
@@ -68,48 +68,44 @@ export function ListingMiniCard({
             <p
               className={
                 compact
-                  ? "line-clamp-1 text-[9px] text-base-content/55"
-                  : "line-clamp-1 text-[10px] text-base-content/55"
+                  ? "mt-0.5 line-clamp-1 text-[9px] text-base-content/55"
+                  : "mt-0.5 line-clamp-1 text-[10px] text-base-content/55"
               }
             >
               {listing.author}
             </p>
           ) : null}
-          <div className="flex items-center justify-between gap-2 pt-0.5">
-            <span
-              className={
-                compact
-                  ? "text-[10px] font-semibold text-primary tabular-nums"
-                  : "text-[11px] font-semibold text-primary tabular-nums"
-              }
-            >
-              {formatUnlockCredits(credits)}
-            </span>
-          </div>
-          {areaLine || showSaveHeart ? (
-            <div className="flex items-end justify-between gap-1">
+          <div className="mt-0.5 flex items-end justify-between gap-1">
+            <div className="min-w-0 flex-1 space-y-0.5">
+              <span
+                className={
+                  compact
+                    ? "block text-[10px] font-semibold text-primary tabular-nums leading-none"
+                    : "block text-[11px] font-semibold text-primary tabular-nums leading-none"
+                }
+              >
+                {formatUnlockCredits(credits)}
+              </span>
               {areaLine ? (
                 <p
                   className={
                     compact
-                      ? "min-w-0 flex-1 line-clamp-2 text-[9px] leading-snug text-base-content/60"
-                      : "min-w-0 flex-1 line-clamp-2 text-[10px] leading-snug text-base-content/60"
+                      ? "line-clamp-2 text-[9px] leading-snug text-base-content/60"
+                      : "line-clamp-2 text-[10px] leading-snug text-base-content/60"
                   }
                 >
                   {areaLine}
                 </p>
-              ) : (
-                <span className="flex-1" aria-hidden />
-              )}
-              {showSaveHeart ? (
-                <ListingCardSaveHeart
-                  listingId={listing.id}
-                  initiallySaved={initiallySaved}
-                  compact={compact}
-                />
               ) : null}
             </div>
-          ) : null}
+            {showSaveHeart ? (
+              <ListingCardSaveHeart
+                listingId={listing.id}
+                initiallySaved={initiallySaved}
+                compact={compact}
+              />
+            ) : null}
+          </div>
         </div>
       </div>
     </Link>
