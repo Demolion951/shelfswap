@@ -7,6 +7,8 @@
 import { ListingDetailCarousel } from "@/components/listings/ListingDetailCarousel";
 import { OpenLibraryBlurbLoader } from "@/components/listings/OpenLibraryBlurbLoader";
 import { ListingSaveHeart } from "@/components/listings/ListingSaveHeart";
+import { markListingMessageNotificationsReadAction } from "@/app/app/notifications/actions";
+import { useBadgeCounts } from "@/components/nav/BadgeCountsProvider";
 import { DealHandoffPanel } from "@/components/listings/DealHandoffPanel";
 import { DealPanel, type UnlockDeal } from "@/components/listings/DealPanel";
 import { ListingMessagesThread } from "@/components/listings/ListingMessagesThread";
@@ -67,6 +69,7 @@ export function ListingDetailInteractive({
   distanceKm: _distanceKm,
   creditsPendingSellerReply: initialCreditsPendingSellerReply = false,
 }: Props) {
+  const { setCounts } = useBadgeCounts();
   const [messages, setMessages] = useState(initialMessages);
   const [pendingRequests, setPendingRequests] = useState(initialPendingRequests);
   const [unlockDeal, setUnlockDeal] = useState(initialUnlockDeal);
@@ -204,6 +207,13 @@ export function ListingDetailInteractive({
 
   const showParticipantSections = isOwner || viewerUnlocked || viewerPendingUnlock;
 
+  useEffect(() => {
+    if (!isSignedIn || !showParticipantSections) return;
+    void markListingMessageNotificationsReadAction(listing.id).then((res) => {
+      if (res.ok) setCounts(res.counts);
+    });
+  }, [isSignedIn, showParticipantSections, listing.id, setCounts]);
+
   return (
     <div className="space-y-4 pb-8">
       <ListingViewTracker listingId={listing.id} enabled={isSignedIn && !isOwner} />
@@ -261,7 +271,11 @@ export function ListingDetailInteractive({
         </section>
       ) : null}
 
-      <OpenLibraryBlurbLoader isbn={listing.isbn} />
+      <OpenLibraryBlurbLoader
+        isbn={listing.isbn}
+        title={listing.title}
+        author={listing.author}
+      />
 
       {showParticipantSections ? (
         <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">

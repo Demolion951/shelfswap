@@ -1,46 +1,69 @@
 "use client";
 
 /**
- * Fetches Open Library “About this book” copy after paint so listing detail stays fast.
+ * Loads catalogue synopsis after paint — always shows the section (text or fallback).
  * Location: components/listings/OpenLibraryBlurbLoader.tsx
  */
-import { BookBlurb } from "@/components/listings/BookBlurb";
+import { BookBlurb, BookBlurbUnavailable } from "@/components/listings/BookBlurb";
 import { useEffect, useState } from "react";
 
 type Props = {
   isbn: string | null;
+  title: string;
+  author?: string | null;
 };
 
-export function OpenLibraryBlurbLoader({ isbn }: Props) {
-  const [text, setText] = useState<string | null>(null);
+type BlurbPayload = {
+  found: boolean;
+  text?: string;
+  source?: "open_library" | "google_books";
+  sourceUrl?: string | null;
+};
+
+export function OpenLibraryBlurbLoader({ isbn, title, author }: Props) {
+  const [blurb, setBlurb] = useState<BlurbPayload | null>(null);
   const [phase, setPhase] = useState<"idle" | "loading" | "done">("idle");
 
   useEffect(() => {
     const digits = isbn?.replace(/\D/g, "") ?? "";
-    if (digits.length !== 10 && digits.length !== 13) return;
+    const hasIsbn = digits.length === 10 || digits.length === 13;
+    const hasTitle = Boolean(title.trim());
+    if (!hasIsbn && !hasTitle) {
+      setBlurb({ found: false });
+      setPhase("done");
+      return;
+    }
 
     let cancelled = false;
     setPhase("loading");
-    fetch(`/api/openlibrary-blurb?isbn=${encodeURIComponent(isbn!)}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: { text?: string } | null) => {
-        if (cancelled || !data?.text) {
-          if (!cancelled) setPhase("done");
-          return;
-        }
-        setText(data.text);
+    setBlurb(null);
+
+    const q = new URLSearchParams();
+    if (hasIsbn) q.set("isbn", isbn!);
+    if (title.trim()) q.set("title", title.trim());
+    if (author?.trim()) q.set("author", author.trim());
+
+    fetch(`/api/openlibrary-blurb?${q.toString()}`)
+      .then(async (res) => {
+        if (res.ok) return (await res.json()) as BlurbPayload;
+        return { found: false } as BlurbPayload;
+      })
+      .then((data) => {
+        if (cancelled) return;
+        setBlurb(data);
         setPhase("done");
       })
       .catch(() => {
-        if (!cancelled) setPhase("done");
+        if (!cancelled) {
+          setBlurb({ found: false });
+          setPhase("done");
+        }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [isbn]);
-
-  if (!isbn) return null;
+  }, [isbn, title, author]);
 
   if (phase === "loading") {
     return (
@@ -55,7 +78,11 @@ export function OpenLibraryBlurbLoader({ isbn }: Props) {
     );
   }
 
-  if (!text) return null;
+  if (blurb?.found && blurb.text) {
+    return (
+      <BookBlurb text={blurb.text} source={blurb.source} sourceUrl={blurb.sourceUrl ?? null} />
+    );
+  }
 
-  return <BookBlurb text={text} />;
+  return <BookBlurbUnavailable />;
 }

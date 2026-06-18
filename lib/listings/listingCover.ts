@@ -1,6 +1,6 @@
 /**
- * Cover priority: official catalogue art first when reliable; seller photos first otherwise.
- * Card feeds use direct CDN URLs (no proxy rewrite) for faster first paint.
+ * Cover priority: official ISBN / catalogue art first; seller photos only as fallback.
+ * Cards use /api/book-cover for ISBN (rejects blank OL placeholders); seller photos next.
  * Location: lib/listings/listingCover.ts
  */
 import { openLibraryIsbnImageUrl, type CoverSize } from "@/lib/books/catalogueCoverResolve";
@@ -26,24 +26,14 @@ function isOpenLibraryUrl(url: string): boolean {
   return /covers\.openlibrary\.org/i.test(url);
 }
 
-/** Card img src: keep Supabase/Google direct; OL CDN stays direct (no proxy hop). */
+/** Normalise cover URLs for display (OL ISBN → /api/book-cover, Supabase unchanged). */
 function coverSrcForCard(raw: string | null | undefined): string | null {
   if (!raw?.trim()) return null;
-  const trimmed = raw.trim();
-  if (isOpenLibraryUrl(trimmed)) {
-    try {
-      const href = trimmed.startsWith("//") ? `https:${trimmed}` : trimmed;
-      return new URL(href).href;
-    } catch {
-      return trimmed;
-    }
-  }
-  return coverImageSrcForDisplay(trimmed) ?? trimmed;
+  return coverImageSrcForDisplay(raw.trim()) ?? raw.trim();
 }
 
 /**
- * True when we have a stored cover that is not a generic OL ISBN placeholder.
- * OL ISBN URLs often 404 or return tiny placeholders — unreliable when seller photos exist.
+ * True when we have a stored non–Open Library cover (e.g. Google Books thumbnail).
  */
 export function hasReliableCatalogueCover(listing: ListingWithRelations): boolean {
   const stored = listing.cover_url?.trim();
@@ -54,7 +44,7 @@ export function hasReliableCatalogueCover(listing: ListingWithRelations): boolea
   return true;
 }
 
-/** Direct Open Library CDN (fast browser load; no app server round-trip). */
+/** Direct Open Library CDN (detail carousel fallback only). */
 export function directCatalogueCoverUrl(
   listing: ListingWithRelations,
   size: CoverSize = "M",
@@ -64,7 +54,7 @@ export function directCatalogueCoverUrl(
   return openLibraryIsbnImageUrl(digits, size);
 }
 
-/** Same-origin cover API — last resort when CDN URLs 404. */
+/** Same-origin cover API — resolves OL + Google; 404 when no real cover. */
 export function catalogueCoverApiPath(
   listing: ListingWithRelations,
   size: CoverSize = "M",
@@ -77,7 +67,7 @@ export function catalogueCoverApiPath(
   return `/api/book-cover?${q.toString()}`;
 }
 
-/** Official / catalogue cover (stored URL, direct CDN, or ISBN API). */
+/** Official / catalogue cover for detail pages. */
 export function catalogueListingCoverSrc(
   listing: ListingWithRelations,
   size: CoverSize = "L",
@@ -86,10 +76,12 @@ export function catalogueListingCoverSrc(
   if (stored && !isProxyCoverUrl(stored)) {
     return coverSrcForCard(stored) ?? stored;
   }
+  const api = catalogueCoverApiPath(listing, size);
+  if (api) return api;
   const direct = directCatalogueCoverUrl(listing, size);
   if (direct) return direct;
   if (stored) return coverSrcForCard(stored) ?? stored;
-  return catalogueCoverApiPath(listing, size);
+  return null;
 }
 
 function normalizeCoverKey(url: string): string {
@@ -102,11 +94,22 @@ function normalizeCoverKey(url: string): string {
   }
 }
 
+type BuildCandidateOptions = {
+  /** When false, only official / stored catalogue art (detail page hero). */
+  includeSellerPhotos?: boolean;
+};
+
+/**
+ * Catalogue first, seller photos second (cards only).
+ * ISBN listings use /api/book-cover before seller photos so a missing catalogue
+ * returns 404 and falls through to the seller's photo.
+ */
 function buildCandidateList(
   listing: ListingWithRelations,
   size: CoverSize,
-  sellerFirst: boolean,
+  options: BuildCandidateOptions = {},
 ): string[] {
+  const includeSellerPhotos = options.includeSellerPhotos !== false;
   const out: string[] = [];
   const seen = new Set<string>();
 
@@ -119,63 +122,58 @@ function buildCandidateList(
     out.push(display);
   };
 
-  const sellerPhoto = firstSellerPhotoSrc(listing);
-  const unreliableCatalogue = !hasReliableCatalogueCover(listing);
+  const stored = listing.cover_url?.trim();
+  const digits = isbnDigits(listing);
 
-  if (sellerFirst && sellerPhoto) {
-    add(sellerPhoto);
-    return out;
+  if (stored && hasReliableCatalogueCover(listing)) {
+    add(stored);
   }
 
-  if (unreliableCatalogue && sellerPhoto) {
-    add(sellerPhoto);
-    if (hasReliableCatalogueCover(listing)) {
-      add(catalogueListingCoverSrc(listing, size));
+  if (digits) {
+    add(catalogueCoverApiPath(listing, size));
+  }
+
+  if (includeSellerPhotos) {
+    for (const ph of sortedListingPhotos(listing)) {
+      add(ph.url);
     }
-    return out;
   }
 
-  add(catalogueListingCoverSrc(listing, size));
-  add(directCatalogueCoverUrl(listing, size));
-  if (listing.cover_url?.trim() && !isProxyCoverUrl(listing.cover_url)) {
-    add(listing.cover_url);
+  if (stored && !isProxyCoverUrl(stored) && !hasReliableCatalogueCover(listing)) {
+    add(stored);
   }
-  for (const ph of sortedListingPhotos(listing)) {
-    add(ph.url);
-  }
-  add(catalogueCoverApiPath(listing, size));
 
   return out;
 }
 
-/** Full chain for detail pages (catalogue first when reliable). */
+/** Official catalogue cover candidates only — never seller-uploaded photos. */
+export function listingCatalogueCoverCandidates(
+  listing: ListingWithRelations,
+  size: CoverSize = "L",
+): string[] {
+  return buildCandidateList(listing, size, { includeSellerPhotos: false });
+}
+
 export function listingCoverCandidates(
   listing: ListingWithRelations,
   size: CoverSize = "M",
 ): string[] {
-  return buildCandidateList(listing, size, false);
+  return buildCandidateList(listing, size);
 }
 
-/** Optimized chain for feed cards — seller photo only when catalogue is unreliable. */
 export function listingCoverCandidatesForCard(
   listing: ListingWithRelations,
   size: CoverSize = "M",
 ): string[] {
-  const sellerPhoto = firstSellerPhotoSrc(listing);
-  if (sellerPhoto && !hasReliableCatalogueCover(listing)) {
-    return buildCandidateList(listing, size, true);
-  }
-  return buildCandidateList(listing, size, false);
+  return listingCoverCandidates(listing, size);
 }
 
-/** First seller-uploaded photo URL, if any. */
 export function firstSellerPhotoSrc(listing: ListingWithRelations): string | null {
   const ph = sortedListingPhotos(listing)[0];
   if (!ph?.url?.trim()) return null;
   return coverSrcForCard(ph.url.trim()) ?? ph.url.trim();
 }
 
-/** Thumbnail + card hero: first candidate (card-optimized). */
 export function primaryListingCoverSrc(
   listing: ListingWithRelations,
   size: CoverSize = "M",
@@ -183,7 +181,6 @@ export function primaryListingCoverSrc(
   return listingCoverCandidatesForCard(listing, size)[0] ?? firstSellerPhotoSrc(listing);
 }
 
-/** @deprecated Use listingCoverCandidates — kept for one-step fallback callers. */
 export function listingCoverFallbackSrc(
   listing: ListingWithRelations,
   failedSrc: string,

@@ -1,43 +1,27 @@
 "use client";
 
 /**
- * Activity bell: navigate immediately; mark read in background (no full-page refresh).
+ * Activity bell — opens feed; badge clears only when notifications are marked read.
  * Location: components/nav/ActivityBellButton.tsx
  */
-import { markAllNotificationsReadAction } from "@/app/app/notifications/actions";
+import { useBadgeCounts } from "@/components/nav/BadgeCountsProvider";
 import { Bell } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
 
-type Props = {
-  unreadCount: number;
-};
-
-export function ActivityBellButton({ unreadCount }: Props) {
+export function ActivityBellButton() {
   const pathname = usePathname();
   const router = useRouter();
+  const { counts } = useBadgeCounts();
   const activityActive = pathname.startsWith("/app/activity");
-  const [localUnread, setLocalUnread] = useState(unreadCount);
 
-  useEffect(() => {
-    setLocalUnread(unreadCount);
-  }, [unreadCount]);
-
+  const localUnread = counts.unreadNotifications;
   const badge =
     localUnread > 9 ? "9+" : localUnread > 0 ? String(localUnread) : null;
-
-  function onNavigate() {
-    if (localUnread > 0) {
-      setLocalUnread(0);
-      void markAllNotificationsReadAction();
-    }
-    router.push("/app/activity");
-  }
 
   return (
     <button
       type="button"
-      onClick={() => onNavigate()}
+      onClick={() => router.push("/app/activity")}
       className={`btn btn-ghost btn-circle btn-sm indicator ${
         activityActive ? "text-primary" : "text-base-content/55 hover:text-base-content"
       }`}

@@ -1,17 +1,16 @@
 "use client";
 
 /**
- * Listing cover: probes candidates in priority order, then shows one image (no visible cascade).
- * Seller photos load immediately when catalogue art is unavailable.
+ * Listing cover: official ISBN / catalogue art first; seller photo if catalogue fails.
  * Location: components/listings/ListingCoverImage.tsx
  */
-import { probeImageUrl } from "@/lib/client/probeImageUrl";
+import { isUsefulCoverDimensions } from "@/lib/client/probeImageUrl";
 import {
   firstSellerPhotoSrc,
   listingCoverCandidatesForCard,
 } from "@/lib/listings/listingCover";
 import type { ListingWithRelations } from "@/lib/listings/queries";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type Props = {
   listing: ListingWithRelations;
@@ -37,36 +36,17 @@ export function ListingCoverImage({
     return fallback ? [fallback] : [];
   }, [listing, size]);
 
-  const [src, setSrc] = useState<string | null>(null);
-  const displaySrc = src ?? (candidates.length === 1 ? candidates[0] : null);
+  const [index, setIndex] = useState(0);
 
   useEffect(() => {
-    let cancelled = false;
-    setSrc(null);
-
-    if (candidates.length === 0) return;
-
-    if (candidates.length === 1) {
-      setSrc(candidates[0]);
-      return;
-    }
-
-    void (async () => {
-      for (const url of candidates) {
-        if (cancelled) return;
-        const ok = await probeImageUrl(url);
-        if (cancelled) return;
-        if (ok) {
-          setSrc(url);
-          return;
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
+    setIndex(0);
   }, [candidates]);
+
+  const advance = useCallback(() => {
+    setIndex((i) => (i + 1 < candidates.length ? i + 1 : -1));
+  }, [candidates.length]);
+
+  const displaySrc = index >= 0 ? (candidates[index] ?? null) : null;
 
   if (!displaySrc) {
     return <div className={noCoverClassName} aria-hidden />;
@@ -75,6 +55,7 @@ export function ListingCoverImage({
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
+      key={displaySrc}
       src={displaySrc}
       alt=""
       className={className}
@@ -82,6 +63,15 @@ export function ListingCoverImage({
       fetchPriority={fetchPriority}
       decoding="async"
       referrerPolicy="no-referrer"
+      onLoad={(e) => {
+        const img = e.currentTarget;
+        if (!isUsefulCoverDimensions(img.naturalWidth, img.naturalHeight)) {
+          advance();
+        }
+      }}
+      onError={() => {
+        advance();
+      }}
     />
   );
 }

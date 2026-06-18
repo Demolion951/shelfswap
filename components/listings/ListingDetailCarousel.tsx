@@ -1,14 +1,11 @@
 "use client";
 
 /**
- * Listing detail carousel — reliable cover first, seller photos; no visible image cascade.
+ * Listing detail carousel — catalogue cover first, then every seller photo as its own slide.
  * Location: components/listings/ListingDetailCarousel.tsx
  */
-import { probeImageUrl } from "@/lib/client/probeImageUrl";
 import {
-  firstSellerPhotoSrc,
-  hasReliableCatalogueCover,
-  listingCoverCandidates,
+  listingCatalogueCoverCandidates,
   sortedListingPhotos,
 } from "@/lib/listings/listingCover";
 import { coverImageSrcForDisplay } from "@/lib/books/openLibraryCoverDisplay";
@@ -19,47 +16,23 @@ type Props = {
   listing: ListingWithRelations;
 };
 
-function normalizeKey(url: string): string {
-  try {
-    const u = new URL(url, "https://shelfswap.net");
-    return u.pathname;
-  } catch {
-    return url;
-  }
-}
-
 function HeroCoverSlide({ candidates }: { candidates: string[] }) {
-  const [src, setSrc] = useState<string | null>(null);
+  const [index, setIndex] = useState(0);
 
   useEffect(() => {
-    let cancelled = false;
-    setSrc(null);
-    if (candidates.length === 0) return;
-    if (candidates.length === 1) {
-      setSrc(candidates[0]);
-      return;
-    }
-    void (async () => {
-      for (const url of candidates) {
-        if (cancelled) return;
-        if (await probeImageUrl(url, 6000)) {
-          if (!cancelled) setSrc(url);
-          return;
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    setIndex(0);
   }, [candidates]);
+
+  const advance = () => {
+    setIndex((i) => (i + 1 < candidates.length ? i + 1 : -1));
+  };
+
+  const src = index >= 0 ? (candidates[index] ?? null) : null;
 
   if (!src) {
     return (
       <div className="carousel-item flex justify-center first:pl-0">
-        <div
-          className="h-56 w-36 animate-pulse rounded-lg bg-base-300/30"
-          aria-hidden
-        />
+        <div className="h-56 w-36 rounded-lg bg-base-300/30" aria-hidden />
       </div>
     );
   }
@@ -68,37 +41,45 @@ function HeroCoverSlide({ candidates }: { candidates: string[] }) {
     <div className="carousel-item flex justify-center first:pl-0">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
+        key={src}
         src={src}
         alt=""
         className="max-h-80 max-w-[min(85vw,20rem)] w-auto rounded-lg shadow-md"
         decoding="async"
         referrerPolicy="no-referrer"
+        onLoad={(e) => {
+          const img = e.currentTarget;
+          if (img.naturalWidth < 20 || img.naturalHeight < 20) {
+            advance();
+          }
+        }}
+        onError={() => {
+          advance();
+        }}
       />
     </div>
   );
 }
 
 export function ListingDetailCarousel({ listing }: Props) {
-  const heroCandidates = useMemo(() => {
-    const seller = firstSellerPhotoSrc(listing);
-    if (seller && !hasReliableCatalogueCover(listing)) {
-      return [seller];
-    }
-    const chain = listingCoverCandidates(listing, "L");
-    if (chain.length > 0) return chain;
-    return seller ? [seller] : [];
+  const catalogueCandidates = useMemo(
+    () => listingCatalogueCoverCandidates(listing, "L"),
+    [listing],
+  );
+
+  const sellerPhotos = useMemo(() => {
+    return sortedListingPhotos(listing)
+      .filter((ph) => ph.url?.trim())
+      .map((ph) => ({
+        id: ph.id,
+        src: coverImageSrcForDisplay(ph.url) ?? ph.url.trim(),
+      }));
   }, [listing]);
 
-  const photos = sortedListingPhotos(listing);
-  const heroKeys = new Set(heroCandidates.map(normalizeKey));
+  const slideCount =
+    (catalogueCandidates.length > 0 ? 1 : 0) + sellerPhotos.length;
 
-  const extraPhotos = photos.filter((ph) => {
-    if (!ph.url?.trim()) return false;
-    const src = coverImageSrcForDisplay(ph.url) ?? ph.url;
-    return !heroKeys.has(normalizeKey(src));
-  });
-
-  if (heroCandidates.length === 0 && extraPhotos.length === 0) {
+  if (slideCount === 0) {
     return (
       <div className="flex justify-center py-1">
         <div className="h-56 w-36 rounded-lg bg-base-300/30" aria-hidden />
@@ -107,15 +88,16 @@ export function ListingDetailCarousel({ listing }: Props) {
   }
 
   return (
-    <div className="carousel carousel-center w-full gap-3 py-1">
-      {heroCandidates.length > 0 ? <HeroCoverSlide candidates={heroCandidates} /> : null}
-      {extraPhotos.map((ph) => {
-        const src = coverImageSrcForDisplay(ph.url) ?? ph.url;
-        return (
+    <div className="space-y-2">
+      <div className="carousel carousel-center w-full gap-3 py-1">
+        {catalogueCandidates.length > 0 ? (
+          <HeroCoverSlide candidates={catalogueCandidates} />
+        ) : null}
+        {sellerPhotos.map((ph) => (
           <div key={ph.id} className="carousel-item flex justify-center first:pl-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={src}
+              src={ph.src}
               alt=""
               className="max-h-80 max-w-[min(85vw,20rem)] w-auto rounded-lg shadow-md"
               loading="lazy"
@@ -123,8 +105,13 @@ export function ListingDetailCarousel({ listing }: Props) {
               referrerPolicy="no-referrer"
             />
           </div>
-        );
-      })}
+        ))}
+      </div>
+      {slideCount > 1 ? (
+        <p className="text-center text-[11px] text-base-content/45">
+          Swipe for {catalogueCandidates.length > 0 ? "seller photos" : "more photos"}
+        </p>
+      ) : null}
     </div>
   );
 }

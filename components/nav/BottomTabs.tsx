@@ -5,6 +5,7 @@
  * Protected tabs (Add, Messages, Profile) link to sign-in when browsing as a guest.
  * Location: components/nav/BottomTabs.tsx
  */
+import { useBadgeCounts } from "@/components/nav/BadgeCountsProvider";
 import { Home, MessageCircle, PlusCircle, Search, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -41,11 +42,12 @@ function tabHref(href: string, guestOk: boolean, isSignedIn: boolean) {
 
 type Props = {
   isSignedIn: boolean;
-  unreadMessagesCount: number;
 };
 
-export function BottomTabs({ isSignedIn, unreadMessagesCount }: Props) {
+export function BottomTabs({ isSignedIn }: Props) {
   const pathname = usePathname();
+  const { counts } = useBadgeCounts();
+  const unreadMessagesCount = isSignedIn ? counts.unreadMessages : 0;
   const msgBadge =
     unreadMessagesCount > 9 ? "9+" : unreadMessagesCount > 0 ? String(unreadMessagesCount) : null;
 

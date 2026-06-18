@@ -1,9 +1,12 @@
+import { MarkAllNotificationsReadButton } from "@/components/activity/MarkAllNotificationsReadButton";
+import { MarkListingReadLink } from "@/components/activity/MarkListingReadLink";
+import { MarkNotificationReadButton } from "@/components/activity/MarkNotificationReadButton";
+import { MarkNotificationReadLink } from "@/components/activity/MarkNotificationReadLink";
 import { LocalDateTimeText } from "@/components/messages/LocalDateTimeText";
 import { getCachedAuthUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { Bell, Gift, Library, Lock, MessageCircle, Shuffle, Sparkles, Timer } from "lucide-react";
 import Link from "next/link";
-import { after } from "next/server";
 
 type EventRow = {
   id: string;
@@ -51,6 +54,7 @@ type TimelineItem =
       listingId: string;
       payload: Record<string, unknown>;
       wasUnread: boolean;
+      notificationId: string;
     }
   | {
       key: string;
@@ -60,6 +64,7 @@ type TimelineItem =
       buyerId: string;
       credits: number;
       wasUnread: boolean;
+      notificationId: string;
     }
   | {
       key: string;
@@ -69,6 +74,7 @@ type TimelineItem =
       outcome: "accepted" | "declined";
       credits: number;
       wasUnread: boolean;
+      notificationId: string;
     }
   | {
       key: string;
@@ -82,6 +88,7 @@ type TimelineItem =
       creditsRefunded: number | null;
       netCredits: number | null;
       wasUnread: boolean;
+      notificationId: string;
     }
   | {
       key: string;
@@ -89,6 +96,7 @@ type TimelineItem =
       kind: "deal_completed";
       listingId: string;
       wasUnread: boolean;
+      notificationId: string;
     }
   | {
       key: string;
@@ -98,6 +106,7 @@ type TimelineItem =
       earned: number;
       completedSales: number | null;
       wasUnread: boolean;
+      notificationId: string;
     };
 
 function listingTitle(
@@ -289,6 +298,7 @@ export default async function ActivityPage() {
         creditsRefunded,
         netCredits,
         wasUnread: n.read_at == null,
+        notificationId: n.id,
       });
       continue;
     }
@@ -300,6 +310,7 @@ export default async function ActivityPage() {
         listingId: n.listing_id,
         payload,
         wasUnread: n.read_at == null,
+        notificationId: n.id,
       });
     }
     if (n.type === "new_message") {
@@ -310,6 +321,7 @@ export default async function ActivityPage() {
         listingId: n.listing_id,
         payload: { ...payload, _is_message: true },
         wasUnread: n.read_at == null,
+        notificationId: n.id,
       });
     }
     if (n.type === "unlock_request") {
@@ -324,6 +336,7 @@ export default async function ActivityPage() {
         buyerId,
         credits: Number.isFinite(credits) ? credits : 1,
         wasUnread: n.read_at == null,
+        notificationId: n.id,
       });
     }
     if (n.type === "unlock_accepted" || n.type === "unlock_declined") {
@@ -336,6 +349,7 @@ export default async function ActivityPage() {
         outcome: n.type === "unlock_accepted" ? "accepted" : "declined",
         credits: Number.isFinite(credits) ? credits : 1,
         wasUnread: n.read_at == null,
+        notificationId: n.id,
       });
     }
     if (n.type === "deal_completed") {
@@ -345,6 +359,7 @@ export default async function ActivityPage() {
         kind: "deal_completed",
         listingId: n.listing_id,
         wasUnread: n.read_at == null,
+        notificationId: n.id,
       });
     }
     if (n.type === "seller_reward") {
@@ -358,6 +373,7 @@ export default async function ActivityPage() {
         earned: Number.isFinite(earned) ? earned : 1,
         completedSales: Number.isFinite(completedSales) ? completedSales : null,
         wasUnread: n.read_at == null,
+        notificationId: n.id,
       });
     }
   }
@@ -391,21 +407,7 @@ export default async function ActivityPage() {
     }
   }
 
-  after(async () => {
-    const bg = await createClient();
-    const { error: markReadErr } = await bg
-      .from("notifications")
-      .update({ read_at: new Date().toISOString() })
-      .eq("user_id", user.id)
-      .is("read_at", null);
-
-    if (markReadErr) {
-      const m = markReadErr.message.toLowerCase();
-      if (!m.includes("relation") && !m.includes("does not exist") && !m.includes("schema cache")) {
-        console.error("[ActivityPage] mark notifications read", markReadErr.message);
-      }
-    }
-  });
+  const hasUnreadNotifs = ((notifRows ?? []) as NotifRow[]).some((n) => n.read_at == null);
 
   if (items.length === 0) {
     return (
@@ -429,9 +431,12 @@ export default async function ActivityPage() {
 
   return (
     <div className="mx-auto max-w-lg space-y-4 pb-10 pt-2">
-      <div className="flex items-center gap-2">
-        <Bell className="h-6 w-6 text-primary" aria-hidden />
-        <h1 className="shelfswap-heading text-xl font-semibold">Activity</h1>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Bell className="h-6 w-6 shrink-0 text-primary" aria-hidden />
+          <h1 className="shelfswap-heading text-xl font-semibold">Activity</h1>
+        </div>
+        <MarkAllNotificationsReadButton hasUnread={hasUnreadNotifs} />
       </div>
       <ul className="space-y-2">
         {items.map((item) => {
@@ -528,12 +533,20 @@ export default async function ActivityPage() {
                         <p className="text-xs text-base-content/50 mt-1">
                           <LocalDateTimeText iso={item.createdAt} />
                         </p>
-                        <Link
-                          href={`/app/listings/${item.listingId}`}
-                          className="link link-primary text-xs mt-2 inline-block"
-                        >
-                          Open listing to accept or decline
-                        </Link>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                          <MarkNotificationReadLink
+                            notificationId={item.notificationId}
+                            href={`/app/listings/${item.listingId}`}
+                            wasUnread={item.wasUnread}
+                            className="link link-primary text-xs inline-block"
+                          >
+                            Open listing to accept or decline
+                          </MarkNotificationReadLink>
+                          <MarkNotificationReadButton
+                            notificationId={item.notificationId}
+                            wasUnread={item.wasUnread}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -576,12 +589,20 @@ export default async function ActivityPage() {
                         <p className="text-xs text-base-content/50 mt-1">
                           <LocalDateTimeText iso={item.createdAt} />
                         </p>
-                        <Link
-                          href={`/app/listings/${item.listingId}`}
-                          className="link link-primary text-xs mt-2 inline-block"
-                        >
-                          Open listing
-                        </Link>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                          <MarkNotificationReadLink
+                            notificationId={item.notificationId}
+                            href={`/app/listings/${item.listingId}`}
+                            wasUnread={item.wasUnread}
+                            className="link link-primary text-xs inline-block"
+                          >
+                            Open listing
+                          </MarkNotificationReadLink>
+                          <MarkNotificationReadButton
+                            notificationId={item.notificationId}
+                            wasUnread={item.wasUnread}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -641,13 +662,15 @@ export default async function ActivityPage() {
                         <p className="text-xs text-base-content/50 mt-1">
                           <LocalDateTimeText iso={item.createdAt} />
                         </p>
-                        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
-                          <Link
+                        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 items-center">
+                          <MarkNotificationReadLink
+                            notificationId={item.notificationId}
                             href={`/app/listings/${item.listingId}`}
+                            wasUnread={item.wasUnread}
                             className="link link-primary text-xs inline-block"
                           >
                             Their listing
-                          </Link>
+                          </MarkNotificationReadLink>
                           {item.offeredListingId ? (
                             <Link
                               href={`/app/listings/${item.offeredListingId}`}
@@ -656,6 +679,10 @@ export default async function ActivityPage() {
                               Your offered listing
                             </Link>
                           ) : null}
+                          <MarkNotificationReadButton
+                            notificationId={item.notificationId}
+                            wasUnread={item.wasUnread}
+                          />
                         </div>
                       </div>
                     </div>
@@ -689,12 +716,20 @@ export default async function ActivityPage() {
                         <p className="text-xs text-base-content/50 mt-1">
                           <LocalDateTimeText iso={item.createdAt} />
                         </p>
-                        <Link
-                          href={`/app/listings/${item.listingId}`}
-                          className="link link-primary text-xs mt-2 inline-block"
-                        >
-                          Open listing
-                        </Link>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                          <MarkNotificationReadLink
+                            notificationId={item.notificationId}
+                            href={`/app/listings/${item.listingId}`}
+                            wasUnread={item.wasUnread}
+                            className="link link-primary text-xs inline-block"
+                          >
+                            Open listing
+                          </MarkNotificationReadLink>
+                          <MarkNotificationReadButton
+                            notificationId={item.notificationId}
+                            wasUnread={item.wasUnread}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -739,13 +774,28 @@ export default async function ActivityPage() {
                           <LocalDateTimeText iso={item.createdAt} />
                         </p>
                         {item.listingId ? (
-                          <Link
-                            href={`/app/listings/${item.listingId}`}
-                            className="link link-primary text-xs mt-2 inline-block"
-                          >
-                            View the sale ({title})
-                          </Link>
-                        ) : null}
+                          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                            <MarkNotificationReadLink
+                              notificationId={item.notificationId}
+                              href={`/app/listings/${item.listingId}`}
+                              wasUnread={item.wasUnread}
+                              className="link link-primary text-xs inline-block"
+                            >
+                              View the sale ({title})
+                            </MarkNotificationReadLink>
+                            <MarkNotificationReadButton
+                              notificationId={item.notificationId}
+                              wasUnread={item.wasUnread}
+                            />
+                          </div>
+                        ) : (
+                          <div className="mt-2">
+                            <MarkNotificationReadButton
+                              notificationId={item.notificationId}
+                              wasUnread={item.wasUnread}
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -816,12 +866,20 @@ export default async function ActivityPage() {
                         <p className="text-xs text-base-content/50 mt-1">
                           <LocalDateTimeText iso={item.createdAt} />
                         </p>
-                        <Link
-                          href={`/app/listings/${item.listingId}`}
-                          className="link link-primary text-xs mt-2 inline-block"
-                        >
-                          Open thread
-                        </Link>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                          <MarkListingReadLink
+                            listingId={item.listingId}
+                            href={`/app/listings/${item.listingId}`}
+                            clearMessageAlerts={item.wasUnread}
+                            className="link link-primary text-xs inline-block"
+                          >
+                            Open thread
+                          </MarkListingReadLink>
+                          <MarkNotificationReadButton
+                            notificationId={item.notificationId}
+                            wasUnread={item.wasUnread}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>

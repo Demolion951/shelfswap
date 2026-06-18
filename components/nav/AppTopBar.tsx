@@ -11,10 +11,9 @@ import Link from "next/link";
 
 type Props = {
   isSignedIn: boolean;
-  unreadCount: number;
 };
 
-export function AppTopBar({ isSignedIn, unreadCount }: Props) {
+export function AppTopBar({ isSignedIn }: Props) {
   return (
     <header className="sticky top-0 z-40 border-b border-base-300/70 bg-base-100/95 backdrop-blur-md supports-[backdrop-filter]:bg-base-100/80">
       <div className="mx-auto flex h-14 max-w-lg items-center justify-between gap-3 px-4">
@@ -35,7 +34,7 @@ export function AppTopBar({ isSignedIn, unreadCount }: Props) {
         </Link>
         <div className="flex shrink-0 items-center">
           {isSignedIn ? (
-            <ActivityBellButton unreadCount={unreadCount} />
+            <ActivityBellButton />
           ) : (
             <Link href="/auth/sign-in?next=%2Fapp%2Fhome" className="btn btn-primary btn-sm">
               Sign in

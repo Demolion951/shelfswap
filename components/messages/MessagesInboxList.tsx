@@ -1,23 +1,29 @@
+"use client";
+
+/**
+ * Inbox of listing threads with unread indicators; opening a thread syncs badge counts.
+ * Location: components/messages/MessagesInboxList.tsx
+ */
+import { MarkListingReadLink } from "@/components/activity/MarkListingReadLink";
 import { LocalDateTimeText } from "@/components/messages/LocalDateTimeText";
 import { coverImageSrcForDisplay } from "@/lib/books/openLibraryCoverDisplay";
 import type { InboxThread } from "@/lib/messages/inbox";
-import Link from "next/link";
 
-/**
- * Inbox of listing threads (buying / selling) with last message preview; links to listing detail.
- * Location: components/messages/MessagesInboxList.tsx
- */
 type Props = {
   threads: InboxThread[];
+  unreadListingIds: string[];
 };
 
-export function MessagesInboxList({ threads }: Props) {
+export function MessagesInboxList({ threads, unreadListingIds }: Props) {
+  const unreadSet = new Set(unreadListingIds);
+
   if (threads.length === 0) {
     return (
       <div className="rounded-xl border border-base-300/80 bg-base-100 p-6 text-center text-sm text-base-content/60">
         <p className="mb-1 font-medium text-base-content">No conversations yet</p>
         <p>
-        Request unlock or wait for buyers — conversations appear here once there&apos;s activity.
+          Request unlock or wait for buyers — conversations appear here once there&apos;s
+          activity.
         </p>
       </div>
     );
@@ -27,11 +33,16 @@ export function MessagesInboxList({ threads }: Props) {
     <ul className="flex flex-col gap-2">
       {threads.map((t) => {
         const thumbRaw = t.coverUrl ? coverImageSrcForDisplay(t.coverUrl) ?? t.coverUrl : null;
+        const unread = unreadSet.has(t.listingId);
         return (
           <li key={`${t.role}-${t.listingId}`}>
-            <Link
+            <MarkListingReadLink
+              listingId={t.listingId}
               href={`/app/listings/${t.listingId}`}
-              className="card card-border bg-base-100 border-base-300/80 shadow-sm transition hover:border-primary/30"
+              clearMessageAlerts={unread}
+              className={`card card-border bg-base-100 shadow-sm transition hover:border-primary/30 ${
+                unread ? "border-primary/35" : "border-base-300/80"
+              }`}
             >
               <div className="card-body flex-row gap-3 p-3">
                 <figure className="relative h-[4.5rem] w-12 shrink-0 overflow-hidden rounded-md bg-base-300">
@@ -47,12 +58,21 @@ export function MessagesInboxList({ threads }: Props) {
                   ) : (
                     <div className="h-full w-full bg-base-300/50" aria-hidden />
                   )}
+                  {unread ? (
+                    <span
+                      className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-base-100"
+                      aria-hidden
+                    />
+                  ) : null}
                 </figure>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <h2 className="shelfswap-heading line-clamp-1 text-sm font-semibold leading-tight">
                       {t.title}
                     </h2>
+                    {unread ? (
+                      <span className="badge badge-primary badge-xs">New</span>
+                    ) : null}
                     <span
                       className={
                         t.role === "seller"
@@ -72,7 +92,13 @@ export function MessagesInboxList({ threads }: Props) {
                     </p>
                   ) : null}
                   {t.preview ? (
-                    <p className="mt-1 line-clamp-2 text-xs text-base-content/70">{t.preview}</p>
+                    <p
+                      className={`mt-1 line-clamp-2 text-xs ${
+                        unread ? "font-medium text-base-content" : "text-base-content/70"
+                      }`}
+                    >
+                      {t.preview}
+                    </p>
                   ) : (
                     <p className="mt-1 text-xs italic text-base-content/45">No messages yet</p>
                   )}
@@ -82,7 +108,7 @@ export function MessagesInboxList({ threads }: Props) {
                   />
                 </div>
               </div>
-            </Link>
+            </MarkListingReadLink>
           </li>
         );
       })}

@@ -1,14 +1,19 @@
 /**
  * Fetches a book blurb (description) from Open Library by ISBN.
- * Returns the full catalogue description (sanitised whitespace) and a source URL for attribution.
+ * Falls back to Google Books when Open Library has no synopsis.
  * Location: lib/books/openLibraryBlurb.ts
  */
+import {
+  lookupGoogleBooksByIsbn,
+  lookupGoogleBooksByTitleAuthor,
+} from "@/lib/books/googleBooksLookup";
 
 type OlDescription = string | { value?: string } | null | undefined;
 
-export type OpenLibraryBlurb = {
+export type BookBlurb = {
   text: string;
-  sourceUrl: string;
+  source: "open_library" | "google_books";
+  sourceUrl: string | null;
 };
 
 function cleanIsbn(raw: string): string | null {
@@ -61,7 +66,7 @@ type IsbnJson = {
  * - Books API (jscmd=data) → work key → work.json description
  * - Fallback: /isbn/:isbn.json → work key → work.json description
  */
-export async function fetchOpenLibraryBlurbByIsbn(rawIsbn: string): Promise<OpenLibraryBlurb | null> {
+export async function fetchOpenLibraryBlurbByIsbn(rawIsbn: string): Promise<BookBlurb | null> {
   const isbn = cleanIsbn(rawIsbn);
   if (!isbn) return null;
 
@@ -89,6 +94,70 @@ export async function fetchOpenLibraryBlurbByIsbn(rawIsbn: string): Promise<Open
   const text = fullDescriptionText(rawDesc);
   if (text.length < 40) return null;
 
-  return { text, sourceUrl: `https://openlibrary.org${workKey}` };
+  return {
+    text,
+    source: "open_library",
+    sourceUrl: `https://openlibrary.org${workKey}`,
+  };
+}
+
+async function fetchGoogleBlurbByIsbn(isbn: string): Promise<BookBlurb | null> {
+  const hit = await lookupGoogleBooksByIsbn(isbn);
+  if (!hit?.description) return null;
+  return {
+    text: fullDescriptionText(hit.description),
+    source: "google_books",
+    sourceUrl: `https://books.google.com/books?isbn=${encodeURIComponent(isbn)}`,
+  };
+}
+
+async function fetchGoogleBlurbByTitleAuthor(
+  title: string,
+  author?: string | null,
+): Promise<BookBlurb | null> {
+  const t = title.trim();
+  if (!t) return null;
+  const parts = [`intitle:${t}`];
+  const a = author?.trim();
+  if (a) parts.push(`inauthor:${a}`);
+  const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(parts.join("+"))}&maxResults=5`;
+  try {
+    const res = await fetch(url, { next: { revalidate: 86_400 } });
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      items?: Array<{ volumeInfo?: { description?: string; title?: string } }>;
+    };
+    for (const item of json.items ?? []) {
+      const raw = item.volumeInfo?.description?.replace(/\s+/g, " ").trim();
+      if (!raw || raw.length < 40) continue;
+      return {
+        text: fullDescriptionText(raw),
+        source: "google_books",
+        sourceUrl: null,
+      };
+    }
+  } catch (e) {
+    console.warn("[fetchGoogleBlurbByTitleAuthor]", e);
+  }
+  return null;
+}
+
+/** Best-effort synopsis: Open Library → Google Books (ISBN, then title/author). */
+export async function fetchBookBlurb(
+  rawIsbn: string | null | undefined,
+  title?: string | null,
+  author?: string | null,
+): Promise<BookBlurb | null> {
+  const isbn = rawIsbn ? cleanIsbn(rawIsbn) : null;
+  if (isbn) {
+    const ol = await fetchOpenLibraryBlurbByIsbn(isbn);
+    if (ol) return ol;
+    const googleIsbn = await fetchGoogleBlurbByIsbn(isbn);
+    if (googleIsbn) return googleIsbn;
+  }
+  if (title?.trim()) {
+    return fetchGoogleBlurbByTitleAuthor(title, author);
+  }
+  return null;
 }
 

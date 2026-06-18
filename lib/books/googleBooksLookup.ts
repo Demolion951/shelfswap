@@ -8,6 +8,7 @@ export type GoogleBooksLookup = {
   title: string;
   author: string | null;
   coverUrl: string | null;
+  description: string | null;
 };
 
 function cleanIsbn(raw: string): string | null {
@@ -35,6 +36,27 @@ function pickCoverImage(links: Record<string, string> | undefined): string | nul
   return url;
 }
 
+function pickDescription(raw: string | undefined): string | null {
+  const text = raw?.replace(/\s+/g, " ").trim();
+  if (!text || text.length < 40) return null;
+  return text;
+}
+
+function mapVolumeInfo(info: {
+  title?: string;
+  authors?: string[];
+  imageLinks?: Record<string, string>;
+  description?: string;
+}): GoogleBooksLookup | null {
+  if (!info.title?.trim()) return null;
+  return {
+    title: info.title.trim(),
+    author: info.authors?.[0]?.trim() ?? null,
+    coverUrl: pickCoverImage(info.imageLinks),
+    description: pickDescription(info.description),
+  };
+}
+
 export async function lookupGoogleBooksByIsbn(
   rawIsbn: string,
 ): Promise<GoogleBooksLookup | null> {
@@ -51,16 +73,13 @@ export async function lookupGoogleBooksByIsbn(
           title?: string;
           authors?: string[];
           imageLinks?: Record<string, string>;
+          description?: string;
         };
       }>;
     };
     const info = json.items?.[0]?.volumeInfo;
-    if (!info?.title?.trim()) return null;
-    return {
-      title: info.title.trim(),
-      author: info.authors?.[0]?.trim() ?? null,
-      coverUrl: pickCoverImage(info.imageLinks),
-    };
+    if (!info) return null;
+    return mapVolumeInfo(info);
   } catch (e) {
     console.warn("[lookupGoogleBooksByIsbn]", e);
     return null;
@@ -87,19 +106,15 @@ export async function lookupGoogleBooksByTitleAuthor(
           title?: string;
           authors?: string[];
           imageLinks?: Record<string, string>;
+          description?: string;
         };
       }>;
     };
     for (const item of json.items ?? []) {
       const info = item.volumeInfo;
       if (!info?.title?.trim()) continue;
-      const cover = pickCoverImage(info.imageLinks);
-      if (!cover) continue;
-      return {
-        title: info.title.trim(),
-        author: info.authors?.[0]?.trim() ?? null,
-        coverUrl: cover,
-      };
+      const mapped = mapVolumeInfo(info);
+      if (mapped?.coverUrl) return mapped;
     }
     return null;
   } catch (e) {
