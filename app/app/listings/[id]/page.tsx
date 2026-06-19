@@ -1,4 +1,5 @@
 import { ListingDetailView } from "@/components/listings/ListingDetailView";
+import { fetchBookBlurb } from "@/lib/books/openLibraryBlurb";
 import { fetchDistanceKmForListing } from "@/lib/listings/distance";
 import {
   fetchListingById,
@@ -320,13 +321,13 @@ export default async function ListingPage({ params }: Props) {
     }
   }
 
-  // Open Library blurbs load client-side (OpenLibraryBlurbLoader) — avoids blocking on slow external APIs.
-  const [messages, , distanceKm] = await Promise.all([
+  const [messages, , distanceKm, initialBlurb] = await Promise.all([
     isOwner || viewerUnlocked || viewerPendingUnlock
       ? fetchListingMessagesIfAllowed(id)
       : Promise.resolve([] as ListingMessageRow[]),
     copyListingGeoFromProfileIfNeeded(),
     !isOwner ? fetchDistanceKmForListing(id, user?.id ?? null) : Promise.resolve(null),
+    fetchBookBlurb(listing.isbn, listing.title, listing.author),
   ]);
 
   return (
@@ -346,6 +347,7 @@ export default async function ListingPage({ params }: Props) {
       distanceKm={distanceKm}
       viewerSaved={viewerSaved}
       creditsPendingSellerReply={creditsPendingSellerReply}
+      initialBlurb={initialBlurb}
     />
   );
 }

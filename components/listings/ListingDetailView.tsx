@@ -1,6 +1,7 @@
 import { ListingDetailInteractive } from "@/components/listings/ListingDetailInteractive";
 import type { UnlockDeal } from "@/components/listings/DealPanel";
 import type { PendingUnlockRequest } from "@/components/listings/UnlockRequestsPanel";
+import type { BookBlurb } from "@/lib/books/openLibraryBlurb";
 import type { ListingMessageRow, ListingWithRelations } from "@/lib/listings/queries";
 
 /**
@@ -23,6 +24,7 @@ type Props = {
   messages: ListingMessageRow[];
   distanceKm: number | null;
   creditsPendingSellerReply?: boolean;
+  initialBlurb?: BookBlurb | null;
 };
 
 export function ListingDetailView(props: Props) {

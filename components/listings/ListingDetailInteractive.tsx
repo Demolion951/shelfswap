@@ -30,6 +30,7 @@ import {
   mergeMessages,
 } from "@/lib/listings/listingDetailTransitions";
 import type { ListingMessageRow, ListingWithRelations } from "@/lib/listings/queries";
+import type { BookBlurb } from "@/lib/books/openLibraryBlurb";
 import { MapPin } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -50,6 +51,7 @@ type Props = {
   messages: ListingMessageRow[];
   distanceKm: number | null;
   creditsPendingSellerReply?: boolean;
+  initialBlurb?: BookBlurb | null;
 };
 
 export function ListingDetailInteractive({
@@ -68,6 +70,7 @@ export function ListingDetailInteractive({
   messages: initialMessages,
   distanceKm: _distanceKm,
   creditsPendingSellerReply: initialCreditsPendingSellerReply = false,
+  initialBlurb = null,
 }: Props) {
   const { setCounts } = useBadgeCounts();
   const [messages, setMessages] = useState(initialMessages);
@@ -144,10 +147,39 @@ export function ListingDetailInteractive({
 
   useEffect(() => {
     if (!shouldPoll) return;
-    const id = window.setInterval(() => {
+
+    let intervalId: number | null = null;
+
+    const startPolling = () => {
+      if (intervalId) return;
       void syncActivity();
-    }, 4000);
-    return () => window.clearInterval(id);
+      intervalId = window.setInterval(() => {
+        void syncActivity();
+      }, 4000);
+    };
+
+    const stopPolling = () => {
+      if (intervalId) {
+        window.clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        startPolling();
+      } else {
+        stopPolling();
+      }
+    };
+
+    onVisibilityChange();
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, [shouldPoll, syncActivity]);
 
   const handleMessageSent = useCallback(
@@ -275,6 +307,7 @@ export function ListingDetailInteractive({
         isbn={listing.isbn}
         title={listing.title}
         author={listing.author}
+        initialBlurb={initialBlurb}
       />
 
       {showParticipantSections ? (

@@ -1,16 +1,18 @@
 "use client";
 
 /**
- * Loads catalogue synopsis after paint — always shows the section (text or fallback).
+ * Loads catalogue synopsis — uses server prefetch when available, then client fetch as backup.
  * Location: components/listings/OpenLibraryBlurbLoader.tsx
  */
 import { BookBlurb, BookBlurbUnavailable } from "@/components/listings/BookBlurb";
-import { useEffect, useState } from "react";
+import type { BookBlurb as BookBlurbData } from "@/lib/books/openLibraryBlurb";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type Props = {
   isbn: string | null;
   title: string;
   author?: string | null;
+  initialBlurb?: BookBlurbData | null;
 };
 
 type BlurbPayload = {
@@ -20,52 +22,69 @@ type BlurbPayload = {
   sourceUrl?: string | null;
 };
 
-export function OpenLibraryBlurbLoader({ isbn, title, author }: Props) {
-  const [blurb, setBlurb] = useState<BlurbPayload | null>(null);
-  const [phase, setPhase] = useState<"idle" | "loading" | "done">("idle");
+function toPayload(blurb: BookBlurbData): BlurbPayload {
+  return {
+    found: true,
+    text: blurb.text,
+    source: blurb.source,
+    sourceUrl: blurb.sourceUrl,
+  };
+}
 
-  useEffect(() => {
+export function OpenLibraryBlurbLoader({ isbn, title, author, initialBlurb }: Props) {
+  const canLookup = useMemo(() => {
     const digits = isbn?.replace(/\D/g, "") ?? "";
     const hasIsbn = digits.length === 10 || digits.length === 13;
-    const hasTitle = Boolean(title.trim());
-    if (!hasIsbn && !hasTitle) {
+    return hasIsbn || Boolean(title.trim());
+  }, [isbn, title]);
+
+  const [blurb, setBlurb] = useState<BlurbPayload | null>(() =>
+    initialBlurb?.text ? toPayload(initialBlurb) : null,
+  );
+  const [phase, setPhase] = useState<"loading" | "done">(() =>
+    initialBlurb?.text ? "done" : canLookup ? "loading" : "done",
+  );
+
+  const loadBlurb = useCallback(async () => {
+    if (!canLookup) {
       setBlurb({ found: false });
       setPhase("done");
       return;
     }
 
-    let cancelled = false;
     setPhase("loading");
-    setBlurb(null);
-
+    const digits = isbn?.replace(/\D/g, "") ?? "";
+    const hasIsbn = digits.length === 10 || digits.length === 13;
     const q = new URLSearchParams();
     if (hasIsbn) q.set("isbn", isbn!);
     if (title.trim()) q.set("title", title.trim());
     if (author?.trim()) q.set("author", author.trim());
 
-    fetch(`/api/openlibrary-blurb?${q.toString()}`)
-      .then(async (res) => {
-        if (res.ok) return (await res.json()) as BlurbPayload;
-        return { found: false } as BlurbPayload;
-      })
-      .then((data) => {
-        if (cancelled) return;
+    try {
+      const res = await fetch(`/api/openlibrary-blurb?${q.toString()}`);
+      if (res.ok) {
+        const data = (await res.json()) as BlurbPayload;
         setBlurb(data);
-        setPhase("done");
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setBlurb({ found: false });
-          setPhase("done");
-        }
-      });
+      } else {
+        setBlurb({ found: false });
+      }
+    } catch {
+      setBlurb({ found: false });
+    } finally {
+      setPhase("done");
+    }
+  }, [canLookup, isbn, title, author]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [isbn, title, author]);
+  useEffect(() => {
+    if (initialBlurb?.text) {
+      setBlurb(toPayload(initialBlurb));
+      setPhase("done");
+      return;
+    }
+    void loadBlurb();
+  }, [initialBlurb, loadBlurb]);
 
-  if (phase === "loading") {
+  if (phase === "loading" && !blurb?.text) {
     return (
       <section className="space-y-2" aria-busy="true" aria-label="Loading book description">
         <div className="shelfswap-heading h-4 w-40 animate-pulse rounded bg-base-300/80" />
@@ -84,5 +103,18 @@ export function OpenLibraryBlurbLoader({ isbn, title, author }: Props) {
     );
   }
 
-  return <BookBlurbUnavailable />;
+  return (
+    <div className="space-y-2">
+      <BookBlurbUnavailable />
+      {canLookup ? (
+        <button
+          type="button"
+          className="btn btn-ghost btn-xs h-7 min-h-0 normal-case"
+          onClick={() => void loadBlurb()}
+        >
+          Retry loading synopsis
+        </button>
+      ) : null}
+    </div>
+  );
 }

@@ -1,16 +1,16 @@
 "use client";
 
 /**
- * Listing cover: official ISBN / catalogue art first; seller photo if catalogue fails.
+ * Listing card cover — catalogue API first, seller photos only on fallback.
  * Location: components/listings/ListingCoverImage.tsx
  */
-import { isUsefulCoverDimensions } from "@/lib/client/probeImageUrl";
+import { CoverImageChain } from "@/components/listings/CoverImageChain";
 import {
   firstSellerPhotoSrc,
   listingCoverCandidatesForCard,
 } from "@/lib/listings/listingCover";
 import type { ListingWithRelations } from "@/lib/listings/queries";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type Props = {
   listing: ListingWithRelations;
@@ -29,6 +29,7 @@ export function ListingCoverImage({
   fetchPriority = "auto",
   noCoverClassName = "h-full w-full bg-base-300/45",
 }: Props) {
+  const rootRef = useRef<HTMLDivElement>(null);
   const candidates = useMemo(() => {
     const chain = listingCoverCandidatesForCard(listing, size);
     if (chain.length > 0) return chain;
@@ -36,42 +37,49 @@ export function ListingCoverImage({
     return fallback ? [fallback] : [];
   }, [listing, size]);
 
-  const [index, setIndex] = useState(0);
+  const [nearViewport, setNearViewport] = useState(
+    loading === "eager" || fetchPriority === "high",
+  );
 
   useEffect(() => {
-    setIndex(0);
-  }, [candidates]);
+    if (nearViewport || candidates.length === 0) return;
+    const el = rootRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setNearViewport(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setNearViewport(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "280px 0px", threshold: 0.01 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [nearViewport, candidates.length]);
 
-  const advance = useCallback(() => {
-    setIndex((i) => (i + 1 < candidates.length ? i + 1 : -1));
-  }, [candidates.length]);
-
-  const displaySrc = index >= 0 ? (candidates[index] ?? null) : null;
-
-  if (!displaySrc) {
-    return <div className={noCoverClassName} aria-hidden />;
+  if (!nearViewport) {
+    return (
+      <div
+        ref={rootRef}
+        className={`${noCoverClassName} animate-pulse bg-base-300/55`}
+        aria-hidden
+      />
+    );
   }
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      key={displaySrc}
-      src={displaySrc}
-      alt=""
-      className={className}
-      loading={loading}
-      fetchPriority={fetchPriority}
-      decoding="async"
-      referrerPolicy="no-referrer"
-      onLoad={(e) => {
-        const img = e.currentTarget;
-        if (!isUsefulCoverDimensions(img.naturalWidth, img.naturalHeight)) {
-          advance();
-        }
-      }}
-      onError={() => {
-        advance();
-      }}
-    />
+    <div ref={rootRef} className="h-full w-full">
+      <CoverImageChain
+        candidates={candidates}
+        className={className}
+        noCoverClassName={noCoverClassName}
+        loading={loading}
+        fetchPriority={fetchPriority}
+      />
+    </div>
   );
 }

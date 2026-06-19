@@ -12,8 +12,6 @@ import {
   type BookCategory,
   isBookCategory,
 } from "@/lib/books/bookCategory";
-import { prefetchCoverImages } from "@/lib/client/prefetchCoverImages";
-import { primaryListingCoverSrc } from "@/lib/listings/listingCover";
 import type { ListingWithRelations } from "@/lib/listings/queries";
 import { Grid3X3, List } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -64,12 +62,6 @@ export function BrowseListingsViewToggle({ listings, initialView, initialGenre }
     if (!genre) return listings;
     return listings.filter((l) => l.book_category === genre);
   }, [listings, genre]);
-
-  useEffect(() => {
-    prefetchCoverImages(
-      filtered.slice(0, 24).map((l) => primaryListingCoverSrc(l, "M")),
-    );
-  }, [filtered]);
 
   return (
     <div className="space-y-4">

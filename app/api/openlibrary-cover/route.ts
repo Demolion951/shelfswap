@@ -52,16 +52,18 @@ export async function GET(request: NextRequest) {
     return new NextResponse(null, { status: upstream.status === 404 ? 404 : 502 });
   }
 
-  const contentType = upstream.headers.get("content-type") ?? "image/jpeg";
-  const body = upstream.body;
-  if (!body) {
-    return new NextResponse(null, { status: 502 });
+  const bytes = await upstream.arrayBuffer();
+  if (bytes.byteLength < 500) {
+    return new NextResponse(null, { status: 404 });
   }
 
-  return new NextResponse(body, {
+  const contentType = upstream.headers.get("content-type") ?? "image/jpeg";
+
+  return new Response(bytes, {
     status: 200,
     headers: {
       "Content-Type": contentType,
+      "Content-Length": String(bytes.byteLength),
       "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
     },
   });
