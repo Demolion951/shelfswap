@@ -98,7 +98,6 @@ export function CoverImageChain({
         loading={loading}
         fetchPriority={fetchPriority}
         decoding="async"
-        style={{ maxHeight: "100%", maxWidth: "100%", height: "auto", width: "auto" }}
       />
     );
   }
