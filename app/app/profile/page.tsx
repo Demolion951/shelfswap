@@ -8,8 +8,7 @@ import {
 } from "@/lib/listings/queries";
 import { getOptionalUser } from "@/lib/auth/requireUser";
 import { createClient } from "@/lib/supabase/server";
-import { isPremiumStatus } from "@/lib/subscription/constants";
-import { ChevronRight, Crown, Heart, Home, Library, Settings2, UserRound } from "lucide-react";
+import { ChevronRight, Heart, Home, Layers, Library, Settings2, UserRound } from "lucide-react";
 import Link from "next/link";
 
 export default async function ProfilePage() {
@@ -18,7 +17,7 @@ export default async function ProfilePage() {
     return (
       <GuestAccountPrompt
         title="Your account"
-        description="Sign in to list books, save favourites, unlock titles, and manage Premium."
+        description="Sign in to list books, save favourites, unlock titles, and manage your plan."
         Icon={UserRound}
         returnTo="/app/profile"
       />
@@ -37,7 +36,6 @@ export default async function ProfilePage() {
     getSavedListingsCount(user.id),
   ]);
   const profile = profileRes.data;
-  const premiumActive = isPremiumStatus(profile?.subscription_status ?? "none");
 
   return (
     <div className="space-y-6 pt-2">
@@ -81,25 +79,20 @@ export default async function ProfilePage() {
         >
           <div className="card-body flex flex-row items-center justify-between gap-3 p-4 sm:p-5">
             <div className="flex min-w-0 items-center gap-3">
-              <Crown
+              <Layers
                 className="h-5 w-5 shrink-0 text-primary sm:h-6 sm:w-6"
                 aria-hidden
               />
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-wide text-primary">
-                  Premium
+                  Plan
                 </p>
               </div>
             </div>
-            <div className="flex shrink-0 items-center gap-1">
-              <p className="text-sm font-semibold sm:text-base">
-                {premiumActive ? "Active" : "Subscribe"}
-              </p>
-              <ChevronRight
-                className="h-4 w-4 text-base-content/35"
-                aria-hidden
-              />
-            </div>
+            <ChevronRight
+              className="h-4 w-4 shrink-0 text-base-content/35"
+              aria-hidden
+            />
           </div>
         </Link>
         <Link

@@ -11,7 +11,9 @@ export type CheckoutSessionResult =
   | { ok: true; url: string }
   | { ok: false; error: string };
 
-export type DevGrantPremiumResult = { ok: true } | { ok: false; error: string };
+export type BillingPortalResult =
+  | { ok: true; url: string }
+  | { ok: false; error: string };
 
 /**
  * Stripe Checkout for Premium monthly subscription.
@@ -82,6 +84,56 @@ export async function createPremiumCheckoutSession(): Promise<CheckoutSessionRes
 
   return { ok: true, url: session.url };
 }
+
+/**
+ * Stripe Customer Portal — cancel subscription, update card, view invoices.
+ * Location: app/app/subscribe/actions.ts
+ */
+export async function createBillingPortalSession(): Promise<BillingPortalResult> {
+  const stripe = getStripe();
+  if (!stripe) {
+    return { ok: false, error: "STRIPE_SECRET_KEY is not set." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: userErr,
+  } = await supabase.auth.getUser();
+  if (userErr || !user) {
+    return { ok: false, error: "Sign in to manage your subscription." };
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("stripe_customer_id")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const customerId = (profile as { stripe_customer_id?: string | null } | null)
+    ?.stripe_customer_id?.trim();
+  if (!customerId) {
+    return {
+      ok: false,
+      error:
+        "No Stripe billing account on file for this user. Contact support if you need help cancelling.",
+    };
+  }
+
+  const base = appBaseUrl();
+  const session = await stripe.billingPortal.sessions.create({
+    customer: customerId,
+    return_url: `${base}/app/subscribe`,
+  });
+
+  if (!session.url) {
+    return { ok: false, error: "Could not open billing portal." };
+  }
+
+  return { ok: true, url: session.url };
+}
+
+export type DevGrantPremiumResult = { ok: true } | { ok: false; error: string };
 
 /**
  * Dev / sandbox: grants Premium when ALLOW_DEV_PREMIUM=1 + service role.
