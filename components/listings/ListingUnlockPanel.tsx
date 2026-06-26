@@ -1,21 +1,18 @@
 "use client";
 
 /**
- * Unlock CTA for listing detail: sign-in gate, balance check, and credit-hold request flow.
+ * Unlock CTA for listing detail: Premium gate and chat-request flow.
  * Save uses the heart beside the title on the detail page.
  * Location: components/listings/ListingUnlockPanel.tsx
  */
 import { cancelUnlockHoldAction, requestUnlockHoldAction } from "@/app/app/listings/actions";
-import { formatUnlockCredits } from "@/lib/listings/format";
 import { Lock, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 
 type Props = {
   listingId: string;
-  creditsRequired: number;
-  creditBalance: number;
-  heldCredits?: number;
+  hasPremium: boolean;
   isPending?: boolean;
   isUnlocked?: boolean;
   isSignedIn: boolean;
@@ -23,9 +20,7 @@ type Props = {
 
 export function ListingUnlockPanel({
   listingId,
-  creditsRequired,
-  creditBalance,
-  heldCredits = 0,
+  hasPremium,
   isPending = false,
   isUnlocked = false,
   isSignedIn,
@@ -77,9 +72,9 @@ export function ListingUnlockPanel({
           <div className="flex items-start gap-2">
             <Lock className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
             <div>
-              <h2 className="font-semibold">Unlock for {formatUnlockCredits(creditsRequired)}</h2>
+              <h2 className="font-semibold">Unlock this listing</h2>
               <p className="text-sm text-base-content/65">
-                Sign in to use your wallet and unlock this listing.
+                Sign in with Premium to request a chat with the seller.
               </p>
             </div>
           </div>
@@ -98,8 +93,26 @@ export function ListingUnlockPanel({
     return null;
   }
 
-  const available = Math.max(0, creditBalance - heldCredits);
-  const canAfford = available >= creditsRequired;
+  if (!hasPremium) {
+    return (
+      <div className="card bg-base-100 border border-primary/20 shadow-md">
+        <div className="card-body gap-3">
+          <div className="flex items-start gap-2">
+            <Lock className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
+            <div>
+              <h2 className="font-semibold">Premium required</h2>
+              <p className="text-sm text-base-content/65">
+                Subscribe to unlock listings and chat with sellers. Listing books stays free.
+              </p>
+            </div>
+          </div>
+          <Link href="/app/subscribe" className="btn btn-primary">
+            Get Premium — £7.99/mo
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="card bg-base-100 border border-primary/20 shadow-md">
@@ -108,18 +121,12 @@ export function ListingUnlockPanel({
           <Lock className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
           <div>
             <h2 className="font-semibold">
-              {pendingRequest ? "Request sent" : `Request chat for ${formatUnlockCredits(creditsRequired)}`}
+              {pendingRequest ? "Request sent" : "Request chat"}
             </h2>
             <p className="text-sm text-base-content/65">
               {pendingRequest
-                ? "Credits stay held until the seller replies."
-                : (
-                    <>
-                      Credits charge when they reply. You have{" "}
-                      <span className="font-medium text-base-content">{available}</span> available
-                      credits.
-                    </>
-                  )}
+                ? "Waiting for the seller to reply. You can message once they respond."
+                : "Included with your Premium subscription — no extra charge for this book."}
             </p>
           </div>
         </div>
@@ -145,7 +152,7 @@ export function ListingUnlockPanel({
             <button
               type="button"
               className="btn btn-primary gap-2"
-              disabled={pending || !canAfford}
+              disabled={pending}
               onClick={() => onRequest()}
             >
               {pending ? (
@@ -156,11 +163,6 @@ export function ListingUnlockPanel({
               Request chat
             </button>
           )}
-          {!canAfford ? (
-            <Link href="/app/credits" className="btn btn-outline btn-primary border-primary/30">
-              Buy credits
-            </Link>
-          ) : null}
         </div>
       </div>
     </div>

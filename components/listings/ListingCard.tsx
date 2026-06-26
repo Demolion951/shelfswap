@@ -3,7 +3,7 @@
 import { ListingCardSaveHeart } from "@/components/listings/ListingCardSaveHeart";
 import { ListingCoverImage } from "@/components/listings/ListingCoverImage";
 import { listingAreaLine } from "@/lib/listings/areaDisplay";
-import { CONDITION_LABELS, formatUnlockCredits } from "@/lib/listings/format";
+import { CONDITION_LABELS, formatBindingType } from "@/lib/listings/format";
 import type { ListingWithRelations } from "@/lib/listings/queries";
 import Link from "next/link";
 
@@ -34,7 +34,7 @@ export function ListingCard({
   priorityImage = false,
 }: Props) {
   const cond = CONDITION_LABELS[listing.condition] ?? listing.condition;
-  const credits = listing.unlock_credits === 2 ? 2 : 1;
+  const binding = formatBindingType(listing.unlock_credits === 2 ? 2 : 1);
   const areaLine = listingAreaLine(listing.approx_area_text);
 
   const inner = (
@@ -96,9 +96,7 @@ export function ListingCard({
         </div>
         {variant === "row" ? (
           <>
-            <p className="text-[0.9rem] font-semibold tabular-nums tracking-tight text-primary">
-              {formatUnlockCredits(credits)}
-            </p>
+            <p className="text-[0.9rem] font-medium text-base-content/75">{binding}</p>
             <div className="flex flex-wrap items-center gap-1">
               <span className="badge badge-xs badge-ghost shrink-0 border-primary/20 text-primary">
                 {cond}
@@ -135,7 +133,7 @@ export function ListingCard({
                   : "text-[0.9rem] font-semibold tabular-nums text-primary"
               }
             >
-              {formatUnlockCredits(credits)}
+              {binding}
             </p>
             <div className="flex flex-wrap items-center gap-1">
               <span className="badge badge-xs badge-ghost shrink-0 border-primary/20 text-primary">

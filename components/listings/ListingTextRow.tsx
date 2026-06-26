@@ -4,7 +4,7 @@
  * Text-only listing row (no image) for dense browsing.
  * Location: components/listings/ListingTextRow.tsx
  */
-import { formatUnlockCredits } from "@/lib/listings/format";
+import { formatBindingType } from "@/lib/listings/format";
 import type { ListingWithRelations } from "@/lib/listings/queries";
 import Link from "next/link";
 
@@ -13,7 +13,6 @@ type Props = {
 };
 
 export function ListingTextRow({ listing }: Props) {
-  const credits = listing.unlock_credits === 2 ? 2 : 1;
   return (
     <Link
       href={`/app/listings/${listing.id}`}
@@ -29,8 +28,8 @@ export function ListingTextRow({ listing }: Props) {
               <p className="line-clamp-1 text-[11px] text-base-content/55">{listing.author}</p>
             ) : null}
           </div>
-          <span className="shrink-0 text-sm font-semibold text-primary tabular-nums">
-            {formatUnlockCredits(credits)}
+          <span className="shrink-0 text-sm font-medium text-base-content/70">
+            {formatBindingType(listing.unlock_credits === 2 ? 2 : 1)}
           </span>
         </div>
       </div>

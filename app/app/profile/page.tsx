@@ -8,7 +8,8 @@ import {
 } from "@/lib/listings/queries";
 import { getOptionalUser } from "@/lib/auth/requireUser";
 import { createClient } from "@/lib/supabase/server";
-import { ChevronRight, Coins, Heart, Home, Library, Settings2, UserRound } from "lucide-react";
+import { isPremiumStatus } from "@/lib/subscription/constants";
+import { ChevronRight, Crown, Heart, Home, Library, Settings2, UserRound } from "lucide-react";
 import Link from "next/link";
 
 export default async function ProfilePage() {
@@ -17,7 +18,7 @@ export default async function ProfilePage() {
     return (
       <GuestAccountPrompt
         title="Your account"
-        description="Sign in to list books, save favourites, unlock titles, and manage your wallet."
+        description="Sign in to list books, save favourites, unlock titles, and manage Premium."
         Icon={UserRound}
         returnTo="/app/profile"
       />
@@ -28,7 +29,7 @@ export default async function ProfilePage() {
   const [profileRes, listingsCount, rehomedCount, savedCount] = await Promise.all([
     supabase
       .from("profiles")
-      .select("display_name, avatar_url, credit_balance")
+      .select("display_name, avatar_url, subscription_status, subscription_period_end")
       .eq("id", user.id)
       .maybeSingle(),
     getMyActiveListingsCount(user.id),
@@ -36,6 +37,7 @@ export default async function ProfilePage() {
     getSavedListingsCount(user.id),
   ]);
   const profile = profileRes.data;
+  const premiumActive = isPremiumStatus(profile?.subscription_status ?? "none");
 
   return (
     <div className="space-y-6 pt-2">
@@ -74,26 +76,24 @@ export default async function ProfilePage() {
 
       <div className="flex w-full min-w-0 flex-col gap-2 sm:gap-3">
         <Link
-          href="/app/credits"
+          href="/app/subscribe"
           className="card bg-base-100 border border-base-300/80 shadow-sm transition hover:border-primary/35 w-full"
         >
           <div className="card-body flex flex-row items-center justify-between gap-3 p-4 sm:p-5">
             <div className="flex min-w-0 items-center gap-3">
-              <Coins
+              <Crown
                 className="h-5 w-5 shrink-0 text-primary sm:h-6 sm:w-6"
                 aria-hidden
               />
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-wide text-primary">
-                  Wallet
+                  Premium
                 </p>
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-1">
-              <p className="text-2xl font-bold tabular-nums sm:text-3xl">
-                {typeof profile?.credit_balance === "number"
-                  ? profile.credit_balance
-                  : Number(profile?.credit_balance ?? 0) || 0}
+              <p className="text-sm font-semibold sm:text-base">
+                {premiumActive ? "Active" : "Subscribe"}
               </p>
               <ChevronRight
                 className="h-4 w-4 text-base-content/35"

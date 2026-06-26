@@ -62,7 +62,7 @@ export async function unlockListingAction(listingId: string): Promise<UnlockList
     }
     revalidatePath(`/app/listings/${listingId}`);
     revalidatePath("/app/profile");
-    revalidatePath("/app/credits");
+    revalidatePath("/app/subscribe");
     revalidatePath("/app/activity");
     return { ok: true, creditsSpent: spent };
   }
@@ -71,9 +71,11 @@ export async function unlockListingAction(listingId: string): Promise<UnlockList
   return {
     ok: false,
     error:
-      p.error === "insufficient_credits"
-        ? "Not enough credits. Buy more from your wallet."
-        : p.error === "own_listing"
+      p.error === "premium_required"
+        ? "Premium subscription required to unlock listings."
+        : p.error === "insufficient_credits"
+          ? "Not enough credits. Subscribe to Premium instead."
+          : p.error === "own_listing"
           ? "You can’t unlock your own listing."
           : p.error === "listing_not_found"
             ? "This listing is no longer available."
@@ -121,7 +123,7 @@ export async function requestUnlockHoldAction(listingId: string): Promise<Reques
   if (p.ok === true) {
     revalidatePath(`/app/listings/${listingId}`);
     revalidatePath("/app/profile");
-    revalidatePath("/app/credits");
+    revalidatePath("/app/subscribe");
     revalidatePath("/app/activity");
     return { ok: true, pending: !!p.pending, alreadyUnlocked: !!p.already_unlocked, requestId: p.request_id };
   }
@@ -129,9 +131,11 @@ export async function requestUnlockHoldAction(listingId: string): Promise<Reques
   return {
     ok: false,
     error:
-      p.error === "insufficient_credits"
-        ? "Not enough available credits. Buy more from your wallet."
-        : p.error === "own_listing"
+      p.error === "premium_required"
+        ? "Subscribe to Premium to request chats with sellers."
+        : p.error === "insufficient_credits"
+          ? "Subscribe to Premium to unlock listings."
+          : p.error === "own_listing"
           ? "You can’t request your own listing."
           : p.error === "listing_not_found"
             ? "This listing is no longer available."
@@ -162,7 +166,7 @@ export async function cancelUnlockHoldAction(listingId: string): Promise<CancelU
   }
   revalidatePath(`/app/listings/${listingId}`);
   revalidatePath("/app/profile");
-  revalidatePath("/app/credits");
+  revalidatePath("/app/subscribe");
   revalidatePath("/app/activity");
   return { ok: true };
 }
@@ -215,7 +219,16 @@ export async function proposeSwapAction(listingId: string, offeredListingId: str
     return { ok: false, error: error.message };
   }
   const ok = (data as any)?.ok;
-  if (ok !== true) return { ok: false, error: (data as any)?.error ?? "Could not propose swap." };
+  if (ok !== true) {
+    const err = (data as { error?: string })?.error;
+    if (err === "swap_limit_reached") {
+      return {
+        ok: false,
+        error: "No free swaps left this month. Subscribe to Premium for unlimited swaps.",
+      };
+    }
+    return { ok: false, error: err ?? "Could not propose swap." };
+  }
   revalidatePath(`/app/listings/${listingId}`);
   revalidatePath("/app/activity");
   return { ok: true };
@@ -235,7 +248,7 @@ export async function respondSwapAction(listingId: string, accept: boolean): Pro
   if (ok !== true) return { ok: false, error: (data as any)?.error ?? "Could not respond." };
   revalidatePath(`/app/listings/${listingId}`);
   revalidatePath("/app/activity");
-  revalidatePath("/app/credits");
+  revalidatePath("/app/subscribe");
   return { ok: true };
 }
 
@@ -314,7 +327,7 @@ function revalidateDealPaths(listingId: string) {
   revalidatePath("/app/browse");
   revalidatePath("/app/search");
   revalidatePath("/app/profile");
-  revalidatePath("/app/credits");
+  revalidatePath("/app/subscribe");
   revalidatePath("/app/activity");
 }
 

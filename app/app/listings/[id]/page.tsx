@@ -58,8 +58,7 @@ export default async function ListingPage({ params }: Props) {
     }
   }
 
-  let creditBalance = 0;
-  let heldCredits = 0;
+  let hasPremium = false;
   let viewerUnlocked = false;
   let viewerSaved = false;
   let viewerPendingUnlock = false;
@@ -98,7 +97,7 @@ export default async function ListingPage({ params }: Props) {
       supabase.rpc("expire_listing_unlock_requests", { p_listing_id: id }),
       supabase
         .from("profiles")
-        .select("credit_balance, held_credits")
+        .select("subscription_status, subscription_period_end")
         .eq("id", user.id)
         .maybeSingle(),
       supabase
@@ -118,11 +117,17 @@ export default async function ListingPage({ params }: Props) {
     if (expRes.error) {
       console.warn("[ListingPage] expire_listing_unlock_requests", expRes.error.message);
     }
-    const prof = profRes.data;
-    const bal = prof?.credit_balance;
-    creditBalance = typeof bal === "number" ? bal : Number(bal ?? 0) || 0;
-    const held = (prof as { held_credits?: unknown } | null)?.held_credits;
-    heldCredits = typeof held === "number" ? held : Number(held ?? 0) || 0;
+    const prof = profRes.data as {
+      subscription_status?: string | null;
+      subscription_period_end?: string | null;
+    } | null;
+    hasPremium =
+      prof?.subscription_status === "active" ||
+      prof?.subscription_status === "trialing";
+    if (prof?.subscription_period_end) {
+      const end = new Date(prof.subscription_period_end);
+      if (end.getTime() <= Date.now()) hasPremium = false;
+    }
 
     viewerUnlocked = !!unlockRes.data;
     viewerSaved = !!saveRes.data;
@@ -336,8 +341,9 @@ export default async function ListingPage({ params }: Props) {
       isOwner={isOwner}
       isSignedIn={isSignedIn}
       viewerUnlocked={viewerUnlocked}
-      creditBalance={creditBalance}
-      heldCredits={heldCredits}
+      creditBalance={0}
+      heldCredits={0}
+      hasPremium={hasPremium}
       viewerPendingUnlock={viewerPendingUnlock}
       pendingRequestsForSeller={pendingRequestsForSeller}
       unlockDeal={unlockDeal}

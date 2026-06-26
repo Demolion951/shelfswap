@@ -16,6 +16,7 @@ type Props = {
   viewerSaved: boolean;
   creditBalance: number;
   heldCredits: number;
+  hasPremium: boolean;
   viewerPendingUnlock: boolean;
   pendingRequestsForSeller: PendingUnlockRequest[];
   unlockDeal: UnlockDeal | null;

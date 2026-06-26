@@ -22,7 +22,7 @@ import { computeDealOptionsEligibility } from "@/lib/listings/dealOptions";
 import type { ListingActivitySnapshot } from "@/lib/listings/fetchListingActivitySnapshot";
 import { sellerCanComposeMessages } from "@/lib/listings/messageCompose";
 import { listingAreaLine } from "@/lib/listings/areaDisplay";
-import { CONDITION_LABELS, formatUnlockCredits } from "@/lib/listings/format";
+import { CONDITION_LABELS, formatBindingType } from "@/lib/listings/format";
 import {
   applyBuyerObservedSellerReply,
   createUnlockDealFromRequest,
@@ -43,6 +43,7 @@ type Props = {
   viewerSaved: boolean;
   creditBalance: number;
   heldCredits: number;
+  hasPremium: boolean;
   viewerPendingUnlock: boolean;
   pendingRequestsForSeller: PendingUnlockRequest[];
   unlockDeal: UnlockDeal | null;
@@ -60,8 +61,9 @@ export function ListingDetailInteractive({
   isSignedIn,
   viewerUnlocked: initialViewerUnlocked,
   viewerSaved,
-  creditBalance,
-  heldCredits,
+  creditBalance: _creditBalance,
+  heldCredits: _heldCredits,
+  hasPremium,
   viewerPendingUnlock: initialViewerPendingUnlock,
   pendingRequestsForSeller: initialPendingRequests,
   unlockDeal: initialUnlockDeal,
@@ -274,8 +276,8 @@ export function ListingDetailInteractive({
         <span className="badge badge-lg badge-ghost border-primary/25 text-primary">
           {cond}
         </span>
-        <span className="text-2xl font-bold text-primary">
-          {formatUnlockCredits(credits)}
+        <span className="badge badge-lg badge-ghost border-base-300/80 text-base-content/80">
+          {formatBindingType(credits)}
         </span>
         {listing.open_to_swaps ? (
           <span className="badge badge-accent badge-outline">Open to swaps</span>
@@ -365,11 +367,11 @@ export function ListingDetailInteractive({
                   </p>
                 ) : viewerPendingUnlock && !viewerUnlocked ? (
                   <p className="text-sm text-base-content/60 leading-snug">
-                    When the seller replies, your request is accepted and credits are charged.
+                    When the seller replies, your request is accepted and you can chat.
                   </p>
                 ) : creditsPendingSellerReply ? (
                   <div className="alert alert-info text-sm py-2">
-                    You can message below. Credits are charged when the seller sends their first reply.
+                    You can message below. Chat opens fully when the seller sends their first reply.
                   </div>
                 ) : (
                   <div className="alert alert-success text-sm py-2">
@@ -403,9 +405,7 @@ export function ListingDetailInteractive({
       {!isOwner ? (
         <ListingUnlockPanel
           listingId={listing.id}
-          creditsRequired={credits}
-          creditBalance={creditBalance}
-          heldCredits={heldCredits}
+          hasPremium={hasPremium}
           isPending={viewerPendingUnlock}
           isUnlocked={viewerUnlocked}
           isSignedIn={isSignedIn}

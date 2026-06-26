@@ -7,7 +7,7 @@
 import { ListingCardSaveHeart } from "@/components/listings/ListingCardSaveHeart";
 import { ListingCoverImage } from "@/components/listings/ListingCoverImage";
 import { listingAreaLine } from "@/lib/listings/areaDisplay";
-import { formatUnlockCredits } from "@/lib/listings/format";
+import { formatBindingType } from "@/lib/listings/format";
 import type { ListingWithRelations } from "@/lib/listings/queries";
 import Link from "next/link";
 
@@ -27,7 +27,7 @@ export function ListingMiniCard({
   initiallySaved = false,
   priorityImage = false,
 }: Props) {
-  const credits = listing.unlock_credits === 2 ? 2 : 1;
+  const binding = formatBindingType(listing.unlock_credits === 2 ? 2 : 1);
   const areaLine = listingAreaLine(listing.approx_area_text);
 
   return (
@@ -80,11 +80,11 @@ export function ListingMiniCard({
               <span
                 className={
                   compact
-                    ? "block text-[10px] font-semibold text-primary tabular-nums leading-none"
-                    : "block text-[11px] font-semibold text-primary tabular-nums leading-none"
+                    ? "block text-[10px] font-medium text-base-content/70 leading-none"
+                    : "block text-[11px] font-medium text-base-content/70 leading-none"
                 }
               >
-                {formatUnlockCredits(credits)}
+                {binding}
               </span>
               {areaLine ? (
                 <p
