@@ -101,6 +101,24 @@ type TimelineItem =
   | {
       key: string;
       createdAt: string;
+      kind: "listing_sold";
+      listingId: string;
+      titleHint: string | null;
+      wasUnread: boolean;
+      notificationId: string;
+    }
+  | {
+      key: string;
+      createdAt: string;
+      kind: "listing_removed";
+      listingId: string;
+      titleHint: string | null;
+      wasUnread: boolean;
+      notificationId: string;
+    }
+  | {
+      key: string;
+      createdAt: string;
       kind: "seller_reward";
       listingId: string | null;
       earned: number;
@@ -358,6 +376,32 @@ export default async function ActivityPage() {
         createdAt: n.created_at,
         kind: "deal_completed",
         listingId: n.listing_id,
+        wasUnread: n.read_at == null,
+        notificationId: n.id,
+      });
+    }
+    if (n.type === "listing_sold" && n.listing_id) {
+      const titleHint =
+        typeof payload.listing_title === "string" ? payload.listing_title : null;
+      items.push({
+        key: `notif-listing-sold-${n.id}`,
+        createdAt: n.created_at,
+        kind: "listing_sold",
+        listingId: n.listing_id,
+        titleHint,
+        wasUnread: n.read_at == null,
+        notificationId: n.id,
+      });
+    }
+    if (n.type === "listing_removed" && n.listing_id) {
+      const titleHint =
+        typeof payload.listing_title === "string" ? payload.listing_title : null;
+      items.push({
+        key: `notif-listing-removed-${n.id}`,
+        createdAt: n.created_at,
+        kind: "listing_removed",
+        listingId: n.listing_id,
+        titleHint,
         wasUnread: n.read_at == null,
         notificationId: n.id,
       });
@@ -725,6 +769,84 @@ export default async function ActivityPage() {
                           >
                             Open listing
                           </MarkNotificationReadLink>
+                          <MarkNotificationReadButton
+                            notificationId={item.notificationId}
+                            wasUnread={item.wasUnread}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            );
+          }
+
+          if (item.kind === "listing_sold") {
+            const title = listingTitle(item.listingId, titleById, item.titleHint);
+            return (
+              <li key={item.key}>
+                <div
+                  className={`card card-border bg-base-100 shadow-sm ${
+                    item.wasUnread ? "border-primary/35" : "border-base-300/80"
+                  }`}
+                >
+                  <div className="card-body gap-1 py-4">
+                    <div className="flex items-start gap-2">
+                      <Library className="mt-0.5 h-4 w-4 shrink-0 text-base-content/55" aria-hidden />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm text-base-content">
+                            <span className="font-medium">{title}</span> has been rehomed — this
+                            chat is no longer active.
+                          </p>
+                          {item.wasUnread ? (
+                            <span className="badge badge-primary badge-xs">New</span>
+                          ) : null}
+                        </div>
+                        <p className="text-xs text-base-content/50 mt-1">
+                          <LocalDateTimeText iso={item.createdAt} />
+                        </p>
+                        <div className="mt-2">
+                          <MarkNotificationReadButton
+                            notificationId={item.notificationId}
+                            wasUnread={item.wasUnread}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            );
+          }
+
+          if (item.kind === "listing_removed") {
+            const title = listingTitle(item.listingId, titleById, item.titleHint);
+            return (
+              <li key={item.key}>
+                <div
+                  className={`card card-border bg-base-100 shadow-sm ${
+                    item.wasUnread ? "border-primary/35" : "border-base-300/80"
+                  }`}
+                >
+                  <div className="card-body gap-1 py-4">
+                    <div className="flex items-start gap-2">
+                      <Library className="mt-0.5 h-4 w-4 shrink-0 text-base-content/55" aria-hidden />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm text-base-content">
+                            <span className="font-medium">{title}</span> was removed by the seller —
+                            this chat is no longer active.
+                          </p>
+                          {item.wasUnread ? (
+                            <span className="badge badge-primary badge-xs">New</span>
+                          ) : null}
+                        </div>
+                        <p className="text-xs text-base-content/50 mt-1">
+                          <LocalDateTimeText iso={item.createdAt} />
+                        </p>
+                        <div className="mt-2">
                           <MarkNotificationReadButton
                             notificationId={item.notificationId}
                             wasUnread={item.wasUnread}

@@ -328,7 +328,12 @@ export async function deleteMyListing(listingId: string): Promise<DeleteListingR
     return { error: "You must be signed in." };
   }
 
-  const { error } = await supabase.from("listings").delete().eq("id", listingId).eq("user_id", user.id);
+  const { error } = await supabase
+    .from("listings")
+    .update({ status: "archived" })
+    .eq("id", listingId)
+    .eq("user_id", user.id)
+    .eq("status", "active");
 
   if (error) {
     console.error("[deleteMyListing]", error.message);
@@ -343,5 +348,6 @@ export async function deleteMyListing(listingId: string): Promise<DeleteListingR
   revalidatePath("/app/profile/saved");
   revalidatePath(`/app/listings/${listingId}`);
   revalidatePath("/app/activity");
+  revalidatePath("/app/messages");
   return { ok: true };
 }

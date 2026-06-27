@@ -82,8 +82,8 @@ export function ProfileListingRowMenu({ listingId }: Props) {
         <div className="modal-box">
           <h2 className="shelfswap-heading text-lg font-semibold">Delete this listing?</h2>
           <p className="py-3 text-sm text-base-content/70">
-            This removes the book from ShelfSwap. Saved bookmarks and unlock history for this
-            listing may be removed.
+            This removes the book from ShelfSwap and closes any open chats. Buyers will be
+            notified.
           </p>
           {error ? (
             <div role="alert" className="alert alert-error text-sm py-2 mb-2">
