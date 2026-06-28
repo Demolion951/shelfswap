@@ -5,8 +5,8 @@
  * Location: components/messages/MessagesInboxList.tsx
  */
 import { MarkListingReadLink } from "@/components/activity/MarkListingReadLink";
+import { CoverImageChain } from "@/components/listings/CoverImageChain";
 import { LocalDateTimeText } from "@/components/messages/LocalDateTimeText";
-import { coverImageSrcForDisplay } from "@/lib/books/openLibraryCoverDisplay";
 import type { InboxThread } from "@/lib/messages/inbox";
 
 type Props = {
@@ -32,7 +32,6 @@ export function MessagesInboxList({ threads, unreadListingIds }: Props) {
   return (
     <ul className="flex flex-col gap-2">
       {threads.map((t) => {
-        const thumbRaw = t.coverUrl ? coverImageSrcForDisplay(t.coverUrl) ?? t.coverUrl : null;
         const unread = unreadSet.has(t.listingId);
         return (
           <li key={`${t.role}-${t.listingId}`}>
@@ -46,18 +45,12 @@ export function MessagesInboxList({ threads, unreadListingIds }: Props) {
             >
               <div className="card-body flex-row gap-3 p-3">
                 <figure className="relative h-[4.5rem] w-12 shrink-0 overflow-hidden rounded-md bg-base-300">
-                  {thumbRaw ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={thumbRaw}
-                      alt=""
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    <div className="h-full w-full bg-base-300/50" aria-hidden />
-                  )}
+                  <CoverImageChain
+                    candidates={t.coverCandidates}
+                    className="h-full w-full object-cover"
+                    noCoverClassName="h-full w-full bg-base-300/50"
+                    loading="lazy"
+                  />
                   {unread ? (
                     <span
                       className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-base-100"

@@ -1,11 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
-import { primaryListingCoverSrc } from "@/lib/listings/listingCover";
+import {
+  firstSellerPhotoSrc,
+  listingCoverCandidatesForCard,
+} from "@/lib/listings/listingCover";
 import type { ListingWithRelations } from "@/lib/listings/queries";
 
 export type InboxThread = {
   listingId: string;
   title: string;
-  coverUrl: string | null;
+  /** Same-origin catalogue APIs + seller photo fallbacks for CoverImageChain. */
+  coverCandidates: string[];
   author: string | null;
   role: "buyer" | "seller";
   lastActivityAt: string;
@@ -44,7 +48,7 @@ export async function fetchInboxThreads(userId: string): Promise<InboxThread[]> 
       .eq("status", "pending"),
     supabase
       .from("listings")
-      .select("id, title, cover_url, author, created_at, listing_photos ( id, url, sort )")
+      .select("id, title, isbn, cover_url, author, created_at, listing_photos ( id, url, sort )")
       .eq("user_id", userId)
       .eq("status", "active"),
   ]);
@@ -153,7 +157,7 @@ export async function fetchInboxThreads(userId: string): Promise<InboxThread[]> 
   const [{ data: listingsMeta, error: lErr }, { data: msgs }] = await Promise.all([
     supabase
       .from("listings")
-      .select("id, title, cover_url, author, listing_photos ( id, url, sort )")
+      .select("id, title, isbn, cover_url, author, listing_photos ( id, url, sort )")
       .in("id", allIds)
       .eq("status", "active"),
     supabase
@@ -195,13 +199,20 @@ export async function fetchInboxThreads(userId: string): Promise<InboxThread[]> 
   return filtered
     .map((a) => {
       const meta = metaMap.get(a.listingId)!;
+      const listing = meta as ListingWithRelations;
       const lm = lastMsg.get(a.listingId);
       const lastActivityAt = lm?.at ?? a.sortFallback;
-      const coverSrc = primaryListingCoverSrc(meta as ListingWithRelations, "S");
+      const coverCandidates = listingCoverCandidatesForCard(listing, "S");
+      const sellerPhoto = firstSellerPhotoSrc(listing);
       return {
         listingId: a.listingId,
         title: meta.title as string,
-        coverUrl: coverSrc,
+        coverCandidates:
+          coverCandidates.length > 0
+            ? coverCandidates
+            : sellerPhoto
+              ? [sellerPhoto]
+              : [],
         author: (meta.author as string | null) ?? null,
         role: a.role,
         lastActivityAt,
