@@ -28,6 +28,7 @@ type Slide =
 export function ListingDetailCarousel({ listing }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeSlide, setActiveSlide] = useState(0);
+  const [catalogueHidden, setCatalogueHidden] = useState(false);
   const dragRef = useRef<{ active: boolean; startX: number; scrollLeft: number } | null>(null);
 
   const catalogueCandidates = useMemo(
@@ -35,9 +36,21 @@ export function ListingDetailCarousel({ listing }: Props) {
     [listing],
   );
 
+  useEffect(() => {
+    setCatalogueHidden(false);
+    setActiveSlide(0);
+  }, [listing.id]);
+
+  useEffect(() => {
+    if (!catalogueHidden) return;
+    setActiveSlide(0);
+    const el = scrollRef.current;
+    if (el) el.scrollTo({ left: 0, behavior: "auto" });
+  }, [catalogueHidden]);
+
   const slides = useMemo((): Slide[] => {
     const out: Slide[] = [];
-    if (catalogueCandidates.length > 0) {
+    if (catalogueCandidates.length > 0 && !catalogueHidden) {
       out.push({ kind: "catalogue", candidates: catalogueCandidates });
     }
     for (const ph of sortedListingPhotos(listing)) {
@@ -49,7 +62,7 @@ export function ListingDetailCarousel({ listing }: Props) {
       });
     }
     return out;
-  }, [catalogueCandidates, listing]);
+  }, [catalogueCandidates, catalogueHidden, listing]);
 
   const scrollToSlide = useCallback((index: number) => {
     const el = scrollRef.current;
@@ -156,6 +169,7 @@ export function ListingDetailCarousel({ listing }: Props) {
                   noCoverClassName={DETAIL_COVER_PLACEHOLDER_CLASS}
                   loading="eager"
                   fetchPriority="high"
+                  onExhausted={() => setCatalogueHidden(true)}
                 />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element

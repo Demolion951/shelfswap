@@ -15,6 +15,8 @@ type Props = {
   noCoverClassName?: string;
   loading?: "eager" | "lazy";
   fetchPriority?: "high" | "auto";
+  /** Called when every candidate failed (e.g. hide catalogue slide on detail page). */
+  onExhausted?: () => void;
 };
 
 export function CoverImageChain({
@@ -23,6 +25,7 @@ export function CoverImageChain({
   noCoverClassName = "h-full w-full bg-base-300/45",
   loading = "lazy",
   fetchPriority = "auto",
+  onExhausted,
 }: Props) {
   const [index, setIndex] = useState(0);
   const [displaySrc, setDisplaySrc] = useState<string | null>(null);
@@ -33,6 +36,12 @@ export function CoverImageChain({
   useEffect(() => {
     setIndex(0);
   }, [chainKey]);
+
+  useEffect(() => {
+    if (index < 0 && candidates.length > 0) {
+      onExhausted?.();
+    }
+  }, [index, candidates.length, onExhausted]);
 
   useEffect(() => {
     let cancelled = false;
