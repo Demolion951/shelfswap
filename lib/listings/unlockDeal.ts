@@ -30,3 +30,15 @@ export function pickSellerUnlockRow(
   if (anySwap) return anySwap;
   return rows[0];
 }
+
+export function pickSellerUnlockRowForBuyer(
+  rows: Parameters<typeof pickSellerUnlockRow>[0],
+  buyerId: string | null | undefined,
+) {
+  if (!rows?.length) return null;
+  if (buyerId) {
+    const match = rows.find((r) => String(r.buyer_id) === buyerId);
+    if (match) return match;
+  }
+  return pickSellerUnlockRow(rows);
+}

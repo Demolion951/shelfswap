@@ -1,43 +1,40 @@
 "use client";
 
 /**
- * Unlock CTA for listing detail: Premium gate and chat-request flow.
- * Save uses the heart beside the title on the detail page.
+ * Unlock CTA for listing detail: Premium instant chat (Marketplace-style).
  * Location: components/listings/ListingUnlockPanel.tsx
  */
-import { cancelUnlockHoldAction, requestUnlockHoldAction } from "@/app/app/listings/actions";
-import { Lock, Loader2 } from "lucide-react";
+import { requestUnlockHoldAction } from "@/app/app/listings/actions";
+import { Lock, Loader2, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 
 type Props = {
   listingId: string;
   hasPremium: boolean;
-  isPending?: boolean;
   isUnlocked?: boolean;
   isSignedIn: boolean;
+  onUnlocked?: () => void;
 };
 
 export function ListingUnlockPanel({
   listingId,
   hasPremium,
-  isPending = false,
   isUnlocked = false,
   isSignedIn,
+  onUnlocked,
 }: Props) {
   const [unlocked, setUnlocked] = useState(isUnlocked);
-  const [pendingRequest, setPendingRequest] = useState(isPending);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
     setUnlocked(isUnlocked);
-    setPendingRequest(isPending);
-  }, [isUnlocked, isPending]);
+  }, [isUnlocked]);
 
   const nextPath = `/app/listings/${listingId}`;
 
-  function onRequest() {
+  function onMessageSeller() {
     setError(null);
     startTransition(async () => {
       const res = await requestUnlockHoldAction(listingId);
@@ -45,23 +42,8 @@ export function ListingUnlockPanel({
         setError(res.error);
         return;
       }
-      if (res.alreadyUnlocked) {
-        setUnlocked(true);
-        return;
-      }
-      setPendingRequest(true);
-    });
-  }
-
-  function onCancelRequest() {
-    setError(null);
-    startTransition(async () => {
-      const res = await cancelUnlockHoldAction(listingId);
-      if (!res.ok) {
-        setError(res.error);
-        return;
-      }
-      setPendingRequest(false);
+      setUnlocked(true);
+      onUnlocked?.();
     });
   }
 
@@ -72,9 +54,9 @@ export function ListingUnlockPanel({
           <div className="flex items-start gap-2">
             <Lock className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
             <div>
-              <h2 className="font-semibold">Unlock this listing</h2>
+              <h2 className="font-semibold">Message the seller</h2>
               <p className="text-sm text-base-content/65">
-                Sign in with Premium to request a chat with the seller.
+                Sign in with Premium to chat about this book.
               </p>
             </div>
           </div>
@@ -82,7 +64,7 @@ export function ListingUnlockPanel({
             href={`/auth/sign-in?next=${encodeURIComponent(nextPath)}`}
             className="btn btn-primary"
           >
-            Sign in to unlock
+            Sign in to message
           </Link>
         </div>
       </div>
@@ -102,7 +84,7 @@ export function ListingUnlockPanel({
             <div>
               <h2 className="font-semibold">Premium required</h2>
               <p className="text-sm text-base-content/65">
-                Subscribe to unlock listings and chat with sellers. Listing books stays free.
+                Subscribe to message sellers. Listing your own books stays free.
               </p>
             </div>
           </div>
@@ -118,15 +100,12 @@ export function ListingUnlockPanel({
     <div className="card bg-base-100 border border-primary/20 shadow-md">
       <div className="card-body gap-3">
         <div className="flex items-start gap-2">
-          <Lock className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
+          <MessageCircle className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
           <div>
-            <h2 className="font-semibold">
-              {pendingRequest ? "Request sent" : "Request chat"}
-            </h2>
+            <h2 className="font-semibold">Message seller</h2>
             <p className="text-sm text-base-content/65">
-              {pendingRequest
-                ? "Waiting for the seller to reply. You can message once they respond."
-                : "Included with your Premium subscription — no extra charge for this book."}
+              Included with Premium — chat opens instantly. Other buyers can message too until
+              the book sells.
             </p>
           </div>
         </div>
@@ -137,33 +116,19 @@ export function ListingUnlockPanel({
           </div>
         ) : null}
 
-        <div className="flex flex-wrap gap-2">
-          {pendingRequest ? (
-            <button
-              type="button"
-              className="btn btn-outline btn-primary border-primary/30"
-              disabled={pending}
-              onClick={() => onCancelRequest()}
-            >
-              {pending ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden /> : null}
-              Cancel request
-            </button>
+        <button
+          type="button"
+          className="btn btn-primary gap-2"
+          disabled={pending}
+          onClick={() => onMessageSeller()}
+        >
+          {pending ? (
+            <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
           ) : (
-            <button
-              type="button"
-              className="btn btn-primary gap-2"
-              disabled={pending}
-              onClick={() => onRequest()}
-            >
-              {pending ? (
-                <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
-              ) : (
-                <Lock className="h-5 w-5" aria-hidden />
-              )}
-              Request chat
-            </button>
+            <MessageCircle className="h-5 w-5" aria-hidden />
           )}
-        </div>
+          Message seller
+        </button>
       </div>
     </div>
   );

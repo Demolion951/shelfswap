@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import {
+  CARD_CATALOGUE_SIZE,
   firstSellerPhotoSrc,
   listingCoverCandidatesForCard,
 } from "@/lib/listings/listingCover";
@@ -202,7 +203,7 @@ export async function fetchInboxThreads(userId: string): Promise<InboxThread[]> 
       const listing = meta as ListingWithRelations;
       const lm = lastMsg.get(a.listingId);
       const lastActivityAt = lm?.at ?? a.sortFallback;
-      const coverCandidates = listingCoverCandidatesForCard(listing, "S");
+      const coverCandidates = listingCoverCandidatesForCard(listing, CARD_CATALOGUE_SIZE);
       const sellerPhoto = firstSellerPhotoSrc(listing);
       return {
         listingId: a.listingId,

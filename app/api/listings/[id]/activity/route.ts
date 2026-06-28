@@ -8,8 +8,10 @@ import { NextResponse } from "next/server";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   const { id: listingId } = await context.params;
+  const threadBuyerId = new URL(request.url).searchParams.get("threadBuyerId");
+  const dealBuyerId = new URL(request.url).searchParams.get("dealBuyerId");
   const supabase = await createClient();
   const {
     data: { user },
@@ -31,7 +33,13 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 
   const isOwner = listing.user_id === user.id;
-  const snapshot = await fetchListingActivitySnapshot(listingId, user.id, isOwner);
+  const snapshot = await fetchListingActivitySnapshot(
+    listingId,
+    user.id,
+    isOwner,
+    threadBuyerId,
+    dealBuyerId,
+  );
   if (!snapshot) {
     return NextResponse.json({ error: "unavailable" }, { status: 500 });
   }

@@ -5,6 +5,7 @@
  * Location: app/app/listings/private-actions.ts
  */
 import { createClient } from "@/lib/supabase/server";
+import { postListingMessageRpc } from "@/lib/listings/postListingMessageRpc";
 import { revalidatePath } from "next/cache";
 import { logEventAction } from "@/app/app/events/actions";
 
@@ -19,6 +20,9 @@ export async function sendListingMessageAction(
 ): Promise<SimpleActionResult> {
   const listingId = String(formData.get("listing_id") ?? "").trim();
   const body = String(formData.get("body") ?? "").trim();
+  const threadRaw = formData.get("thread_buyer_id");
+  const threadBuyerId =
+    threadRaw != null && String(threadRaw).trim().length > 0 ? String(threadRaw).trim() : null;
 
   if (!listingId) {
     return { ok: false, error: "Missing listing." };
@@ -49,9 +53,10 @@ export async function sendListingMessageAction(
     console.error("[sendListingMessageAction] profile", profErr.message);
   }
 
-  const { data: rpcData, error: rpcErr } = await supabase.rpc("post_listing_message", {
-    p_listing_id: listingId,
-    p_body: body,
+  const { data: rpcData, error: rpcErr } = await postListingMessageRpc(supabase, {
+    listingId,
+    body,
+    threadBuyerId,
   });
 
   if (rpcErr) {
@@ -89,7 +94,9 @@ export async function sendListingMessageAction(
         code === "not_participant"
           ? "You can't message on this listing (unlock it first, or list it yourself)."
           : code === "no_buyer_yet"
-            ? "Messages open when a buyer requests unlock or unlocks your listing."
+            ? "Messages open when a buyer unlocks your listing."
+          : code === "thread_required" || code === "bad_thread"
+            ? "Choose which buyer conversation to reply in."
           : code === "too_long"
             ? "Message is too long (max 2000 characters)."
             : code === "empty_body"

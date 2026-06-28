@@ -85,21 +85,21 @@ export async function unlockListingAction(listingId: string): Promise<UnlockList
 }
 
 export type RequestUnlockResult =
-  | { ok: true; pending?: boolean; alreadyUnlocked?: boolean; requestId?: string }
+  | { ok: true; unlocked?: boolean; pending?: boolean; alreadyUnlocked?: boolean; requestId?: string }
   | { ok: false; error: string; requiredCredits?: number };
 
 type RequestRpcPayload = {
   ok?: boolean;
   error?: string;
   already_unlocked?: boolean;
+  unlocked?: boolean;
   pending?: boolean;
   request_id?: string;
   required?: number;
 };
 
 /**
- * Buyer requests unlock; credits are held until seller accepts.
- * Location: app/app/listings/actions.ts
+ * Premium buyer opens chat on a listing (instant unlock; unlimited buyers per listing).
  */
 export async function requestUnlockHoldAction(listingId: string): Promise<RequestUnlockResult> {
   const supabase = await createClient();
@@ -125,7 +125,14 @@ export async function requestUnlockHoldAction(listingId: string): Promise<Reques
     revalidatePath("/app/profile");
     revalidatePath("/app/subscribe");
     revalidatePath("/app/activity");
-    return { ok: true, pending: !!p.pending, alreadyUnlocked: !!p.already_unlocked, requestId: p.request_id };
+    revalidatePath("/app/messages");
+    return {
+      ok: true,
+      unlocked: !!p.unlocked || !!p.already_unlocked,
+      pending: !!p.pending,
+      alreadyUnlocked: !!p.already_unlocked,
+      requestId: p.request_id,
+    };
   }
   const req = typeof p.required === "number" ? p.required : undefined;
   return {

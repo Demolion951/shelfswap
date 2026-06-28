@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { postListingMessageRpc } from "@/lib/listings/postListingMessageRpc";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
@@ -54,6 +55,11 @@ export async function POST(req: Request) {
 
     const listingId = String(formData.get("listing_id") ?? "").trim();
     const caption = String(formData.get("body") ?? "").trim();
+    const threadRaw = formData.get("thread_buyer_id");
+    const threadBuyerId =
+      threadRaw != null && String(threadRaw).trim().length > 0
+        ? String(threadRaw).trim()
+        : null;
     const file = formData.get("photo");
 
     if (!listingId) {
@@ -96,10 +102,11 @@ export async function POST(req: Request) {
     }
 
     const publicUrl = `${base}/storage/v1/object/public/listing-photos/${path}`;
-    const { data: rpcData, error: rpcErr } = await supabase.rpc("post_listing_message", {
-      p_listing_id: listingId,
-      p_body: caption,
-      p_image_url: publicUrl,
+    const { data: rpcData, error: rpcErr } = await postListingMessageRpc(supabase, {
+      listingId,
+      body: caption,
+      imageUrl: publicUrl,
+      threadBuyerId,
     });
 
     if (rpcErr) {

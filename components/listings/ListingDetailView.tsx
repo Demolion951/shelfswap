@@ -2,7 +2,7 @@ import { ListingDetailInteractive } from "@/components/listings/ListingDetailInt
 import type { UnlockDeal } from "@/components/listings/DealPanel";
 import type { PendingUnlockRequest } from "@/components/listings/UnlockRequestsPanel";
 import type { BookBlurb } from "@/lib/books/openLibraryBlurb";
-import type { ListingMessageRow, ListingWithRelations } from "@/lib/listings/queries";
+import type { ListingMessageRow, ListingWithRelations, UnlockedBuyerRow } from "@/lib/listings/queries";
 
 /**
  * Book / listing detail: locked preview for buyers; messages after unlock (or for seller).
@@ -26,6 +26,8 @@ type Props = {
   distanceKm: number | null;
   creditsPendingSellerReply?: boolean;
   initialBlurb?: BookBlurb | null;
+  sellerActiveListingCount?: number;
+  initialUnlockedBuyers?: UnlockedBuyerRow[];
 };
 
 export function ListingDetailView(props: Props) {

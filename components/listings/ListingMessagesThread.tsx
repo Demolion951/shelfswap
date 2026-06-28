@@ -16,6 +16,8 @@ type Props = {
   listingId: string;
   messages: ListingMessageRow[];
   currentUserId: string | null;
+  /** Buyer thread for this conversation (required for seller replies). */
+  threadBuyerId?: string | null;
   /** When false, show thread read-only (e.g. seller with no buyers yet). */
   canCompose?: boolean;
   onMessageSent?: (message: ListingMessageRow) => void;
@@ -26,6 +28,7 @@ export function ListingMessagesThread({
   listingId,
   messages,
   currentUserId,
+  threadBuyerId = null,
   canCompose = true,
   onMessageSent,
   onSyncActivity,
@@ -94,6 +97,7 @@ export function ListingMessagesThread({
       sender_display_name: "You",
       body: trimmed,
       image_url: attachPreview,
+      thread_buyer_id: threadBuyerId ?? currentUserId,
       created_at: new Date().toISOString(),
     };
     const savedBody = trimmed;
@@ -113,6 +117,7 @@ export function ListingMessagesThread({
           fd.set("listing_id", listingId);
           fd.set("photo", compressed);
           if (savedBody) fd.set("body", savedBody);
+          if (threadBuyerId) fd.set("thread_buyer_id", threadBuyerId);
           const apiRes = await fetch("/api/listings/messages/photo", { method: "POST", body: fd });
           const json = (await apiRes.json()) as { ok?: boolean; error?: string; image_url?: string };
           res =
@@ -133,6 +138,7 @@ export function ListingMessagesThread({
         const fd = new FormData();
         fd.set("listing_id", listingId);
         fd.set("body", savedBody);
+        if (threadBuyerId) fd.set("thread_buyer_id", threadBuyerId);
         res = await sendListingMessageAction(fd);
       }
 

@@ -101,27 +101,27 @@ export function DealOptionsPanel({
     switch (confirmKind) {
       case "withdraw":
         return {
-          title: "Withdraw from this deal?",
-          body: "The seller has not replied yet. Your credits will be refunded and this listing will be open again.",
-          action: "Withdraw",
+          title: "Leave this conversation?",
+          body: "The seller has not replied yet. You will leave this chat and can message other listings.",
+          action: "Leave chat",
         };
       case "mutual_cancel":
         return {
           title: "Call off this deal?",
-          body: "Both of you must agree. Credits are not refunded once chat has started. The listing will be open again for others.",
+          body: "Both of you must agree. The listing will be open again for others once cancelled.",
           action: "Agree to cancel",
         };
       case "seller_relist":
         return {
           title: "Re-list this book?",
-          body: "The buyer has not messaged in over 14 days. This deal will close and the book goes back on discovery. Credits are not refunded.",
+          body: "The buyer has not messaged in over 14 days. This deal will close and the book goes back on discovery.",
           action: "Re-list book",
         };
       case "buyer_close":
         return {
           title: "Close this deal?",
-          body: "The seller has not messaged in over 14 days. Your unlock credits will be refunded and this listing will be open again.",
-          action: "Close & refund",
+          body: "The seller has not messaged in over 14 days. This conversation will close and you can browse other listings.",
+          action: "Close deal",
         };
       default:
         return null;
@@ -147,7 +147,7 @@ export function DealOptionsPanel({
             <li>
               <button type="button" className="gap-2 text-sm" onClick={() => openConfirm("withdraw")}>
                 <RotateCcw className="h-4 w-4 shrink-0" aria-hidden />
-                Withdraw (refund)
+                Leave chat
               </button>
             </li>
           ) : null}
@@ -191,7 +191,7 @@ export function DealOptionsPanel({
                 onClick={() => openConfirm("buyer_close")}
               >
                 <UserX className="h-4 w-4 shrink-0" aria-hidden />
-                Close & refund (seller inactive)
+                Close deal (seller inactive)
               </button>
             </li>
           ) : null}

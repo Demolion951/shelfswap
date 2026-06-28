@@ -7,6 +7,8 @@
 import { ListingDetailCarousel } from "@/components/listings/ListingDetailCarousel";
 import { OpenLibraryBlurbLoader } from "@/components/listings/OpenLibraryBlurbLoader";
 import { ListingSaveHeart } from "@/components/listings/ListingSaveHeart";
+import { ListingBuyerThreadPicker } from "@/components/listings/ListingBuyerThreadPicker";
+import { SellerListingLink } from "@/components/listings/SellerListingLink";
 import { markListingMessageNotificationsReadAction } from "@/app/app/notifications/actions";
 import { useBadgeCounts } from "@/components/nav/BadgeCountsProvider";
 import { DealHandoffPanel } from "@/components/listings/DealHandoffPanel";
@@ -20,20 +22,18 @@ import {
 } from "@/components/listings/UnlockRequestsPanel";
 import { computeDealOptionsEligibility } from "@/lib/listings/dealOptions";
 import type { ListingActivitySnapshot } from "@/lib/listings/fetchListingActivitySnapshot";
-import { sellerCanComposeMessages } from "@/lib/listings/messageCompose";
 import { listingAreaLine } from "@/lib/listings/areaDisplay";
 import { CONDITION_LABELS, formatBindingType } from "@/lib/listings/format";
 import {
   applyBuyerObservedSellerReply,
-  createUnlockDealFromRequest,
   hasNewMessageFrom,
   mergeMessages,
 } from "@/lib/listings/listingDetailTransitions";
-import type { ListingMessageRow, ListingWithRelations } from "@/lib/listings/queries";
+import type { ListingMessageRow, ListingWithRelations, UnlockedBuyerRow } from "@/lib/listings/queries";
 import type { BookBlurb } from "@/lib/books/openLibraryBlurb";
 import { MapPin } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type Props = {
   listing: ListingWithRelations & { status?: string };
@@ -53,6 +53,8 @@ type Props = {
   distanceKm: number | null;
   creditsPendingSellerReply?: boolean;
   initialBlurb?: BookBlurb | null;
+  sellerActiveListingCount?: number;
+  initialUnlockedBuyers?: UnlockedBuyerRow[];
 };
 
 export function ListingDetailInteractive({
@@ -73,13 +75,18 @@ export function ListingDetailInteractive({
   distanceKm: _distanceKm,
   creditsPendingSellerReply: initialCreditsPendingSellerReply = false,
   initialBlurb = null,
+  sellerActiveListingCount = 0,
+  initialUnlockedBuyers = [],
 }: Props) {
   const { setCounts } = useBadgeCounts();
   const [messages, setMessages] = useState(initialMessages);
   const [pendingRequests, setPendingRequests] = useState(initialPendingRequests);
   const [unlockDeal, setUnlockDeal] = useState(initialUnlockDeal);
   const [viewerUnlocked, setViewerUnlocked] = useState(initialViewerUnlocked);
-  const [viewerPendingUnlock, setViewerPendingUnlock] = useState(initialViewerPendingUnlock);
+  const [unlockedBuyers, setUnlockedBuyers] = useState(initialUnlockedBuyers);
+  const [activeThreadBuyerId, setActiveThreadBuyerId] = useState<string | null>(
+    initialUnlockedBuyers[0]?.buyerId ?? null,
+  );
   const [creditsPendingSellerReply, setCreditsPendingSellerReply] = useState(
     initialCreditsPendingSellerReply,
   );
@@ -92,60 +99,83 @@ export function ListingDetailInteractive({
     setPendingRequests(initialPendingRequests);
     setUnlockDeal(initialUnlockDeal);
     setViewerUnlocked(initialViewerUnlocked);
-    setViewerPendingUnlock(initialViewerPendingUnlock);
+    setUnlockedBuyers(initialUnlockedBuyers);
+    setActiveThreadBuyerId((prev) => {
+      if (prev && initialUnlockedBuyers.some((b) => b.buyerId === prev)) return prev;
+      return initialUnlockedBuyers[0]?.buyerId ?? null;
+    });
     setCreditsPendingSellerReply(initialCreditsPendingSellerReply);
   }, [
     initialMessages,
     initialPendingRequests,
     initialUnlockDeal,
     initialViewerUnlocked,
-    initialViewerPendingUnlock,
+    initialUnlockedBuyers,
     initialCreditsPendingSellerReply,
   ]);
 
   const applySnapshot = useCallback(
     (snapshot: ListingActivitySnapshot) => {
       const prev = messagesRef.current;
-      setMessages((current) => mergeMessages(current, snapshot.messages));
+      if (isOwner) {
+        setMessages(snapshot.messages);
+      } else {
+        setMessages((current) => mergeMessages(current, snapshot.messages));
+      }
 
       if (!isOwner && hasNewMessageFrom(prev, snapshot.messages, listing.user_id)) {
         const buyerUpdate = applyBuyerObservedSellerReply();
         setViewerUnlocked(buyerUpdate.viewerUnlocked);
-        setViewerPendingUnlock(buyerUpdate.viewerPendingUnlock);
         setCreditsPendingSellerReply(buyerUpdate.creditsPendingSellerReply);
       }
 
       setPendingRequests(snapshot.pendingRequests);
       setUnlockDeal(snapshot.unlockDeal);
-
-      if (!isOwner) {
+      if (isOwner) {
+        setUnlockedBuyers(snapshot.unlockedBuyers);
+        if (
+          activeThreadBuyerId &&
+          !snapshot.unlockedBuyers.some((b) => b.buyerId === activeThreadBuyerId)
+        ) {
+          setActiveThreadBuyerId(snapshot.unlockedBuyers[0]?.buyerId ?? null);
+        }
+      } else {
         setViewerUnlocked(snapshot.viewerUnlocked);
-        setViewerPendingUnlock(snapshot.viewerPendingUnlock);
         setCreditsPendingSellerReply(snapshot.creditsPendingSellerReply);
       }
     },
-    [isOwner, listing.user_id],
+    [isOwner, listing.user_id, activeThreadBuyerId],
   );
 
   const syncActivity = useCallback(async () => {
     try {
-      const res = await fetch(`/api/listings/${listing.id}/activity`, { cache: "no-store" });
+      const params = new URLSearchParams();
+      if (isOwner && activeThreadBuyerId) {
+        params.set("threadBuyerId", activeThreadBuyerId);
+        params.set("dealBuyerId", activeThreadBuyerId);
+      }
+      const qs = params.toString();
+      const res = await fetch(
+        `/api/listings/${listing.id}/activity${qs ? `?${qs}` : ""}`,
+        { cache: "no-store" },
+      );
       if (!res.ok) return;
       const snapshot = (await res.json()) as ListingActivitySnapshot;
       applySnapshot(snapshot);
     } catch {
       /* ignore transient network errors */
     }
-  }, [applySnapshot, listing.id]);
+  }, [applySnapshot, listing.id, isOwner, activeThreadBuyerId]);
 
   const shouldPoll =
     isSignedIn &&
-    (isOwner ||
-      viewerUnlocked ||
-      viewerPendingUnlock ||
-      pendingRequests.length > 0 ||
-      !!unlockDeal) &&
+    (isOwner || viewerUnlocked) &&
     !unlockDeal?.completedAt;
+
+  useEffect(() => {
+    if (!isOwner || !activeThreadBuyerId) return;
+    void syncActivity();
+  }, [isOwner, activeThreadBuyerId, syncActivity]);
 
   useEffect(() => {
     if (!shouldPoll) return;
@@ -184,23 +214,12 @@ export function ListingDetailInteractive({
     };
   }, [shouldPoll, syncActivity]);
 
-  const handleMessageSent = useCallback(
-    (message: ListingMessageRow) => {
-      setMessages((prev) => {
-        if (prev.some((m) => m.id === message.id)) return prev;
-        return [...prev, message];
-      });
-
-      if (isOwner && message.sender_id === listing.user_id) {
-        setPendingRequests((prev) => {
-          if (prev.length === 0) return prev;
-          setUnlockDeal((d) => d ?? createUnlockDealFromRequest(prev[0]));
-          return [];
-        });
-      }
-    },
-    [isOwner, listing.user_id],
-  );
+  const handleMessageSent = useCallback((message: ListingMessageRow) => {
+    setMessages((prev) => {
+      if (prev.some((m) => m.id === message.id)) return prev;
+      return [...prev, message];
+    });
+  }, []);
 
   const handleDealUpdated = useCallback(
     (next: UnlockDeal | null) => {
@@ -208,7 +227,6 @@ export function ListingDetailInteractive({
       if (!next) {
         if (!isOwner) {
           setViewerUnlocked(false);
-          setViewerPendingUnlock(false);
           setCreditsPendingSellerReply(false);
         }
       }
@@ -223,11 +241,10 @@ export function ListingDetailInteractive({
   const areaLine = !isOwner && isSignedIn ? listingAreaLine(listing.approx_area_text) : null;
 
   const canComposeMessages =
-    !isOwner ||
-    sellerCanComposeMessages(listing.user_id, messages, {
-      pendingUnlockCount: pendingRequests.length,
-      hasActiveUnlock: !!unlockDeal,
-    });
+    (!isOwner && viewerUnlocked) ||
+    (isOwner && !!activeThreadBuyerId && unlockedBuyers.length > 0);
+
+  const threadBuyerId = isOwner ? activeThreadBuyerId : currentUserId;
 
   const dealOptionsEligibility = unlockDeal
     ? computeDealOptionsEligibility({
@@ -239,7 +256,7 @@ export function ListingDetailInteractive({
       })
     : null;
 
-  const showParticipantSections = isOwner || viewerUnlocked || viewerPendingUnlock;
+  const showParticipantSections = isOwner || viewerUnlocked;
 
   useEffect(() => {
     if (!isSignedIn || !showParticipantSections) return;
@@ -314,9 +331,17 @@ export function ListingDetailInteractive({
 
       {showParticipantSections ? (
         <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
-          <p className="text-sm text-base-content/60 min-w-0">
-            Listed by <span className="font-medium text-base-content">@{seller}</span>
-          </p>
+          {!isOwner ? (
+            <SellerListingLink
+              sellerId={listing.user_id}
+              sellerName={seller}
+              activeListingCount={sellerActiveListingCount}
+            />
+          ) : (
+            <p className="text-sm text-base-content/60 min-w-0">
+              Listed by <span className="font-medium text-base-content">@{seller}</span>
+            </p>
+          )}
           {unlockDeal ? (
             <DealHandoffPanel
               listingId={listing.id}
@@ -326,9 +351,13 @@ export function ListingDetailInteractive({
             />
           ) : null}
         </div>
-      ) : (
-        <p className="text-sm text-base-content/50">Seller name hidden until unlock</p>
-      )}
+      ) : !isOwner ? (
+        <SellerListingLink
+          sellerId={listing.user_id}
+          sellerName={seller}
+          activeListingCount={sellerActiveListingCount}
+        />
+      ) : null}
 
       {showParticipantSections ? (
         <>
@@ -340,6 +369,16 @@ export function ListingDetailInteractive({
                 setPendingRequests((prev) => prev.filter((r) => r.id !== id))
               }
               onSyncActivity={syncActivity}
+            />
+          ) : null}
+          {isOwner ? (
+            <ListingBuyerThreadPicker
+              buyers={unlockedBuyers.map((b) => ({ buyerId: b.buyerId, handle: b.handle }))}
+              activeBuyerId={activeThreadBuyerId}
+              onSelect={(buyerId) => {
+                setActiveThreadBuyerId(buyerId);
+                void syncActivity();
+              }}
             />
           ) : null}
           {unlockDeal ? (
@@ -365,33 +404,26 @@ export function ListingDetailInteractive({
                   <p className="text-sm text-base-content/60 leading-snug">
                     This deal is completed. The listing is no longer shown on Home or Browse.
                   </p>
-                ) : viewerPendingUnlock && !viewerUnlocked ? (
-                  <p className="text-sm text-base-content/60 leading-snug">
-                    When the seller replies, your request is accepted and you can chat.
-                  </p>
-                ) : creditsPendingSellerReply ? (
-                  <div className="alert alert-info text-sm py-2">
-                    You can message below. Chat opens fully when the seller sends their first reply.
-                  </div>
-                ) : (
-                  <div className="alert alert-success text-sm py-2">
-                    You&apos;ve unlocked this listing — chat below to arrange handoff.
-                  </div>
-                )
+                ) : null
               ) : unlockDeal?.completedAt ? (
                 <p className="text-sm text-base-content/60 leading-snug">
                   Deal completed — this listing is archived and hidden from discovery.
                 </p>
               ) : !canComposeMessages ? (
                 <p className="text-sm text-base-content/60 leading-snug">
-                  Messages appear here when a buyer requests unlock or unlocks your listing.
+                  Messages appear here when a buyer unlocks your listing.
                 </p>
-              ) : null}
+              ) : (
+                <p className="text-sm text-base-content/60 leading-snug">
+                  Each buyer has a private conversation — pick one above to reply.
+                </p>
+              )}
               {messages.length > 0 || canComposeMessages ? (
                 <ListingMessagesThread
                   listingId={listing.id}
                   messages={messages}
                   currentUserId={currentUserId}
+                  threadBuyerId={threadBuyerId}
                   canCompose={canComposeMessages}
                   onMessageSent={handleMessageSent}
                   onSyncActivity={syncActivity}
@@ -406,9 +438,12 @@ export function ListingDetailInteractive({
         <ListingUnlockPanel
           listingId={listing.id}
           hasPremium={hasPremium}
-          isPending={viewerPendingUnlock}
           isUnlocked={viewerUnlocked}
           isSignedIn={isSignedIn}
+          onUnlocked={() => {
+            setViewerUnlocked(true);
+            void syncActivity();
+          }}
         />
       ) : null}
 

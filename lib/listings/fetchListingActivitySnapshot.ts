@@ -4,14 +4,18 @@
  */
 import type { UnlockDeal } from "@/components/listings/DealPanel";
 import type { PendingUnlockRequest } from "@/components/listings/UnlockRequestsPanel";
-import { fetchListingMessagesIfAllowed } from "@/lib/listings/queries";
+import {
+  fetchListingMessagesIfAllowed,
+  fetchUnlockedBuyersForListing,
+  type UnlockedBuyerRow,
+} from "@/lib/listings/queries";
 import { normalizeUnlockCredits } from "@/lib/listings/swapCredits";
 import { createClient } from "@/lib/supabase/server";
-import { pickSellerUnlockRow } from "@/lib/listings/unlockDeal";
 
 export type ListingActivitySnapshot = {
   messages: Awaited<ReturnType<typeof fetchListingMessagesIfAllowed>>;
   pendingRequests: PendingUnlockRequest[];
+  unlockedBuyers: UnlockedBuyerRow[];
   viewerUnlocked: boolean;
   viewerPendingUnlock: boolean;
   creditsPendingSellerReply: boolean;
@@ -30,8 +34,20 @@ function parseSwapCreditsRefunded(value: unknown): number {
 
 async function buildUnlockDeal(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  listingId: string,
-  row: NonNullable<ReturnType<typeof pickSellerUnlockRow>>,
+  row: {
+    buyer_id: string;
+    deal_type: string | null;
+    swap_status: string | null;
+    offered_listing_id: string | null;
+    credits_spent: number | null;
+    swap_credits_refunded: number | null;
+    buyer_confirmed_at: string | null;
+    seller_confirmed_at: string | null;
+    completed_at: string | null;
+    created_at: string | null;
+    buyer_mutual_cancel_at: string | null;
+    seller_mutual_cancel_at: string | null;
+  },
 ): Promise<UnlockDeal> {
   let offeredTitle: string | null = null;
   let offeredCredits: number | null = null;
@@ -66,16 +82,19 @@ export async function fetchListingActivitySnapshot(
   listingId: string,
   userId: string,
   isOwner: boolean,
+  threadBuyerId?: string | null,
+  dealBuyerId?: string | null,
 ): Promise<ListingActivitySnapshot | null> {
   const supabase = await createClient();
 
-  const messages = await fetchListingMessagesIfAllowed(listingId);
+  const messages = await fetchListingMessagesIfAllowed(listingId, 200, threadBuyerId ?? undefined);
 
   let viewerUnlocked = false;
   let viewerPendingUnlock = false;
   let creditsPendingSellerReply = false;
   let unlockDeal: UnlockDeal | null = null;
   let pendingRequests: PendingUnlockRequest[] = [];
+  let unlockedBuyers: UnlockedBuyerRow[] = [];
 
   if (!isOwner) {
     const [unlockRes, pendingReqRes] = await Promise.all([
@@ -108,19 +127,23 @@ export async function fetchListingActivitySnapshot(
         .eq("listing_id", listingId)
         .eq("buyer_id", userId)
         .maybeSingle();
-      if (u) unlockDeal = await buildUnlockDeal(supabase, listingId, u);
+      if (u) unlockDeal = await buildUnlockDeal(supabase, u);
     }
   } else {
-    const { data: unlockRows } = await supabase
-      .from("listing_unlocks")
-      .select(
-        "buyer_id, deal_type, swap_status, offered_listing_id, buyer_confirmed_at, seller_confirmed_at, completed_at, credits_spent, swap_credits_refunded, created_at, buyer_mutual_cancel_at, seller_mutual_cancel_at",
-      )
-      .eq("listing_id", listingId)
-      .order("created_at", { ascending: false })
-      .limit(24);
-    const u = pickSellerUnlockRow(unlockRows ?? null);
-    if (u) unlockDeal = await buildUnlockDeal(supabase, listingId, u);
+    unlockedBuyers = await fetchUnlockedBuyersForListing(listingId);
+
+    const targetBuyerId = dealBuyerId ?? threadBuyerId ?? unlockedBuyers[0]?.buyerId ?? null;
+    if (targetBuyerId) {
+      const { data: u } = await supabase
+        .from("listing_unlocks")
+        .select(
+          "buyer_id, deal_type, swap_status, offered_listing_id, buyer_confirmed_at, seller_confirmed_at, completed_at, credits_spent, swap_credits_refunded, created_at, buyer_mutual_cancel_at, seller_mutual_cancel_at",
+        )
+        .eq("listing_id", listingId)
+        .eq("buyer_id", targetBuyerId)
+        .maybeSingle();
+      if (u) unlockDeal = await buildUnlockDeal(supabase, u);
+    }
 
     const { data: reqs } = await supabase
       .from("listing_unlock_requests")
@@ -155,6 +178,7 @@ export async function fetchListingActivitySnapshot(
   return {
     messages,
     pendingRequests,
+    unlockedBuyers,
     viewerUnlocked,
     viewerPendingUnlock,
     creditsPendingSellerReply,

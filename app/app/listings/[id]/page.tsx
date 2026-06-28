@@ -1,17 +1,19 @@
 import { ListingDetailView } from "@/components/listings/ListingDetailView";
-import { fetchBookBlurb } from "@/lib/books/openLibraryBlurb";
 import { fetchDistanceKmForListing } from "@/lib/listings/distance";
 import {
   fetchListingById,
   fetchListingMessagesIfAllowed,
   fetchMyListings,
+  fetchUnlockedBuyersForListing,
+  getMyActiveListingsCount,
   type ListingMessageRow,
+  type UnlockedBuyerRow,
 } from "@/lib/listings/queries";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import type { PendingUnlockRequest } from "@/components/listings/UnlockRequestsPanel";
 import type { ListingWithRelations } from "@/lib/listings/queries";
-import { pickSellerUnlockRow } from "@/lib/listings/unlockDeal";
+import { pickSellerUnlockRowForBuyer } from "@/lib/listings/unlockDeal";
 import { normalizeUnlockCredits } from "@/lib/listings/swapCredits";
 
 type Props = { params: Promise<{ id: string }> };
@@ -178,9 +180,15 @@ export default async function ListingPage({ params }: Props) {
     }
   }
 
+  let initialUnlockedBuyers: UnlockedBuyerRow[] = [];
+  if (isOwner) {
+    initialUnlockedBuyers = await fetchUnlockedBuyersForListing(id);
+  }
+
   // Deal state: only after listing_unlocks exists (not during pending request-only phase).
   if ((isOwner || viewerUnlocked) && user) {
     if (isOwner) {
+      const activeDealBuyerId = initialUnlockedBuyers[0]?.buyerId ?? null;
       const { data: unlockRows } = await supabase
         .from("listing_unlocks")
         .select(
@@ -189,7 +197,7 @@ export default async function ListingPage({ params }: Props) {
         .eq("listing_id", id)
         .order("created_at", { ascending: false })
         .limit(24);
-      const u = pickSellerUnlockRow(unlockRows ?? null);
+      const u = pickSellerUnlockRowForBuyer(unlockRows ?? null, activeDealBuyerId);
       if (u) {
         let offeredTitle: string | null = null;
         let offeredCredits: number | null = null;
@@ -326,13 +334,31 @@ export default async function ListingPage({ params }: Props) {
     }
   }
 
-  const [messages, , distanceKm, initialBlurb] = await Promise.all([
-    isOwner || viewerUnlocked || viewerPendingUnlock
-      ? fetchListingMessagesIfAllowed(id)
-      : Promise.resolve([] as ListingMessageRow[]),
+  const messageThreadBuyerId = isOwner
+    ? (initialUnlockedBuyers[0]?.buyerId ?? null)
+    : viewerUnlocked && user
+      ? user.id
+      : null;
+
+  const shouldFetchMessages = isOwner || viewerUnlocked || viewerPendingUnlock;
+  let messagesPromise: Promise<ListingMessageRow[]>;
+  if (!shouldFetchMessages) {
+    messagesPromise = Promise.resolve([]);
+  } else if (isOwner) {
+    messagesPromise = messageThreadBuyerId
+      ? fetchListingMessagesIfAllowed(id, 200, messageThreadBuyerId)
+      : Promise.resolve([]);
+  } else if (viewerUnlocked && user) {
+    messagesPromise = fetchListingMessagesIfAllowed(id, 200, user.id);
+  } else {
+    messagesPromise = fetchListingMessagesIfAllowed(id);
+  }
+
+  const [messages, , distanceKm, sellerActiveListingCount] = await Promise.all([
+    messagesPromise,
     copyListingGeoFromProfileIfNeeded(),
     !isOwner ? fetchDistanceKmForListing(id, user?.id ?? null) : Promise.resolve(null),
-    fetchBookBlurb(listing.isbn, listing.title, listing.author),
+    getMyActiveListingsCount(listing.user_id),
   ]);
 
   return (
@@ -353,7 +379,8 @@ export default async function ListingPage({ params }: Props) {
       distanceKm={distanceKm}
       viewerSaved={viewerSaved}
       creditsPendingSellerReply={creditsPendingSellerReply}
-      initialBlurb={initialBlurb}
+      sellerActiveListingCount={sellerActiveListingCount}
+      initialUnlockedBuyers={initialUnlockedBuyers}
     />
   );
 }

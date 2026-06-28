@@ -361,26 +361,119 @@ export type ListingMessageRow = {
   sender_display_name: string;
   body: string;
   image_url: string | null;
+  thread_buyer_id: string;
   created_at: string;
+};
+
+const LISTING_MESSAGE_SELECT_WITH_THREAD =
+  "id, listing_id, sender_id, sender_display_name, body, image_url, thread_buyer_id, created_at";
+
+const LISTING_MESSAGE_SELECT_LEGACY =
+  "id, listing_id, sender_id, sender_display_name, body, image_url, created_at";
+
+function isMissingThreadBuyerColumn(error: { message?: string } | null): boolean {
+  const msg = (error?.message ?? "").toLowerCase();
+  return msg.includes("thread_buyer_id") && msg.includes("does not exist");
+}
+
+function normalizeLegacyListingMessage(row: Record<string, unknown>): ListingMessageRow {
+  return {
+    id: String(row.id),
+    listing_id: String(row.listing_id),
+    sender_id: String(row.sender_id),
+    sender_display_name: String(row.sender_display_name ?? "Member"),
+    body: String(row.body ?? ""),
+    image_url: (row.image_url as string | null) ?? null,
+    thread_buyer_id: String(row.sender_id),
+    created_at: String(row.created_at),
+  };
+}
+
+export type UnlockedBuyerRow = {
+  buyerId: string;
+  handle: string;
+  unlockedAt: string;
+  completedAt: string | null;
 };
 
 export async function fetchListingMessagesIfAllowed(
   listingId: string,
   limit = 200,
+  threadBuyerId?: string | null,
 ): Promise<ListingMessageRow[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let q = supabase
     .from("listing_messages")
-    .select("id, listing_id, sender_id, sender_display_name, body, image_url, created_at")
+    .select(LISTING_MESSAGE_SELECT_WITH_THREAD)
     .eq("listing_id", listingId)
     .order("created_at", { ascending: true })
     .limit(limit);
+
+  if (threadBuyerId) {
+    q = q.eq("thread_buyer_id", threadBuyerId);
+  }
+
+  const { data, error } = await q;
+
+  if (error && isMissingThreadBuyerColumn(error)) {
+    const { data: legacy, error: legacyErr } = await supabase
+      .from("listing_messages")
+      .select(LISTING_MESSAGE_SELECT_LEGACY)
+      .eq("listing_id", listingId)
+      .order("created_at", { ascending: true })
+      .limit(limit);
+
+    if (legacyErr) {
+      console.error("[fetchListingMessagesIfAllowed]", legacyErr.message);
+      return [];
+    }
+    return (legacy ?? []).map((row) =>
+      normalizeLegacyListingMessage(row as Record<string, unknown>),
+    );
+  }
 
   if (error) {
     console.error("[fetchListingMessagesIfAllowed]", error.message);
     return [];
   }
   return (data ?? []) as ListingMessageRow[];
+}
+
+/** Active unlock rows for seller conversation picker. */
+export async function fetchUnlockedBuyersForListing(
+  listingId: string,
+): Promise<UnlockedBuyerRow[]> {
+  const supabase = await createClient();
+  const { data: rows, error } = await supabase
+    .from("listing_unlocks")
+    .select("buyer_id, created_at, completed_at")
+    .eq("listing_id", listingId)
+    .is("completed_at", null)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("[fetchUnlockedBuyersForListing]", error.message);
+    return [];
+  }
+
+  const buyerIds = (rows ?? []).map((r) => r.buyer_id as string).filter(Boolean);
+  if (buyerIds.length === 0) return [];
+
+  const { data: profs } = await supabase.rpc("profiles_public_batch", {
+    p_user_ids: buyerIds,
+  });
+  const handleById = new Map<string, string>();
+  for (const p of profs ?? []) {
+    const id = p.id as string;
+    handleById.set(id, ((p.display_name as string | null) ?? "").trim() || "member");
+  }
+
+  return (rows ?? []).map((r) => ({
+    buyerId: r.buyer_id as string,
+    handle: handleById.get(r.buyer_id as string) ?? "member",
+    unlockedAt: r.created_at as string,
+    completedAt: (r.completed_at as string | null) ?? null,
+  }));
 }
 
 /** Which of the given listing ids the user has saved (for feed hearts). */

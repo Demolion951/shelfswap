@@ -86,8 +86,13 @@ export function OpenLibraryBlurbLoader({ isbn, title, author, initialBlurb }: Pr
 
   if (phase === "loading" && !blurb?.text) {
     return (
-      <section className="space-y-2" aria-busy="true" aria-label="Loading book description">
-        <div className="shelfswap-heading h-4 w-40 animate-pulse rounded bg-base-300/80" />
+      <section className="space-y-2" aria-busy="true" aria-labelledby="listing-book-blurb-heading">
+        <h2
+          id="listing-book-blurb-heading"
+          className="shelfswap-heading text-sm font-semibold text-secondary"
+        >
+          About this book
+        </h2>
         <div className="rounded-xl border border-base-300/80 bg-base-200/40 p-4 space-y-2">
           <div className="h-3 w-full animate-pulse rounded bg-base-300/70" />
           <div className="h-3 w-[92%] animate-pulse rounded bg-base-300/60" />
