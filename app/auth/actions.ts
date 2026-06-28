@@ -1,6 +1,11 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import {
+  parseSignupBirthday,
+  parseSignupDisplayName,
+  parseSignupSex,
+} from "@/lib/auth/signupProfile";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -88,15 +93,27 @@ export async function signUpWithPassword(
 ): Promise<AuthActionState> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const displayName = String(formData.get("display_name") ?? "").trim();
+  const displayName = parseSignupDisplayName(String(formData.get("display_name") ?? ""));
+  const birthdayRaw = String(formData.get("birthday") ?? "");
+  const sex = parseSignupSex(String(formData.get("sex") ?? ""));
   const nextRaw = String(formData.get("next") ?? "");
   const next = safeNextPath(nextRaw, "/app/home");
 
+  if (!displayName) {
+    return { error: "Enter your name (at least 2 characters)." };
+  }
   if (!email || !password) {
     return { error: "Email and password are required." };
   }
   if (password.length < 8) {
     return { error: "Password must be at least 8 characters." };
+  }
+  const birthdayParsed = parseSignupBirthday(birthdayRaw);
+  if (!birthdayParsed.ok) {
+    return { error: birthdayParsed.error };
+  }
+  if (!sex) {
+    return { error: "Please select sex." };
   }
 
   const supabase = await createClient();
@@ -105,7 +122,9 @@ export async function signUpWithPassword(
     password,
     options: {
       data: {
-        display_name: displayName || undefined,
+        display_name: displayName,
+        birthday: birthdayParsed.value,
+        sex,
       },
     },
   });
@@ -114,11 +133,25 @@ export async function signUpWithPassword(
     return { error: error.message };
   }
 
+  if (data.user) {
+    const { error: profileErr } = await supabase
+      .from("profiles")
+      .update({
+        display_name: displayName,
+        birthday: birthdayParsed.value,
+        sex,
+      })
+      .eq("id", data.user.id);
+    if (profileErr) {
+      console.warn("[signUpWithPassword] profile update", profileErr.message);
+    }
+  }
+
   // Email confirmation enabled: user may need to verify before session exists.
   if (!data.session) {
     return {
-      error:
-        "Check your email to confirm your account before signing in (if confirmation is enabled).",
+      message:
+        "Check your email to confirm your account, then sign in to continue.",
     };
   }
 
@@ -141,6 +174,14 @@ export async function ensureProfileRow(): Promise<{ ok: true } | { error: string
     (user.user_metadata?.display_name as string | undefined)?.trim() ||
     user.email?.split("@")[0] ||
     "New user";
+  const birthdayRaw = (user.user_metadata?.birthday as string | undefined)?.trim() || null;
+  const sexRaw = (user.user_metadata?.sex as string | undefined)?.trim() || null;
+  const sex = parseSignupSex(sexRaw ?? "");
+  let birthday: string | null = null;
+  if (birthdayRaw) {
+    const parsed = parseSignupBirthday(birthdayRaw);
+    if (parsed.ok) birthday = parsed.value;
+  }
 
   const { data: existing, error: selErr } = await supabase
     .from("profiles")
@@ -159,6 +200,8 @@ export async function ensureProfileRow(): Promise<{ ok: true } | { error: string
     id: user.id,
     display_name: displayName,
     avatar_url: null,
+    birthday,
+    sex,
   });
 
   if (error) {

@@ -1,10 +1,12 @@
 "use client";
 
 /**
- * Sign-up form (email/password + display name) for ShelfSwap.
- * Server action creates the auth user; DB trigger provisions profiles.
+ * Sign-up form: name, email, birthday, sex, and password for ShelfSwap.
+ * Server action creates auth user; DB trigger provisions profiles row.
+ * Location: components/auth/SignUpForm.tsx
  */
 import { signUpWithPassword, type AuthActionState } from "@/app/auth/actions";
+import { PROFILE_SEX_OPTIONS } from "@/lib/auth/signupProfile";
 import { useActionState, useRef, useEffect } from "react";
 
 type Props = {
@@ -13,15 +15,32 @@ type Props = {
 
 const initialState: AuthActionState = {};
 
+function maxBirthdayIso(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function minBirthdayIso(): string {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 120);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export function SignUpForm({ defaultNext = "/app/home" }: Props) {
   const [state, formAction, pending] = useActionState(
     signUpWithPassword,
     initialState,
   );
-  const emailRef = useRef<HTMLInputElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    emailRef.current?.focus();
+    nameRef.current?.focus();
   }, []);
 
   return (
@@ -34,26 +53,64 @@ export function SignUpForm({ defaultNext = "/app/home" }: Props) {
             {state.error}
           </div>
         ) : null}
+        {state.message ? (
+          <div role="status" className="alert alert-success text-sm">
+            {state.message}
+          </div>
+        ) : null}
         <label className="form-control w-full">
-          <span className="label-text">Display name</span>
+          <span className="label-text">Name</span>
           <input
+            ref={nameRef}
             className="input input-bordered w-full"
             name="display_name"
             type="text"
-            autoComplete="nickname"
-            placeholder="Optional"
+            autoComplete="name"
+            placeholder="Your name"
+            required
+            minLength={2}
+            maxLength={80}
           />
         </label>
         <label className="form-control w-full">
           <span className="label-text">Email</span>
           <input
-            ref={emailRef}
             className="input input-bordered w-full"
             name="email"
             type="email"
             autoComplete="email"
             required
           />
+        </label>
+        <label className="form-control w-full">
+          <span className="label-text">Birthday</span>
+          <input
+            className="input input-bordered w-full"
+            name="birthday"
+            type="date"
+            autoComplete="bday"
+            required
+            min={minBirthdayIso()}
+            max={maxBirthdayIso()}
+          />
+        </label>
+        <label className="form-control w-full">
+          <span className="label-text">Sex</span>
+          <select
+            className="select select-bordered w-full"
+            name="sex"
+            defaultValue=""
+            required
+          >
+            <option value="" disabled>
+              Select…
+            </option>
+            {PROFILE_SEX_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="form-control w-full">
           <span className="label-text">Password</span>
