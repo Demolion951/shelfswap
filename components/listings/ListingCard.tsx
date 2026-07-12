@@ -42,20 +42,20 @@ export function ListingCard({
       <figure
         className={
           variant === "row"
-            ? "relative aspect-[3/4] w-full overflow-hidden rounded-l-[0.65rem] bg-base-300"
-            : "relative aspect-[3/4] w-full overflow-hidden bg-base-300"
+            ? "relative aspect-[2/3] w-full overflow-hidden rounded-l-[0.65rem] bg-base-300"
+            : "relative aspect-[2/3] w-full overflow-hidden bg-base-300"
         }
       >
         <ListingCoverImage
           listing={listing}
-          size="M"
-          className="h-full w-full object-cover"
+          size="L"
+          className="h-full w-full object-cover object-center"
           loading={priorityImage ? "eager" : "lazy"}
           fetchPriority={priorityImage ? "high" : "auto"}
           noCoverClassName={
             compact
-              ? "flex h-full items-center justify-center text-[10px] text-base-content/40 px-1 text-center"
-              : "flex h-full items-center justify-center text-xs text-base-content/40 px-1 text-center"
+              ? "absolute inset-0 flex items-center justify-center text-[10px] text-base-content/40 px-1 text-center"
+              : "absolute inset-0 flex items-center justify-center text-xs text-base-content/40 px-1 text-center"
           }
         />
       </figure>

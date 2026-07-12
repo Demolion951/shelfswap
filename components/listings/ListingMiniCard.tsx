@@ -38,18 +38,18 @@ export function ListingMiniCard({
     >
       <div className={compact ? "p-1.5" : "p-2"}>
         <figure
-          className={`aspect-[3/4] w-full overflow-hidden bg-base-300 ${compact ? "rounded" : "rounded-md"}`}
+          className={`relative aspect-[2/3] w-full overflow-hidden bg-base-300 ${compact ? "rounded" : "rounded-md"}`}
         >
           <ListingCoverImage
             listing={listing}
-            size="M"
-            className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+            size="L"
+            className="h-full w-full object-cover object-center transition-transform duration-200 group-hover:scale-[1.02]"
             loading={priorityImage ? "eager" : "lazy"}
             fetchPriority={priorityImage ? "high" : "auto"}
             noCoverClassName={
               compact
-                ? "flex h-full items-center justify-center text-[9px] text-base-content/35 px-0.5 text-center"
-                : "flex h-full items-center justify-center text-[10px] text-base-content/35 px-1 text-center"
+                ? "absolute inset-0 flex items-center justify-center text-[9px] text-base-content/35 px-0.5 text-center"
+                : "absolute inset-0 flex items-center justify-center text-[10px] text-base-content/35 px-1 text-center"
             }
           />
         </figure>

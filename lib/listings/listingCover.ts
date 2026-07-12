@@ -7,7 +7,7 @@ import { coverImageSrcForDisplay } from "@/lib/books/openLibraryCoverDisplay";
 import type { ListingWithRelations } from "@/lib/listings/queries";
 
 /** Primary size for catalogue covers — home + detail must match. */
-export const CARD_CATALOGUE_SIZE: CoverSize = "M";
+export const CARD_CATALOGUE_SIZE: CoverSize = "L";
 
 export function sortedListingPhotos(listing: ListingWithRelations) {
   const photos = listing.listing_photos ?? [];
@@ -199,6 +199,31 @@ export function directCatalogueCoverUrl(
 
 export function isCatalogueCoverApiUrl(url: string): boolean {
   return url.includes("/api/book-cover") || url.includes("/api/openlibrary-cover");
+}
+
+/**
+ * On localhost, load catalogue covers from the live site (Cloudflare-warm) so Home matches
+ * shelfswap.net. Production / preview keep same-origin paths.
+ */
+export function catalogueCoverUrlForClient(pathOrUrl: string): string {
+  if (!pathOrUrl.startsWith("/api/book-cover") && !pathOrUrl.startsWith("/api/openlibrary-cover")) {
+    return pathOrUrl;
+  }
+  if (typeof window === "undefined") return pathOrUrl;
+  const host = window.location.hostname;
+  if (host !== "localhost" && host !== "127.0.0.1") return pathOrUrl;
+
+  const origin = (
+    process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
+    "https://shelfswap.net"
+  ).replace(/\/$/, "");
+  if (!origin || /localhost|127\.0\.0\.1/i.test(origin)) return pathOrUrl;
+  return `${origin}${pathOrUrl}`;
+}
+
+/** Rewrite a cover candidate list for the current browser host. */
+export function catalogueCoverCandidatesForClient(candidates: string[]): string[] {
+  return candidates.map(catalogueCoverUrlForClient);
 }
 
 /** Shared detail-page cover frame (consistent sizing). */

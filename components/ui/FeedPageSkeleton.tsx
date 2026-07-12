@@ -12,7 +12,7 @@ export function FeedPageSkeleton({ rows = 6 }: { rows?: number }) {
             key={i}
             className="rounded-xl border border-base-300/50 bg-base-100 p-2"
           >
-            <div className="aspect-[3/4] w-full rounded-md bg-base-300/50" />
+            <div className="aspect-[2/3] w-full rounded-md bg-base-300/50" />
             <div className="mt-2 h-3 w-full rounded bg-base-300/40" />
             <div className="mt-1 h-3 w-2/3 rounded bg-base-300/35" />
           </div>

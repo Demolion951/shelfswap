@@ -23,7 +23,7 @@ type Props = {
 
 export function ListingCoverImage({
   listing,
-  size = "M",
+  size = "L",
   className = "h-full w-full object-cover",
   loading = "lazy",
   fetchPriority = "auto",
@@ -71,8 +71,9 @@ export function ListingCoverImage({
     );
   }
 
+  // Absolute fill keeps the cover inside the card's aspect box (avoids overflow with object-contain).
   return (
-    <div ref={rootRef} className="h-full w-full">
+    <div ref={rootRef} className="absolute inset-0 h-full w-full">
       <CoverImageChain
         candidates={candidates}
         className={className}

@@ -62,6 +62,10 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch {
-    return new Response(null, { status: 404 });
+    // Never cache misses — localhost was sticking on blank covers after one flake.
+    return new Response(null, {
+      status: 404,
+      headers: { "Cache-Control": "no-store" },
+    });
   }
 }

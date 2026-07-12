@@ -1,11 +1,15 @@
 "use client";
 
 /**
- * Loads cover images: fetch+blob for same-origin catalogue APIs; direct img for seller photos.
+ * Loads cover images: fetch+blob for same-origin catalogue APIs; direct img for
+ * absolute catalogue URLs (localhost → production) and seller photos.
  * Location: components/listings/CoverImageChain.tsx
  */
-import { isCatalogueCoverApiUrl } from "@/lib/listings/listingCover";
-import { useEffect, useState } from "react";
+import {
+  catalogueCoverCandidatesForClient,
+  isCatalogueCoverApiUrl,
+} from "@/lib/listings/listingCover";
+import { useEffect, useMemo, useState } from "react";
 
 const MIN_COVER_BYTES = 500;
 
@@ -19,14 +23,22 @@ type Props = {
   onExhausted?: () => void;
 };
 
+function isAbsoluteHttpUrl(url: string): boolean {
+  return /^https?:\/\//i.test(url);
+}
+
 export function CoverImageChain({
-  candidates,
+  candidates: rawCandidates,
   className = "h-full w-full object-cover",
   noCoverClassName = "h-full w-full bg-base-300/45",
   loading = "lazy",
   fetchPriority = "auto",
   onExhausted,
 }: Props) {
+  const candidates = useMemo(
+    () => catalogueCoverCandidatesForClient(rawCandidates),
+    [rawCandidates],
+  );
   const [index, setIndex] = useState(0);
   const [displaySrc, setDisplaySrc] = useState<string | null>(null);
   const [loadingCover, setLoadingCover] = useState(true);
@@ -67,8 +79,17 @@ export function CoverImageChain({
       }
     };
 
+    // Absolute catalogue URL (e.g. https://shelfswap.net/api/...) — use <img> directly.
+    // Same Cloudflare-cached bytes as production; no local Open Library round-trip.
+    if (isCatalogueCoverApiUrl(current) && isAbsoluteHttpUrl(current)) {
+      finishDirect(current);
+      return () => {
+        cancelled = true;
+      };
+    }
+
     if (isCatalogueCoverApiUrl(current)) {
-      void fetch(current, { credentials: "same-origin", cache: "force-cache" })
+      void fetch(current, { credentials: "same-origin", cache: "default" })
         .then(async (res) => {
           if (!res.ok) throw new Error("cover fetch failed");
           const blob = await res.blob();
@@ -97,31 +118,19 @@ export function CoverImageChain({
     return <div className={`${noCoverClassName} animate-pulse bg-base-300/55`} aria-hidden />;
   }
 
-  if (isCatalogueCoverApiUrl(current)) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={displaySrc}
-        alt=""
-        className={className}
-        loading={loading}
-        fetchPriority={fetchPriority}
-        decoding="async"
-      />
-    );
-  }
+  const catalogue = isCatalogueCoverApiUrl(current);
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      key={current}
+      key={displaySrc}
       src={displaySrc}
       alt=""
       className={className}
       loading={loading}
       fetchPriority={fetchPriority}
       decoding="async"
-      referrerPolicy="no-referrer"
+      referrerPolicy={catalogue ? undefined : "no-referrer"}
       onError={() => {
         setIndex((i) => (i + 1 < candidates.length ? i + 1 : -1));
       }}

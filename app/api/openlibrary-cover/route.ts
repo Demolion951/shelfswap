@@ -49,12 +49,18 @@ export async function GET(request: NextRequest) {
   });
 
   if (!upstream.ok) {
-    return new NextResponse(null, { status: upstream.status === 404 ? 404 : 502 });
+    return new NextResponse(null, {
+      status: upstream.status === 404 ? 404 : 502,
+      headers: { "Cache-Control": "no-store" },
+    });
   }
 
   const bytes = await upstream.arrayBuffer();
   if (bytes.byteLength < 500) {
-    return new NextResponse(null, { status: 404 });
+    return new NextResponse(null, {
+      status: 404,
+      headers: { "Cache-Control": "no-store" },
+    });
   }
 
   const contentType = upstream.headers.get("content-type") ?? "image/jpeg";
