@@ -136,8 +136,9 @@ export function listingCoverCandidatesForCard(
   listing: ListingWithRelations,
   size: CoverSize = CARD_CATALOGUE_SIZE,
 ): string[] {
-  const out = [...listingCatalogueCoverCandidates(listing, size)];
-  const seen = new Set(out.map(normalizeCoverKey));
+  const catalogue = listingCatalogueCoverCandidates(listing, size);
+  const photos: string[] = [];
+  const seen = new Set(catalogue.map(normalizeCoverKey));
 
   for (const ph of sortedListingPhotos(listing)) {
     const src = coverSrcForCard(ph.url?.trim());
@@ -145,10 +146,16 @@ export function listingCoverCandidatesForCard(
     const key = normalizeCoverKey(src);
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push(src);
+    photos.push(src);
   }
 
-  return out;
+  // Seller photos available: try one catalogue URL only, then photos.
+  // Avoids waiting on M/L/S miss chain before the user photo can show.
+  if (photos.length > 0 && catalogue.length > 1) {
+    return [catalogue[0], ...photos];
+  }
+
+  return [...catalogue, ...photos];
 }
 
 export function listingCoverCandidates(

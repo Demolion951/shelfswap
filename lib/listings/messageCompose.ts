@@ -1,4 +1,5 @@
 import type { ListingMessageRow } from "@/lib/listings/queries";
+import { isListingMessageDeleted } from "@/lib/messages/unsend";
 
 /**
  * Whether the listing owner may compose messages (requires a buyer in the thread).
@@ -13,5 +14,5 @@ export function sellerCanComposeMessages(
   },
 ): boolean {
   if (opts.pendingUnlockCount > 0 || opts.hasActiveUnlock) return true;
-  return messages.some((m) => m.sender_id !== sellerId);
+  return messages.some((m) => m.sender_id !== sellerId && !isListingMessageDeleted(m));
 }

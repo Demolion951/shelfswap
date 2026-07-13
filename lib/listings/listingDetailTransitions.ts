@@ -57,17 +57,39 @@ export function mergeMessages(
   current: ListingMessageRow[],
   incoming: ListingMessageRow[],
 ): ListingMessageRow[] {
-  if (incoming.length === 0) return current;
   const byId = new Map<string, ListingMessageRow>();
+
+  // Keep local messages (including optimistic) until a real server row replaces them.
   for (const m of current) {
-    if (!m.id.startsWith("optimistic-")) byId.set(m.id, m);
+    byId.set(m.id, m);
   }
   for (const m of incoming) {
     byId.set(m.id, m);
   }
+
   const merged = [...byId.values()];
   merged.sort((a, b) => a.created_at.localeCompare(b.created_at));
-  return merged;
+  return dropReplacedOptimisticMessages(merged);
+}
+
+/** Remove optimistic placeholders once the server copy of the same message exists. */
+export function dropReplacedOptimisticMessages(
+  messages: ListingMessageRow[],
+): ListingMessageRow[] {
+  return messages.filter((m) => {
+    if (!m.id.startsWith("optimistic-")) return true;
+    return !messages.some((s) => {
+      if (s.id.startsWith("optimistic-")) return false;
+      if (s.sender_id !== m.sender_id) return false;
+      if (s.body !== m.body) return false;
+      // Photo-only: match when both have an image (blob URL vs public URL differ).
+      if (!m.body && !!(m.image_url) !== !!(s.image_url)) return false;
+      return (
+        Math.abs(new Date(s.created_at).getTime() - new Date(m.created_at).getTime()) <
+        120_000
+      );
+    });
+  });
 }
 
 export function hasNewMessageFrom(

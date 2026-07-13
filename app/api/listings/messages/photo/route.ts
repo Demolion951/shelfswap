@@ -132,7 +132,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: friendly }, { status: 400 });
     }
 
-    revalidatePath(`/app/listings/${listingId}`);
     revalidatePath("/app/messages");
     return NextResponse.json({ ok: true, image_url: publicUrl });
   } catch (e) {

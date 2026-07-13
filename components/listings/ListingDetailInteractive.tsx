@@ -43,7 +43,6 @@ type Props = {
   viewerSaved: boolean;
   creditBalance: number;
   heldCredits: number;
-  hasPremium: boolean;
   viewerPendingUnlock: boolean;
   pendingRequestsForSeller: PendingUnlockRequest[];
   unlockDeal: UnlockDeal | null;
@@ -65,7 +64,6 @@ export function ListingDetailInteractive({
   viewerSaved,
   creditBalance: _creditBalance,
   heldCredits: _heldCredits,
-  hasPremium,
   viewerPendingUnlock: initialViewerPendingUnlock,
   pendingRequestsForSeller: initialPendingRequests,
   unlockDeal: initialUnlockDeal,
@@ -95,7 +93,7 @@ export function ListingDetailInteractive({
   messagesRef.current = messages;
 
   useEffect(() => {
-    setMessages(initialMessages);
+    setMessages((current) => mergeMessages(current, initialMessages));
     setPendingRequests(initialPendingRequests);
     setUnlockDeal(initialUnlockDeal);
     setViewerUnlocked(initialViewerUnlocked);
@@ -117,11 +115,8 @@ export function ListingDetailInteractive({
   const applySnapshot = useCallback(
     (snapshot: ListingActivitySnapshot) => {
       const prev = messagesRef.current;
-      if (isOwner) {
-        setMessages(snapshot.messages);
-      } else {
-        setMessages((current) => mergeMessages(current, snapshot.messages));
-      }
+      // Always merge so optimistic sends don't flash away before the server row appears.
+      setMessages((current) => mergeMessages(current, snapshot.messages));
 
       if (!isOwner && hasNewMessageFrom(prev, snapshot.messages, listing.user_id)) {
         const buyerUpdate = applyBuyerObservedSellerReply();
@@ -373,7 +368,15 @@ export function ListingDetailInteractive({
           ) : null}
           {isOwner ? (
             <ListingBuyerThreadPicker
-              buyers={unlockedBuyers.map((b) => ({ buyerId: b.buyerId, handle: b.handle }))}
+              buyers={unlockedBuyers.map((b) => ({
+                buyerId: b.buyerId,
+                handle: b.handle,
+                karma: {
+                  completedPickups: b.completedPickups,
+                  completedSales: b.completedSales,
+                  completedSwaps: b.completedSwaps,
+                },
+              }))}
               activeBuyerId={activeThreadBuyerId}
               onSelect={(buyerId) => {
                 setActiveThreadBuyerId(buyerId);
@@ -437,7 +440,6 @@ export function ListingDetailInteractive({
       {!isOwner ? (
         <ListingUnlockPanel
           listingId={listing.id}
-          hasPremium={hasPremium}
           isUnlocked={viewerUnlocked}
           isSignedIn={isSignedIn}
           onUnlocked={() => {

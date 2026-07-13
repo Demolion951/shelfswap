@@ -1,6 +1,7 @@
 import { effectiveBookCategory } from "@/lib/books/bookCategory";
 import { createClient } from "@/lib/supabase/server";
 import { isUnlockCreditsColumnMissing } from "@/lib/listings/unlockCreditsPostgrest";
+import { karmaTierFromExchanges, karmaTierSortWeight, totalExchanges } from "@/lib/profile/karma";
 
 export type ListingPhotoRow = {
   id: string;
@@ -363,9 +364,13 @@ export type ListingMessageRow = {
   image_url: string | null;
   thread_buyer_id: string;
   created_at: string;
+  deleted_at: string | null;
 };
 
 const LISTING_MESSAGE_SELECT_WITH_THREAD =
+  "id, listing_id, sender_id, sender_display_name, body, image_url, thread_buyer_id, created_at, deleted_at";
+
+const LISTING_MESSAGE_SELECT_NO_DELETED =
   "id, listing_id, sender_id, sender_display_name, body, image_url, thread_buyer_id, created_at";
 
 const LISTING_MESSAGE_SELECT_LEGACY =
@@ -376,7 +381,7 @@ function isMissingThreadBuyerColumn(error: { message?: string } | null): boolean
   return msg.includes("thread_buyer_id") && msg.includes("does not exist");
 }
 
-function normalizeLegacyListingMessage(row: Record<string, unknown>): ListingMessageRow {
+function normalizeListingMessageRow(row: Record<string, unknown>): ListingMessageRow {
   return {
     id: String(row.id),
     listing_id: String(row.listing_id),
@@ -384,9 +389,15 @@ function normalizeLegacyListingMessage(row: Record<string, unknown>): ListingMes
     sender_display_name: String(row.sender_display_name ?? "Member"),
     body: String(row.body ?? ""),
     image_url: (row.image_url as string | null) ?? null,
-    thread_buyer_id: String(row.sender_id),
+    thread_buyer_id: String(row.thread_buyer_id ?? row.sender_id),
     created_at: String(row.created_at),
+    deleted_at: (row.deleted_at as string | null) ?? null,
   };
+}
+
+function isMissingDeletedAtColumn(error: { message?: string } | null): boolean {
+  const msg = (error?.message ?? "").toLowerCase();
+  return msg.includes("deleted_at") && msg.includes("does not exist");
 }
 
 export type UnlockedBuyerRow = {
@@ -394,6 +405,10 @@ export type UnlockedBuyerRow = {
   handle: string;
   unlockedAt: string;
   completedAt: string | null;
+  lastMessageAt: string | null;
+  completedPickups: number;
+  completedSales: number;
+  completedSwaps: number;
 };
 
 export async function fetchListingMessagesIfAllowed(
@@ -415,6 +430,41 @@ export async function fetchListingMessagesIfAllowed(
 
   const { data, error } = await q;
 
+  if (error && isMissingDeletedAtColumn(error)) {
+    let noDeletedQ = supabase
+      .from("listing_messages")
+      .select(LISTING_MESSAGE_SELECT_NO_DELETED)
+      .eq("listing_id", listingId)
+      .order("created_at", { ascending: true })
+      .limit(limit);
+    if (threadBuyerId) {
+      noDeletedQ = noDeletedQ.eq("thread_buyer_id", threadBuyerId);
+    }
+    const { data: withoutDeleted, error: withoutDeletedErr } = await noDeletedQ;
+    if (withoutDeletedErr && isMissingThreadBuyerColumn(withoutDeletedErr)) {
+      const { data: legacy, error: legacyErr } = await supabase
+        .from("listing_messages")
+        .select(LISTING_MESSAGE_SELECT_LEGACY)
+        .eq("listing_id", listingId)
+        .order("created_at", { ascending: true })
+        .limit(limit);
+      if (legacyErr) {
+        console.error("[fetchListingMessagesIfAllowed]", legacyErr.message);
+        return [];
+      }
+      return (legacy ?? []).map((row) =>
+        normalizeListingMessageRow(row as Record<string, unknown>),
+      );
+    }
+    if (withoutDeletedErr) {
+      console.error("[fetchListingMessagesIfAllowed]", withoutDeletedErr.message);
+      return [];
+    }
+    return (withoutDeleted ?? []).map((row) =>
+      normalizeListingMessageRow(row as Record<string, unknown>),
+    );
+  }
+
   if (error && isMissingThreadBuyerColumn(error)) {
     const { data: legacy, error: legacyErr } = await supabase
       .from("listing_messages")
@@ -428,7 +478,7 @@ export async function fetchListingMessagesIfAllowed(
       return [];
     }
     return (legacy ?? []).map((row) =>
-      normalizeLegacyListingMessage(row as Record<string, unknown>),
+      normalizeListingMessageRow(row as Record<string, unknown>),
     );
   }
 
@@ -439,7 +489,7 @@ export async function fetchListingMessagesIfAllowed(
   return (data ?? []) as ListingMessageRow[];
 }
 
-/** Active unlock rows for seller conversation picker. */
+/** Active unlock rows for seller conversation picker (sorted: recent message, then karma). */
 export async function fetchUnlockedBuyersForListing(
   listingId: string,
 ): Promise<UnlockedBuyerRow[]> {
@@ -459,21 +509,87 @@ export async function fetchUnlockedBuyersForListing(
   const buyerIds = (rows ?? []).map((r) => r.buyer_id as string).filter(Boolean);
   if (buyerIds.length === 0) return [];
 
-  const { data: profs } = await supabase.rpc("profiles_public_batch", {
-    p_user_ids: buyerIds,
-  });
+  const [{ data: profs }, { data: msgs }] = await Promise.all([
+    supabase.rpc("profiles_public_batch", { p_user_ids: buyerIds }),
+    supabase
+      .from("listing_messages")
+      .select("thread_buyer_id, created_at, deleted_at")
+      .eq("listing_id", listingId)
+      .in("thread_buyer_id", buyerIds)
+      .order("created_at", { ascending: false }),
+  ]);
+
   const handleById = new Map<string, string>();
+  const karmaById = new Map<
+    string,
+    { completedPickups: number; completedSales: number; completedSwaps: number }
+  >();
   for (const p of profs ?? []) {
     const id = p.id as string;
     handleById.set(id, ((p.display_name as string | null) ?? "").trim() || "member");
+    karmaById.set(id, {
+      completedPickups: Number(p.completed_pickups_count ?? 0) || 0,
+      completedSales: Number(p.completed_sales_count ?? 0) || 0,
+      completedSwaps: Number(p.completed_swaps_count ?? 0) || 0,
+    });
   }
 
-  return (rows ?? []).map((r) => ({
-    buyerId: r.buyer_id as string,
-    handle: handleById.get(r.buyer_id as string) ?? "member",
-    unlockedAt: r.created_at as string,
-    completedAt: (r.completed_at as string | null) ?? null,
-  }));
+  const lastMessageByBuyer = new Map<string, string>();
+  for (const m of msgs ?? []) {
+    if (m.deleted_at) continue;
+    const buyerId = m.thread_buyer_id as string;
+    if (!buyerId || lastMessageByBuyer.has(buyerId)) continue;
+    lastMessageByBuyer.set(buyerId, m.created_at as string);
+  }
+
+  const buyers = (rows ?? []).map((r) => {
+    const buyerId = r.buyer_id as string;
+    const karma = karmaById.get(buyerId) ?? {
+      completedPickups: 0,
+      completedSales: 0,
+      completedSwaps: 0,
+    };
+    return {
+      buyerId,
+      handle: handleById.get(buyerId) ?? "member",
+      unlockedAt: r.created_at as string,
+      completedAt: (r.completed_at as string | null) ?? null,
+      lastMessageAt: lastMessageByBuyer.get(buyerId) ?? null,
+      completedPickups: karma.completedPickups,
+      completedSales: karma.completedSales,
+      completedSwaps: karma.completedSwaps,
+    };
+  });
+
+  buyers.sort((a, b) => {
+    const aMsg = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+    const bMsg = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+    if (aMsg !== bMsg) return bMsg - aMsg;
+
+    const aTier = karmaTierSortWeight(
+      karmaTierFromExchanges(
+        totalExchanges({
+          completedPickups: a.completedPickups,
+          completedSales: a.completedSales,
+          completedSwaps: a.completedSwaps,
+        }),
+      ),
+    );
+    const bTier = karmaTierSortWeight(
+      karmaTierFromExchanges(
+        totalExchanges({
+          completedPickups: b.completedPickups,
+          completedSales: b.completedSales,
+          completedSwaps: b.completedSwaps,
+        }),
+      ),
+    );
+    if (aTier !== bTier) return bTier - aTier;
+
+    return a.unlockedAt.localeCompare(b.unlockedAt);
+  });
+
+  return buyers;
 }
 
 /** Which of the given listing ids the user has saved (for feed hearts). */

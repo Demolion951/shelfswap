@@ -7,10 +7,11 @@
  */
 import { proposeSwapAction, respondSwapAction } from "@/app/app/listings/actions";
 import { DealOptionsPanel } from "@/components/listings/DealOptionsPanel";
+import { SwapOfferPicker } from "@/components/listings/SwapOfferPicker";
 import type { DealOptionsEligibility } from "@/lib/listings/dealOptions";
 import { Check, Loader2, Shuffle, X } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 
 export type UnlockDeal = {
   buyerId: string;
@@ -63,6 +64,11 @@ export function DealPanel({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [offerId, setOfferId] = useState<string>(myOfferOptions[0]?.id ?? "");
+
+  useEffect(() => {
+    if (offerId && myOfferOptions.some((o) => o.id === offerId)) return;
+    setOfferId(myOfferOptions[0]?.id ?? "");
+  }, [myOfferOptions, offerId]);
 
   const isBuyer = useMemo(() => {
     if (!currentUserId) return false;
@@ -154,7 +160,7 @@ export function DealPanel({
                     They accepted{" "}
                     <span className="font-medium text-base-content">{listingTitle}</span>
                     {" ↔ "}
-                    <span className="font-medium text-base-content">
+                    <span className="font-medium text-base-content break-words">
                       {deal.offeredTitle ?? "your offered book"}
                     </span>
                     . Message below to arrange pickup; confirm handoff when you&apos;re done.
@@ -169,7 +175,7 @@ export function DealPanel({
                   ) : null}
                 </div>
               ) : (
-                <p className="text-xs text-base-content/60">
+                <p className="text-xs text-base-content/60 leading-relaxed break-words">
                   {deal.swapStatus === "proposed"
                     ? `Awaiting seller — you offered ${deal.offeredTitle ?? "your book"} for ${listingTitle}.`
                     : null}
@@ -177,22 +183,12 @@ export function DealPanel({
               )
             ) : (
               <>
-                <select
-                  className="select select-bordered w-full text-sm"
+                <SwapOfferPicker
+                  options={myOfferOptions}
                   value={offerId}
-                  onChange={(e) => setOfferId(e.target.value)}
-                  disabled={pending || myOfferOptions.length === 0}
-                >
-                  {myOfferOptions.length === 0 ? (
-                    <option value="">You have no active listings</option>
-                  ) : (
-                    myOfferOptions.map((o) => (
-                      <option key={o.id} value={o.id}>
-                        {o.title}
-                      </option>
-                    ))
-                  )}
-                </select>
+                  onChange={setOfferId}
+                  disabled={pending}
+                />
                 <button
                   type="button"
                   className="btn btn-outline btn-secondary btn-sm w-full"
@@ -212,7 +208,7 @@ export function DealPanel({
             <div className="text-sm font-medium text-base-content">
               Swap offer received
             </div>
-            <div className="text-xs text-base-content/60 mt-1">
+            <div className="text-xs text-base-content/60 mt-1 break-words leading-relaxed">
               Offered: {deal.offeredTitle ?? "a book"}
             </div>
             <div className="mt-3 flex gap-2">
@@ -251,7 +247,7 @@ export function DealPanel({
               You accepted{" "}
               <span className="font-medium text-base-content">{listingTitle}</span>
               {" ↔ "}
-              <span className="font-medium text-base-content">
+              <span className="font-medium text-base-content break-words">
                 {deal.offeredTitle ?? "their offered book"}
               </span>
               . Message below to arrange pickup; confirm handoff when you&apos;ve handed over your copy.

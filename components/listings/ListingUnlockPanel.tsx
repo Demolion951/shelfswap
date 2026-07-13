@@ -1,17 +1,16 @@
 "use client";
 
 /**
- * Unlock CTA for listing detail: Premium instant chat (Marketplace-style).
+ * Message seller CTA for listing detail (free during launch — sign in required).
  * Location: components/listings/ListingUnlockPanel.tsx
  */
 import { requestUnlockHoldAction } from "@/app/app/listings/actions";
-import { Lock, Loader2, MessageCircle } from "lucide-react";
+import { Loader2, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 
 type Props = {
   listingId: string;
-  hasPremium: boolean;
   isUnlocked?: boolean;
   isSignedIn: boolean;
   onUnlocked?: () => void;
@@ -19,7 +18,6 @@ type Props = {
 
 export function ListingUnlockPanel({
   listingId,
-  hasPremium,
   isUnlocked = false,
   isSignedIn,
   onUnlocked,
@@ -52,11 +50,11 @@ export function ListingUnlockPanel({
       <div className="card bg-base-100 border border-primary/20 shadow-md">
         <div className="card-body gap-3">
           <div className="flex items-start gap-2">
-            <Lock className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
+            <MessageCircle className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
             <div>
               <h2 className="font-semibold">Message the seller</h2>
               <p className="text-sm text-base-content/65">
-                Sign in with Premium to chat about this book.
+                Sign in to chat about this book — free for everyone while we grow the community.
               </p>
             </div>
           </div>
@@ -75,27 +73,6 @@ export function ListingUnlockPanel({
     return null;
   }
 
-  if (!hasPremium) {
-    return (
-      <div className="card bg-base-100 border border-primary/20 shadow-md">
-        <div className="card-body gap-3">
-          <div className="flex items-start gap-2">
-            <Lock className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
-            <div>
-              <h2 className="font-semibold">Premium required</h2>
-              <p className="text-sm text-base-content/65">
-                Subscribe to message sellers. Listing your own books stays free.
-              </p>
-            </div>
-          </div>
-          <Link href="/app/subscribe" className="btn btn-primary">
-            Get Premium — £7.99/mo
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="card bg-base-100 border border-primary/20 shadow-md">
       <div className="card-body gap-3">
@@ -104,8 +81,7 @@ export function ListingUnlockPanel({
           <div>
             <h2 className="font-semibold">Message seller</h2>
             <p className="text-sm text-base-content/65">
-              Included with Premium — chat opens instantly. Other buyers can message too until
-              the book sells.
+              Chat opens instantly. Other buyers can message too until the book sells.
             </p>
           </div>
         </div>

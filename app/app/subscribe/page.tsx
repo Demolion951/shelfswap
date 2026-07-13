@@ -1,92 +1,54 @@
-import { GuestAccountPrompt } from "@/components/auth/GuestAccountPrompt";
 import { PremiumSubscribeSection } from "@/components/subscribe/PremiumSubscribeSection";
 import { getOptionalUser } from "@/lib/auth/requireUser";
 import { type SubscriptionStatus } from "@/lib/subscription/constants";
-import { stripePremiumPriceId } from "@/lib/stripe/premiumPrice";
-import { getStripe } from "@/lib/stripe/server";
 import { createClient } from "@/lib/supabase/server";
 import { Layers } from "lucide-react";
 import Link from "next/link";
+import { GuestAccountPrompt } from "@/components/auth/GuestAccountPrompt";
 
 /**
- * Premium subscription page (£7.99/mo): unlock listings and unlimited swaps.
+ * Plan page: launch is fully free; Premium perks coming soon.
  * Location: app/app/subscribe/page.tsx
  */
-function stripeCheckoutEnabled(): boolean {
-  if (!getStripe()) return false;
-  if (!process.env.STRIPE_WEBHOOK_SECRET?.trim()) return false;
-  return Boolean(stripePremiumPriceId());
-}
 
-type PageProps = {
-  searchParams: Promise<{ session_id?: string; canceled?: string }>;
-};
-
-export default async function SubscribePage({ searchParams }: PageProps) {
+export default async function SubscribePage() {
   const user = await getOptionalUser();
   if (!user) {
     return (
       <GuestAccountPrompt
         title="Plan"
-        description="Sign in to compare Free and Premium and manage your ShelfSwap plan."
+        description="Sign in to see what's included with ShelfSwap during launch."
         Icon={Layers}
         returnTo="/app/subscribe"
       />
     );
   }
 
-  const sp = await searchParams;
   const supabase = await createClient();
 
-  const [profileRes, swapsRes] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("subscription_status, subscription_period_end, stripe_customer_id")
-      .eq("id", user.id)
-      .maybeSingle(),
-    supabase.rpc("free_swaps_remaining", { p_user_id: user.id }),
-  ]);
-
-  const profile = profileRes.data as {
-    subscription_status?: string | null;
-    subscription_period_end?: string | null;
-    stripe_customer_id?: string | null;
-  } | null;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("subscription_status, subscription_period_end, stripe_customer_id")
+    .eq("id", user.id)
+    .maybeSingle();
 
   const status = (profile?.subscription_status ?? "none") as SubscriptionStatus;
   const periodEnd = profile?.subscription_period_end ?? null;
   const hasStripeCustomer = Boolean(profile?.stripe_customer_id?.trim());
-  const freeSwapsRemaining =
-    typeof swapsRes.data === "number" && Number.isFinite(swapsRes.data) ? swapsRes.data : 0;
 
   return (
     <div className="space-y-6 pt-2">
       <h1 className="shelfswap-heading text-2xl font-semibold text-primary">Plan</h1>
 
-      {sp.session_id ? (
-        <div role="status" className="alert alert-success text-sm">
-          Payment received. If Premium doesn&apos;t show yet, refresh in a few seconds — the webhook
-          may still be processing.
-        </div>
-      ) : null}
-
-      {sp.canceled === "1" ? (
-        <div role="status" className="alert alert-warning text-sm">
-          Checkout was canceled. No charge was made.
-        </div>
-      ) : null}
-
       <PremiumSubscribeSection
         subscriptionStatus={status}
         periodEnd={periodEnd}
-        freeSwapsRemaining={freeSwapsRemaining}
-        stripeCheckoutEnabled={stripeCheckoutEnabled()}
         hasStripeCustomer={hasStripeCustomer}
       />
 
       <p className="text-center text-xs text-base-content/50">
-        <Link href="/faq#cancellations" className="link link-primary">
-          Subscription &amp; cancellation FAQ
+        <Link href="/faq#how-it-works" className="link link-primary">
+          How messaging &amp; karma work
         </Link>
         {" · "}
         <Link href="/app/profile" className="link link-primary">

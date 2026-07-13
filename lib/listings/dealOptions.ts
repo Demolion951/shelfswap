@@ -3,6 +3,7 @@
  * Location: lib/listings/dealOptions.ts
  */
 import type { ListingMessageRow } from "@/lib/listings/queries";
+import { isListingMessageDeleted } from "@/lib/messages/unsend";
 
 export const DEAL_WITHDRAW_HOURS = 48;
 export const DEAL_STALL_DAYS = 14;
@@ -41,14 +42,14 @@ function daysSince(iso: string): number {
 function lastMessageAt(messages: ListingMessageRow[], userId: string): string | null {
   let latest: string | null = null;
   for (const m of messages) {
-    if (m.sender_id !== userId) continue;
+    if (m.sender_id !== userId || isListingMessageDeleted(m)) continue;
     if (!latest || m.created_at > latest) latest = m.created_at;
   }
   return latest;
 }
 
 function sellerHasReplied(messages: ListingMessageRow[], sellerId: string): boolean {
-  return messages.some((m) => m.sender_id === sellerId);
+  return messages.some((m) => m.sender_id === sellerId && !isListingMessageDeleted(m));
 }
 
 export function computeDealOptionsEligibility(input: Input): DealOptionsEligibility {
@@ -85,7 +86,9 @@ export function computeDealOptionsEligibility(input: Input): DealOptionsEligibil
   const canRequestMutualCancel = !iRequestedCancel;
   const mutualCancelWaitingOnOther = iRequestedCancel && !otherRequestedCancel;
 
-  const buyerHasMessaged = messages.some((m) => m.sender_id === deal.buyerId);
+  const buyerHasMessaged = messages.some(
+    (m) => m.sender_id === deal.buyerId && !isListingMessageDeleted(m),
+  );
   const lastBuyerMsg = lastMessageAt(messages, deal.buyerId);
   const lastSellerMsg = lastMessageAt(messages, sellerId);
 

@@ -49,6 +49,17 @@ export function CoverImageChain({
     setIndex(0);
   }, [chainKey]);
 
+  // While catalogue is checked, warm the first seller/direct photo so fallback is ready.
+  useEffect(() => {
+    if (candidates.length < 2) return;
+    if (!isCatalogueCoverApiUrl(candidates[0])) return;
+    const fallback = candidates.find((c) => !isCatalogueCoverApiUrl(c));
+    if (!fallback) return;
+    const img = new Image();
+    img.decoding = "async";
+    img.src = fallback;
+  }, [chainKey, candidates]);
+
   useEffect(() => {
     if (index < 0 && candidates.length > 0) {
       onExhausted?.();

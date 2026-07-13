@@ -6,6 +6,8 @@ import {
   getMyRehomedCount,
   getSavedListingsCount,
 } from "@/lib/listings/queries";
+import { ProfileKarmaBadge } from "@/components/profile/ProfileKarmaBadge";
+import { karmaStatsFromPublicProfile, totalExchanges } from "@/lib/profile/karma";
 import { getOptionalUser } from "@/lib/auth/requireUser";
 import { createClient } from "@/lib/supabase/server";
 import { ChevronRight, Heart, Home, Layers, Library, Settings2, UserRound } from "lucide-react";
@@ -17,7 +19,7 @@ export default async function ProfilePage() {
     return (
       <GuestAccountPrompt
         title="Your account"
-        description="Sign in to list books, save favourites, unlock titles, and manage your plan."
+        description="Sign in to list books, save favourites, message sellers, and manage your profile."
         Icon={UserRound}
         returnTo="/app/profile"
       />
@@ -28,7 +30,9 @@ export default async function ProfilePage() {
   const [profileRes, listingsCount, rehomedCount, savedCount] = await Promise.all([
     supabase
       .from("profiles")
-      .select("display_name, avatar_url, subscription_status, subscription_period_end")
+      .select(
+        "display_name, avatar_url, subscription_status, subscription_period_end, completed_pickups_count, completed_sales_count, completed_swaps_count",
+      )
       .eq("id", user.id)
       .maybeSingle(),
     getMyActiveListingsCount(user.id),
@@ -36,6 +40,8 @@ export default async function ProfilePage() {
     getSavedListingsCount(user.id),
   ]);
   const profile = profileRes.data;
+  const karmaStats = karmaStatsFromPublicProfile(profile as Record<string, unknown> | null);
+  const exchangeCount = totalExchanges(karmaStats);
 
   return (
     <div className="space-y-6 pt-2">
@@ -62,7 +68,15 @@ export default async function ProfilePage() {
           <h1 className="shelfswap-heading text-2xl font-semibold truncate">
             {profile?.display_name ?? "Reader"}
           </h1>
-          <p className="text-xs text-base-content/50 truncate">{user.email}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <ProfileKarmaBadge stats={karmaStats} showCount />
+            {exchangeCount === 0 ? (
+              <span className="text-[11px] text-base-content/45">
+                Complete a handoff to build karma
+              </span>
+            ) : null}
+          </div>
+          <p className="text-xs text-base-content/50 truncate mt-1">{user.email}</p>
         </div>
       </div>
 
@@ -87,6 +101,7 @@ export default async function ProfilePage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-primary">
                   Plan
                 </p>
+                <p className="text-[11px] text-base-content/50">Everything free during launch</p>
               </div>
             </div>
             <ChevronRight

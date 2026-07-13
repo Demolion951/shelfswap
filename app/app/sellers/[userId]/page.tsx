@@ -1,4 +1,6 @@
 import { ListingCard } from "@/components/listings/ListingCard";
+import { ProfileKarmaBadge } from "@/components/profile/ProfileKarmaBadge";
+import { karmaStatsFromPublicProfile } from "@/lib/profile/karma";
 import { fetchMyListings } from "@/lib/listings/queries";
 import { createClient } from "@/lib/supabase/server";
 import { ArrowLeft, Library } from "lucide-react";
@@ -21,8 +23,17 @@ export default async function SellerListingsPage({ params }: Props) {
   ]);
 
   const profileRow = (profiles ?? [])[0] as
-    | { id: string; display_name: string | null; avatar_url: string | null }
+    | {
+        id: string;
+        display_name: string | null;
+        avatar_url: string | null;
+        completed_pickups_count?: number;
+        completed_sales_count?: number;
+        completed_swaps_count?: number;
+      }
     | undefined;
+
+  const karmaStats = karmaStatsFromPublicProfile(profileRow ?? null);
 
   if (!profileRow && listings.length === 0) {
     notFound();
@@ -38,9 +49,10 @@ export default async function SellerListingsPage({ params }: Props) {
       </Link>
 
       <div className="space-y-1">
-        <div className="flex items-center gap-2 text-primary">
+        <div className="flex flex-wrap items-center gap-2 text-primary">
           <Library className="h-6 w-6 shrink-0" aria-hidden />
           <h1 className="shelfswap-heading text-xl font-semibold">@{sellerName}</h1>
+          <ProfileKarmaBadge stats={karmaStats} showCount />
         </div>
         <p className="text-sm text-base-content/60">
           {listings.length === 0

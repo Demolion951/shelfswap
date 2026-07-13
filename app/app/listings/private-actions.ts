@@ -114,6 +114,65 @@ export async function sendListingMessageAction(
     payload: { length: body.length },
   });
 
-  revalidatePath(`/app/listings/${listingId}`);
+  revalidatePath("/app/messages");
+  return { ok: true };
+}
+
+/** Soft-deletes (unsends) a message the current user sent within the server time window. */
+export async function deleteListingMessageAction(
+  messageId: string,
+  listingId?: string,
+): Promise<SimpleActionResult> {
+  const id = messageId.trim();
+  if (!id || id.startsWith("optimistic-")) {
+    return { ok: false, error: "Invalid message." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: userErr,
+  } = await supabase.auth.getUser();
+  if (userErr || !user) {
+    return { ok: false, error: "Sign in to unsend a message." };
+  }
+
+  const { data, error } = await supabase.rpc("delete_listing_message", {
+    p_message_id: id,
+  });
+
+  if (error) {
+    const em = error.message.toLowerCase();
+    const missingFn =
+      error.code === "42883" ||
+      (em.includes("delete_listing_message") &&
+        (em.includes("does not exist") || em.includes("could not find")));
+    if (missingFn) {
+      return {
+        ok: false,
+        error: "Unsend is not available yet. Run the latest database migration.",
+      };
+    }
+    console.error("[deleteListingMessageAction] rpc", error.message);
+    return { ok: false, error: "Could not unsend message." };
+  }
+
+  const payload = data as { ok?: boolean; error?: string } | null;
+  if (!payload || payload.ok !== true) {
+    const code = payload?.error ?? "";
+    const friendly =
+      code === "not_authenticated"
+        ? "Sign in to unsend a message."
+        : code === "not_sender"
+          ? "You can only unsend your own messages."
+          : code === "window_expired"
+            ? "That message can no longer be unsent (30 minute limit)."
+            : code === "not_found"
+              ? "Message not found."
+              : "Could not unsend message.";
+    return { ok: false, error: friendly };
+  }
+
+  revalidatePath("/app/messages");
   return { ok: true };
 }

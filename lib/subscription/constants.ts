@@ -1,9 +1,9 @@
 /**
- * Premium subscription constants.
+ * Plan constants: launch is fully free; Premium perks coming later.
  * Location: lib/subscription/constants.ts
  */
 export const PREMIUM_MONTHLY_GBP = 7.99;
-export const FREE_SWAPS_PER_MONTH = 2;
+export const LAUNCH_FREE_MODE = true;
 
 export type SubscriptionStatus =
   | "none"
@@ -21,17 +21,30 @@ export function formatPremiumPrice(): string {
   return `£${PREMIUM_MONTHLY_GBP.toFixed(2)}`;
 }
 
-export const FREE_PLAN_BENEFITS = [
-  "List books for free",
-  "Browse home, search, and saved favourites",
-  "View listing details and approximate areas",
-  `${FREE_SWAPS_PER_MONTH} swap offers per month`,
+/** What everyone gets during launch (the standard product). */
+export const STANDARD_PLAN_BENEFITS = [
+  "List unlimited books for free",
+  "Browse, search, and save favourites",
+  "Message sellers on any listing",
+  "Unlimited swap offers",
+  "Open to swaps on your listings",
+  "Build karma from completed handoffs",
 ] as const;
 
-export const PREMIUM_PLAN_BENEFITS = [
-  "Everything in Free",
-  "Unlimited unlocks and seller chats",
-  "Unlimited swap offers",
-  "Book wishlist — get notified when a title you want is listed, then request a chat about it",
-  "Cancel anytime",
+/** Shown as coming soon on the Plan page. */
+export const COMING_SOON_PREMIUM_BENEFITS = [
+  "Book wishlist with match notifications",
+  "No ads",
+  "Invites to monthly meetups & socials",
+  "Premium badge on your profile",
+  "Extra visibility when messaging sellers",
 ] as const;
+
+/** @deprecated Launch mode — kept for legacy Stripe subscribers UI. */
+export const FREE_PLAN_BENEFITS = STANDARD_PLAN_BENEFITS;
+
+/** @deprecated Premium not sold during launch. */
+export const PREMIUM_PLAN_BENEFITS = COMING_SOON_PREMIUM_BENEFITS;
+
+/** @deprecated Unlimited swaps during launch. */
+export const FREE_SWAPS_PER_MONTH = 999;

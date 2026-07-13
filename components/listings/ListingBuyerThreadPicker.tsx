@@ -2,11 +2,16 @@
 
 /**
  * Seller picks which buyer conversation to view on a listing (Marketplace-style multi-chat).
+ * Shows karma badges; list order is recent activity then trust tier (from server).
  * Location: components/listings/ListingBuyerThreadPicker.tsx
  */
+import { ProfileKarmaBadge } from "@/components/profile/ProfileKarmaBadge";
+import type { KarmaStats } from "@/lib/profile/karma";
+
 type BuyerThread = {
   buyerId: string;
   handle: string;
+  karma: KarmaStats;
 };
 
 type Props = {
@@ -30,12 +35,13 @@ export function ListingBuyerThreadPicker({ buyers, activeBuyerId, onSelect }: Pr
               type="button"
               role="tab"
               aria-selected={active}
-              className={`btn btn-xs rounded-full ${
+              className={`btn btn-xs h-auto min-h-7 rounded-full gap-1.5 py-1 ${
                 active ? "btn-primary" : "btn-ghost border border-base-300/80"
               }`}
               onClick={() => onSelect(b.buyerId)}
             >
-              @{b.handle}
+              <ProfileKarmaBadge stats={b.karma} />
+              <span>@{b.handle}</span>
             </button>
           );
         })}

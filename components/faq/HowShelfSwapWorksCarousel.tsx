@@ -26,16 +26,16 @@ const STEPS: Step[] = [
     diagram: "Sell → Photos + notes → Live on Home & Browse",
   },
   {
-    id: "premium",
-    title: "Premium to chat",
-    body: "Subscribe to message sellers and unlock unlimited chats. Listing stays free.",
-    diagram: "Premium → Message seller → Chat opens",
+    id: "message",
+    title: "Message for free",
+    body: "Sign in and tap Message seller — chat opens straight away. No subscription needed during launch.",
+    diagram: "Sign in → Message seller → Active chat",
   },
   {
     id: "chat",
-    title: "Message instantly",
-    body: "Tap Message seller on a listing. Chat opens straight away — no waiting for approval. Several Premium buyers can chat on the same book until it sells.",
-    diagram: "You → Message seller → Active chat",
+    title: "Several buyers welcome",
+    body: "Multiple people can message the same seller until the book sells. Each buyer has a private conversation.",
+    diagram: "Buyer A ──┐\nBuyer B ──┼→ Seller\nBuyer C ──┘",
   },
   {
     id: "during-deal",

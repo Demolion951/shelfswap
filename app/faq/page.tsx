@@ -1,15 +1,11 @@
 import { PremiumDealGuide } from "@/components/faq/PremiumDealGuide";
 import { LegalDocShell } from "@/components/marketing/LegalDocShell";
-import {
-  formatPremiumPrice,
-  FREE_SWAPS_PER_MONTH,
-} from "@/lib/subscription/constants";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "FAQ",
   description:
-    "Common questions about ShelfSwap — Free vs Premium, messaging, swaps, and listings.",
+    "Common questions about ShelfSwap — messaging, swaps, karma, and listings.",
 };
 
 /**
@@ -17,8 +13,6 @@ export const metadata: Metadata = {
  * Location: app/faq/page.tsx
  */
 export default function FaqPage() {
-  const premiumPrice = formatPremiumPrice();
-
   return (
     <LegalDocShell title="Frequently asked questions">
       <p>Quick answers about how ShelfSwap works. If something is not covered, use the Contact page.</p>
@@ -26,12 +20,14 @@ export default function FaqPage() {
       <h2>What is ShelfSwap?</h2>
       <p>
         A local book community: list books you are happy to pass on or swap, discover nearby listings, and
-        chat with sellers when you have Premium.
+        chat with sellers for free during launch.
       </p>
 
-      <h2>Is browsing free?</h2>
+      <h2>Is it free?</h2>
       <p>
-        Yes. You can browse, search, save favourites, and view listing details without a subscription.
+        Yes. During launch, listing, messaging, swaps, and browsing are all free and unlimited. Optional
+        Premium perks (wishlist, no ads, meetups, badge) are coming later — the core app stays usable
+        without a subscription.
       </p>
 
       <h2>Is listing free?</h2>
@@ -40,26 +36,20 @@ export default function FaqPage() {
         pickup area.
       </p>
 
-      <h2>What is Premium?</h2>
-      <p>
-        Premium is a monthly subscription ({premiumPrice}) that unlocks messaging: you can chat with sellers
-        about as many listings as you like, send unlimited swap offers, and use the book wishlist. Cancel
-        anytime from <strong>Plan</strong> in the app.
-      </p>
-
-      <h2>How do I get Premium?</h2>
-      <p>
-        Sign in, open <strong>Plan</strong>, and subscribe through Stripe Checkout. Manage or cancel your
-        subscription from the same page via the billing portal.
-      </p>
-
       <h2 id="how-it-works">How messaging works</h2>
       <PremiumDealGuide />
 
       <h2>Can more than one buyer chat on the same listing?</h2>
       <p>
-        Yes. Several Premium buyers can message the same seller until the book is sold or the deal is
-        completed with one buyer. Each buyer has a private conversation with the seller.
+        Yes. Several buyers can message the same seller until the book is sold or the deal is completed with
+        one buyer. Each buyer has a private conversation with the seller.
+      </p>
+
+      <h2>What is karma?</h2>
+      <p>
+        Karma shows how many <strong>completed exchanges</strong> someone has on ShelfSwap (pickups, sales, or
+        swaps where both people confirmed handoff in the app). You earn badges over time — New member, Active,
+        Reliable, Trusted. Sellers can see this when choosing who to coordinate with.
       </p>
 
       <h2>What do paperback and hardback mean on a listing?</h2>
@@ -70,16 +60,15 @@ export default function FaqPage() {
 
       <h2>Swaps</h2>
       <p>
-        Free accounts can send <strong>{FREE_SWAPS_PER_MONTH} swap offers per month</strong>. Premium
-        includes unlimited swap offers. During a chat, a buyer can propose one of their own listings in
-        exchange; the seller accepts or declines. When both of you confirm handoff on a completed swap,
-        both listings are archived.
+        Swap offers are unlimited during launch. During a chat, a buyer can propose one of their own listings in
+        exchange; the seller accepts or declines. When both of you confirm handoff on a completed swap, both
+        listings are archived and both people earn karma.
       </p>
 
-      <h2>Wishlist (Premium)</h2>
+      <h2>Wishlist</h2>
       <p>
-        Premium members can add books to a wishlist and get notified when a matching title is listed, then
-        message the seller from that listing.
+        A wishlist with match notifications is planned as a future Premium perk. You can still save
+        favourites on listings today.
       </p>
 
       <h2>Photos and condition</h2>

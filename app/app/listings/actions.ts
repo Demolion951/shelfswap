@@ -72,9 +72,9 @@ export async function unlockListingAction(listingId: string): Promise<UnlockList
     ok: false,
     error:
       p.error === "premium_required"
-        ? "Premium subscription required to unlock listings."
+        ? "Sign in to message on this listing."
         : p.error === "insufficient_credits"
-          ? "Not enough credits. Subscribe to Premium instead."
+          ? "Sign in to message on this listing."
           : p.error === "own_listing"
           ? "You can’t unlock your own listing."
           : p.error === "listing_not_found"
@@ -99,7 +99,7 @@ type RequestRpcPayload = {
 };
 
 /**
- * Premium buyer opens chat on a listing (instant unlock; unlimited buyers per listing).
+ * Buyer opens chat on a listing (instant unlock; unlimited buyers per listing).
  */
 export async function requestUnlockHoldAction(listingId: string): Promise<RequestUnlockResult> {
   const supabase = await createClient();
@@ -139,9 +139,9 @@ export async function requestUnlockHoldAction(listingId: string): Promise<Reques
     ok: false,
     error:
       p.error === "premium_required"
-        ? "Subscribe to Premium to request chats with sellers."
+        ? "Sign in to message sellers."
         : p.error === "insufficient_credits"
-          ? "Subscribe to Premium to unlock listings."
+          ? "Sign in to message sellers."
           : p.error === "own_listing"
           ? "You can’t request your own listing."
           : p.error === "listing_not_found"
@@ -231,7 +231,7 @@ export async function proposeSwapAction(listingId: string, offeredListingId: str
     if (err === "swap_limit_reached") {
       return {
         ok: false,
-        error: "No free swaps left this month. Subscribe to Premium for unlimited swaps.",
+        error: "Could not propose swap right now. Try again in a moment.",
       };
     }
     return { ok: false, error: err ?? "Could not propose swap." };
