@@ -7,7 +7,7 @@ import {
   getSavedListingsCount,
 } from "@/lib/listings/queries";
 import { ProfileKarmaBadge } from "@/components/profile/ProfileKarmaBadge";
-import { karmaStatsFromPublicProfile, totalExchanges } from "@/lib/profile/karma";
+import { karmaStatsFromPublicProfile } from "@/lib/profile/karma";
 import { getOptionalUser } from "@/lib/auth/requireUser";
 import { createClient } from "@/lib/supabase/server";
 import { ChevronRight, Heart, Home, Layers, Library, Settings2, UserRound } from "lucide-react";
@@ -41,7 +41,6 @@ export default async function ProfilePage() {
   ]);
   const profile = profileRes.data;
   const karmaStats = karmaStatsFromPublicProfile(profile as Record<string, unknown> | null);
-  const exchangeCount = totalExchanges(karmaStats);
 
   return (
     <div className="space-y-6 pt-2">
@@ -70,11 +69,6 @@ export default async function ProfilePage() {
           </h1>
           <div className="mt-1 flex flex-wrap items-center gap-2">
             <ProfileKarmaBadge stats={karmaStats} showCount />
-            {exchangeCount === 0 ? (
-              <span className="text-[11px] text-base-content/45">
-                Complete a handoff to build karma
-              </span>
-            ) : null}
           </div>
           <p className="text-xs text-base-content/50 truncate mt-1">{user.email}</p>
         </div>
@@ -101,7 +95,6 @@ export default async function ProfilePage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-primary">
                   Plan
                 </p>
-                <p className="text-[11px] text-base-content/50">Everything free during launch</p>
               </div>
             </div>
             <ChevronRight

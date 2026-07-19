@@ -83,7 +83,7 @@ export async function sendListingMessageAction(
         error:
           insErr.message.includes("row-level security") || insErr.code === "42501"
             ? "You can’t message on this listing (unlock it first, or list it yourself)."
-            : insErr.message,
+            : "Could not send message.",
       };
     }
   } else {
@@ -150,7 +150,7 @@ export async function deleteListingMessageAction(
     if (missingFn) {
       return {
         ok: false,
-        error: "Unsend is not available yet. Run the latest database migration.",
+        error: "Could not unsend right now. Try again in a moment.",
       };
     }
     console.error("[deleteListingMessageAction] rpc", error.message);

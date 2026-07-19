@@ -97,7 +97,17 @@ export async function createListing(
 
   if (insertErr || !listing) {
     console.error("[createListing] insert", insertErr?.message);
-    return { error: insertErr?.message ?? "Could not create listing." };
+    const raw = (insertErr?.message ?? "").toLowerCase();
+    const looksLikeDbSchema =
+      raw.includes("schema cache") ||
+      raw.includes("does not exist") ||
+      raw.includes("could not find") ||
+      raw.includes("relation");
+    return {
+      error: looksLikeDbSchema
+        ? "Could not create listing. Please try again."
+        : insertErr?.message ?? "Could not create listing.",
+    };
   }
 
   const listingId = listing.id as string;

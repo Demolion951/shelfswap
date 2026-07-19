@@ -54,7 +54,7 @@ export function ListingUnlockPanel({
             <div>
               <h2 className="font-semibold">Message the seller</h2>
               <p className="text-sm text-base-content/65">
-                Sign in to chat about this book — free for everyone while we grow the community.
+                Sign in to chat about this book.
               </p>
             </div>
           </div>

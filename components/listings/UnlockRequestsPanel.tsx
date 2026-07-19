@@ -70,9 +70,7 @@ export function UnlockRequestsPanel({
                   <div className="text-sm font-medium text-base-content">
                     @{r.buyerHandle}
                   </div>
-                  <div className="text-xs text-base-content/55">
-                    Wants to chat ({r.creditsHeld} credit{r.creditsHeld === 1 ? "" : "s"} held)
-                  </div>
+                  <div className="text-xs text-base-content/55">Wants to chat</div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -90,7 +88,7 @@ export function UnlockRequestsPanel({
           ))}
         </ul>
         <p className="text-[11px] text-base-content/50">
-          Reply in Messages to accept and charge credits — or decline here to release their hold.
+          Reply in Messages to accept — or decline here.
         </p>
       </div>
     </div>

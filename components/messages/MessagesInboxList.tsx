@@ -81,7 +81,7 @@ export function MessagesInboxList({ threads, unreadListingIds }: Props) {
                   ) : null}
                   {t.role === "seller" && t.unlockCount > 0 ? (
                     <p className="text-[10px] text-base-content/45 mt-0.5">
-                      {t.unlockCount} unlock{t.unlockCount === 1 ? "" : "s"} · shared thread
+                      {t.unlockCount} conversation{t.unlockCount === 1 ? "" : "s"}
                     </p>
                   ) : null}
                   {t.preview ? (

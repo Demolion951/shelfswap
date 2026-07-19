@@ -13,7 +13,7 @@ import {
   STANDARD_PLAN_BENEFITS,
   type SubscriptionStatus,
 } from "@/lib/subscription/constants";
-import { Crown, Loader2, Settings2, Sparkles, Star } from "lucide-react";
+import { Crown, Loader2, Settings2, Star } from "lucide-react";
 import { useState, useTransition } from "react";
 
 type Props = {
@@ -24,21 +24,12 @@ type Props = {
 
 export function PremiumSubscribeSection({
   subscriptionStatus,
-  periodEnd,
+  periodEnd: _periodEnd,
   hasStripeCustomer,
 }: Props) {
   const isLegacyPremium = isPremiumStatus(subscriptionStatus);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-
-  const periodLabel =
-    periodEnd && isLegacyPremium
-      ? new Date(periodEnd).toLocaleDateString(undefined, {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-        })
-      : null;
 
   function onManageBilling() {
     setError(null);
@@ -99,32 +90,22 @@ export function PremiumSubscribeSection({
         </div>
       </div>
 
-      {isLegacyPremium ? (
+      {isLegacyPremium && hasStripeCustomer ? (
         <div className="card bg-base-100 border border-base-300/80 shadow-sm">
           <div className="card-body gap-3">
-            <div role="status" className="alert alert-success text-sm py-2">
-              <Sparkles className="h-4 w-4 shrink-0" aria-hidden />
-              <span>
-                You have an active legacy Premium subscription
-                {periodLabel ? ` until ${periodLabel}` : ""}. Core features are free for everyone
-                now; manage billing below if needed.
-              </span>
-            </div>
-            {hasStripeCustomer ? (
-              <button
-                type="button"
-                className="btn btn-outline btn-sm gap-2 self-start"
-                disabled={pending}
-                onClick={() => onManageBilling()}
-              >
-                {pending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                ) : (
-                  <Settings2 className="h-4 w-4" aria-hidden />
-                )}
-                Manage subscription
-              </button>
-            ) : null}
+            <button
+              type="button"
+              className="btn btn-outline btn-sm gap-2 self-start"
+              disabled={pending}
+              onClick={() => onManageBilling()}
+            >
+              {pending ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <Settings2 className="h-4 w-4" aria-hidden />
+              )}
+              Manage billing
+            </button>
           </div>
         </div>
       ) : null}
