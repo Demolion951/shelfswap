@@ -8,6 +8,7 @@
 import { deleteListingMessageAction, sendListingMessageAction } from "@/app/app/listings/private-actions";
 import { LocalDateTimeText } from "@/components/messages/LocalDateTimeText";
 import { MessageBubbleWithUnsend } from "@/components/messages/MessageBubbleWithUnsend";
+import { MessagePhoto } from "@/components/messages/MessagePhoto";
 import { compressListingPhoto, isLikelyImageFile } from "@/lib/client/compressListingPhoto";
 import { mergeMessages } from "@/lib/listings/listingDetailTransitions";
 import type { ListingMessageRow } from "@/lib/listings/queries";
@@ -280,15 +281,7 @@ export function ListingMessagesThread({
                     className="chat-bubble chat-bubble-primary text-sm max-w-[85%]"
                     onUnsend={onUnsend}
                   >
-                    {m.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={m.image_url}
-                        alt=""
-                        className="mb-1 max-h-48 w-full rounded-md object-cover"
-                        loading="lazy"
-                      />
-                    ) : null}
+                    {m.image_url ? <MessagePhoto src={m.image_url} /> : null}
                     {m.body ? <p className="whitespace-pre-wrap break-words">{m.body}</p> : null}
                   </MessageBubbleWithUnsend>
                 ) : (
@@ -301,15 +294,7 @@ export function ListingMessagesThread({
                       <p className="text-xs">Message unsent</p>
                     ) : (
                       <>
-                        {m.image_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={m.image_url}
-                            alt=""
-                            className="mb-1 max-h-48 w-full rounded-md object-cover"
-                            loading="lazy"
-                          />
-                        ) : null}
+                        {m.image_url ? <MessagePhoto src={m.image_url} /> : null}
                         {m.body ? (
                           <p className="whitespace-pre-wrap break-words">{m.body}</p>
                         ) : null}
