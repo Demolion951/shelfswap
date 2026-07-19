@@ -8,15 +8,13 @@ export function PremiumDealGuide() {
   return (
     <div className="not-prose my-4 space-y-2">
       <p className="text-sm leading-relaxed text-base-content/90">
-        <strong>Messaging is free</strong> during launch — sign in and tap{" "}
-        <strong>Message seller</strong> on a listing. Chat opens instantly. It does not pay for the
-        physical book — you arrange pickup or swap in person. Listing your own books stays{" "}
-        <strong>free</strong>.
+        Sign in and tap <strong>Message seller</strong> on any listing — chat opens straight away.
+        Messaging does not pay for the physical book; you arrange pickup or a swap in person.
       </p>
 
       <p className="text-sm leading-relaxed text-base-content/90">
-        When both of you confirm handoff in the app, you earn <strong>karma</strong> (completed
-        exchanges). Sellers can see this when several buyers message about the same book.
+        When both of you confirm handoff in the app, you earn <strong>karma</strong> from that
+        completed exchange. Sellers can see karma when several buyers are interested in the same book.
       </p>
 
       <HowShelfSwapWorksCarousel />

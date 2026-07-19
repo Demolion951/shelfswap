@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Swipeable step-by-step guide for Free vs Premium on the FAQ page.
+ * Swipeable step-by-step guide for how ShelfSwap deals work (FAQ page).
  * Location: components/faq/HowShelfSwapWorksCarousel.tsx
  */
 
@@ -15,26 +15,26 @@ type Step = {
 const STEPS: Step[] = [
   {
     id: "browse",
-    title: "Browse for free",
-    body: "Search, save favourites, and view listings — no subscription needed.",
-    diagram: "Browse → Save hearts → (no plan required)",
+    title: "Browse & save",
+    body: "Search nearby books, open listings, and save favourites. No subscription needed.",
+    diagram: "Browse → Save hearts → Open a listing",
   },
   {
     id: "list",
-    title: "List for free",
-    body: "Sellers list books at no cost. Add photos, condition, and your rough pickup area.",
+    title: "List your books",
+    body: "Create listings for free. Add photos, condition, binding type, and your rough pickup area.",
     diagram: "Sell → Photos + notes → Live on Home & Browse",
   },
   {
     id: "message",
-    title: "Message for free",
-    body: "Sign in and tap Message seller — chat opens straight away. No subscription needed during launch.",
+    title: "Message the seller",
+    body: "Sign in and tap Message seller. Chat opens instantly — free and unlimited during launch.",
     diagram: "Sign in → Message seller → Active chat",
   },
   {
     id: "chat",
     title: "Several buyers welcome",
-    body: "Multiple people can message the same seller until the book sells. Each buyer has a private conversation.",
+    body: "Multiple people can message the same seller until the book sells. Each buyer has a private thread.",
     diagram: "Buyer A ──┐\nBuyer B ──┼→ Seller\nBuyer C ──┘",
   },
   {
@@ -49,9 +49,9 @@ Close deal (seller inactive 14+ days)*
   },
   {
     id: "done",
-    title: "Deal complete",
-    body: "When both of you confirm handoff, the listing is archived and hidden from discovery. Other chats on that book close too.",
-    diagram: "Both confirm → Listing archived",
+    title: "Confirm handoff",
+    body: "When both of you confirm handoff, the listing is archived, other chats on that book close, and both people earn karma.",
+    diagram: "Both confirm → Archived + karma",
   },
 ];
 
@@ -61,7 +61,7 @@ export function HowShelfSwapWorksCarousel() {
       <h3 className="text-sm font-semibold text-base-content mb-2">How it works (swipe through)</h3>
       <div
         className="-mx-2 flex snap-x snap-mandatory gap-3 overflow-x-auto px-2 pb-3 scrollbar-thin"
-        aria-label="ShelfSwap plan and messaging steps"
+        aria-label="ShelfSwap how it works steps"
       >
         {STEPS.map((step, i) => (
           <article
