@@ -12,6 +12,11 @@ import {
   type BookCategory,
   isBookCategory,
 } from "@/lib/books/bookCategory";
+import { prefetchCoverImages } from "@/lib/client/prefetchCoverImages";
+import {
+  catalogueCoverCandidatesForClient,
+  listingCoverCandidatesForCard,
+} from "@/lib/listings/listingCover";
 import type { ListingWithRelations } from "@/lib/listings/queries";
 import { Grid3X3, List } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -62,6 +67,22 @@ export function BrowseListingsViewToggle({ listings, initialView, initialGenre }
     if (!genre) return listings;
     return listings.filter((l) => l.book_category === genre);
   }, [listings, genre]);
+
+  useEffect(() => {
+    if (filtered.length === 0) return;
+    const urls: string[] = [];
+    for (const listing of filtered.slice(0, 16)) {
+      const chain = catalogueCoverCandidatesForClient(
+        listingCoverCandidatesForCard(listing),
+      );
+      if (chain[0]) urls.push(chain[0]);
+      const seller = chain.find(
+        (u) => !u.includes("/api/book-cover") && !u.includes("/api/openlibrary-cover"),
+      );
+      if (seller) urls.push(seller);
+    }
+    prefetchCoverImages(urls, 36);
+  }, [filtered]);
 
   return (
     <div className="space-y-4">

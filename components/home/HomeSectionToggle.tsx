@@ -6,10 +6,15 @@
  */
 import { ListingCard } from "@/components/listings/ListingCard";
 import { ListingMiniCard } from "@/components/listings/ListingMiniCard";
+import { prefetchCoverImages } from "@/lib/client/prefetchCoverImages";
+import {
+  catalogueCoverCandidatesForClient,
+  listingCoverCandidatesForCard,
+} from "@/lib/listings/listingCover";
 import type { ListingWithRelations } from "@/lib/listings/queries";
 import { Star } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Props = {
   title: string;
@@ -43,6 +48,22 @@ export function HomeSectionToggle({
   const [mode, setMode] = useState<"cards" | "shelf">(defaultMode);
   const isEmpty = listings.length === 0;
   const savedSet = new Set(savedListingIds);
+
+  // Warm catalogue + first seller photo for the first cards in parallel.
+  useEffect(() => {
+    if (listings.length === 0) return;
+    const urls: string[] = [];
+    for (const listing of listings.slice(0, 12)) {
+      const chain = catalogueCoverCandidatesForClient(
+        listingCoverCandidatesForCard(listing),
+      );
+      // First catalogue attempt + first seller photo (if any) — matches CoverImageChain race.
+      if (chain[0]) urls.push(chain[0]);
+      const seller = chain.find((u) => !u.includes("/api/book-cover") && !u.includes("/api/openlibrary-cover"));
+      if (seller) urls.push(seller);
+    }
+    prefetchCoverImages(urls, 28);
+  }, [listings]);
 
   return (
     <section className="space-y-3">

@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * Loads cover images: fetch+blob for same-origin catalogue APIs; direct img for
- * absolute catalogue URLs (localhost → production) and seller photos.
+ * Loads cover images in parallel (catalogue + seller), shows highest-priority success,
+ * and upgrades if a better candidate finishes later. Session-caches wins for remounts.
  * Location: components/listings/CoverImageChain.tsx
  */
 import {
@@ -12,6 +12,21 @@ import {
 import { useEffect, useMemo, useState } from "react";
 
 const MIN_COVER_BYTES = 500;
+/** If preferred catalogue is still pending, show a ready fallback after this. */
+const FALLBACK_SHOW_MS = 420;
+
+/** Maps candidate-chain key → winning candidate URL (never blob:). */
+const sessionOkSrc = new Map<string, string>();
+const MAX_SESSION = 180;
+
+function rememberSession(chainKey: string, src: string) {
+  if (src.startsWith("blob:")) return;
+  if (sessionOkSrc.size >= MAX_SESSION) {
+    const first = sessionOkSrc.keys().next().value;
+    if (first) sessionOkSrc.delete(first);
+  }
+  sessionOkSrc.set(chainKey, src);
+}
 
 type Props = {
   candidates: string[];
@@ -19,12 +34,37 @@ type Props = {
   noCoverClassName?: string;
   loading?: "eager" | "lazy";
   fetchPriority?: "high" | "auto";
-  /** Called when every candidate failed (e.g. hide catalogue slide on detail page). */
   onExhausted?: () => void;
 };
 
 function isAbsoluteHttpUrl(url: string): boolean {
   return /^https?:\/\//i.test(url);
+}
+
+/** Probe that a candidate works; returns the URL to put in <img src>. */
+function probeCandidate(url: string): Promise<string> {
+  if (isCatalogueCoverApiUrl(url) && !isAbsoluteHttpUrl(url)) {
+    return fetch(url, { credentials: "same-origin", cache: "force-cache" }).then(
+      async (res) => {
+        if (!res.ok) throw new Error("cover fetch failed");
+        const blob = await res.blob();
+        if (blob.size < MIN_COVER_BYTES) throw new Error("cover too small");
+        // Use the path itself — HTTP cache is warm; avoids revoked blob: URLs.
+        return url;
+      },
+    );
+  }
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.decoding = "async";
+    img.onload = () => resolve(url);
+    img.onerror = () => reject(new Error("img failed"));
+    if (!isCatalogueCoverApiUrl(url)) {
+      img.referrerPolicy = "no-referrer";
+    }
+    img.src = url;
+  });
 }
 
 export function CoverImageChain({
@@ -39,89 +79,101 @@ export function CoverImageChain({
     () => catalogueCoverCandidatesForClient(rawCandidates),
     [rawCandidates],
   );
-  const [index, setIndex] = useState(0);
-  const [displaySrc, setDisplaySrc] = useState<string | null>(null);
-  const [loadingCover, setLoadingCover] = useState(true);
   const chainKey = candidates.join("\0");
-  const current = index >= 0 && index < candidates.length ? candidates[index] : null;
+  const cached = sessionOkSrc.get(chainKey) ?? null;
 
-  useEffect(() => {
-    setIndex(0);
-  }, [chainKey]);
-
-  // While catalogue is checked, warm the first seller/direct photo so fallback is ready.
-  useEffect(() => {
-    if (candidates.length < 2) return;
-    if (!isCatalogueCoverApiUrl(candidates[0])) return;
-    const fallback = candidates.find((c) => !isCatalogueCoverApiUrl(c));
-    if (!fallback) return;
-    const img = new Image();
-    img.decoding = "async";
-    img.src = fallback;
-  }, [chainKey, candidates]);
-
-  useEffect(() => {
-    if (index < 0 && candidates.length > 0) {
-      onExhausted?.();
-    }
-  }, [index, candidates.length, onExhausted]);
+  const [displaySrc, setDisplaySrc] = useState<string | null>(cached);
+  const [loadingCover, setLoadingCover] = useState(!cached);
+  const [exhausted, setExhausted] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    let objectUrl: string | null = null;
+    const ok = new Map<number, string>();
+    const failed = new Set<number>();
+    let shownIndex = -1;
+    let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
 
-    if (!current) {
-      setDisplaySrc(null);
+    const hit = sessionOkSrc.get(chainKey);
+    if (hit) {
+      setDisplaySrc(hit);
       setLoadingCover(false);
+      setExhausted(false);
+    } else {
+      setDisplaySrc(null);
+      setLoadingCover(true);
+      setExhausted(false);
+    }
+
+    if (candidates.length === 0) {
+      setLoadingCover(false);
+      setExhausted(true);
       return;
     }
 
-    setLoadingCover(true);
-    setDisplaySrc(null);
-
-    const advance = () => {
-      setIndex((i) => (i + 1 < candidates.length ? i + 1 : -1));
-    };
-
-    const finishDirect = (url: string) => {
-      if (!cancelled) {
-        setDisplaySrc(url);
-        setLoadingCover(false);
-      }
-    };
-
-    // Absolute catalogue URL (e.g. https://shelfswap.net/api/...) — use <img> directly.
-    // Same Cloudflare-cached bytes as production; no local Open Library round-trip.
-    if (isCatalogueCoverApiUrl(current) && isAbsoluteHttpUrl(current)) {
-      finishDirect(current);
-      return () => {
-        cancelled = true;
-      };
+    function publish(index: number, src: string, allowDowngrade = false) {
+      if (cancelled) return;
+      if (!allowDowngrade && shownIndex >= 0 && index > shownIndex) return;
+      shownIndex = index;
+      setDisplaySrc(src);
+      setLoadingCover(false);
+      setExhausted(false);
+      rememberSession(chainKey, src);
     }
 
-    if (isCatalogueCoverApiUrl(current)) {
-      void fetch(current, { credentials: "same-origin", cache: "default" })
-        .then(async (res) => {
-          if (!res.ok) throw new Error("cover fetch failed");
-          const blob = await res.blob();
-          if (blob.size < MIN_COVER_BYTES) throw new Error("cover too small");
-          objectUrl = URL.createObjectURL(blob);
-          finishDirect(objectUrl);
+    function pickBest(allowFallbackWhileWaiting: boolean) {
+      if (cancelled) return;
+      for (let i = 0; i < candidates.length; i++) {
+        if (ok.has(i)) {
+          publish(i, ok.get(i)!);
+          return;
+        }
+        if (!failed.has(i)) {
+          if (allowFallbackWhileWaiting) {
+            for (let j = i + 1; j < candidates.length; j++) {
+              if (ok.has(j)) {
+                publish(j, ok.get(j)!, true);
+                return;
+              }
+            }
+          }
+          return;
+        }
+      }
+      if (shownIndex < 0) {
+        setDisplaySrc(null);
+        setLoadingCover(false);
+        setExhausted(true);
+      }
+    }
+
+    fallbackTimer = setTimeout(() => pickBest(true), FALLBACK_SHOW_MS);
+
+    // Kick off every candidate at once — catalogue + seller photos race.
+    candidates.forEach((url, i) => {
+      void probeCandidate(url)
+        .then((src) => {
+          if (cancelled) return;
+          ok.set(i, src);
+          pickBest(false);
         })
         .catch(() => {
-          if (!cancelled) advance();
+          if (cancelled) return;
+          failed.add(i);
+          pickBest(failed.size === candidates.length);
         });
-    } else {
-      finishDirect(current);
-    }
+    });
 
     return () => {
       cancelled = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      if (fallbackTimer) clearTimeout(fallbackTimer);
     };
-  }, [current, candidates.length]);
+  }, [chainKey, candidates]);
 
-  if (index < 0 || !current) {
+  useEffect(() => {
+    if (exhausted) onExhausted?.();
+  }, [exhausted, onExhausted]);
+
+  if (exhausted || candidates.length === 0) {
     return <div className={noCoverClassName} aria-hidden />;
   }
 
@@ -129,7 +181,7 @@ export function CoverImageChain({
     return <div className={`${noCoverClassName} animate-pulse bg-base-300/55`} aria-hidden />;
   }
 
-  const catalogue = isCatalogueCoverApiUrl(current);
+  const catalogue = isCatalogueCoverApiUrl(displaySrc);
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
@@ -143,7 +195,9 @@ export function CoverImageChain({
       decoding="async"
       referrerPolicy={catalogue ? undefined : "no-referrer"}
       onError={() => {
-        setIndex((i) => (i + 1 < candidates.length ? i + 1 : -1));
+        sessionOkSrc.delete(chainKey);
+        setExhausted(true);
+        setDisplaySrc(null);
       }}
     />
   );
