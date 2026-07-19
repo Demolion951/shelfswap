@@ -22,7 +22,7 @@ export function FaqAccordionItem({
       id={id}
       className="collapse collapse-arrow border border-base-300/80 bg-base-100 scroll-mt-24"
     >
-      <input type="radio" name={name} defaultChecked={defaultOpen} aria-label={title} />
+      <input type="checkbox" name={name} defaultChecked={defaultOpen} aria-label={title} />
       <div className="collapse-title text-sm font-semibold text-base-content pr-10">
         {title}
       </div>
