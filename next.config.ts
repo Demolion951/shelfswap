@@ -10,8 +10,8 @@ const nextConfig: NextConfig = {
     // Keep recently visited /app tabs in the client router cache so phone tab
     // switches feel instant (same screens; brief reuse of last RSC payload).
     staleTimes: {
-      dynamic: 30,
-      static: 180,
+      dynamic: 90,
+      static: 300,
     },
   },
 };

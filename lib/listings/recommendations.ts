@@ -8,6 +8,30 @@ type EventRow = {
   created_at: string;
 };
 
+export type RecommendEventRow = EventRow;
+
+/**
+ * Prefetch recommend signals so Home can run this in parallel with distance/saves.
+ * Location: lib/listings/recommendations.ts
+ */
+export async function fetchRecommendEventsForUser(
+  userId: string,
+): Promise<RecommendEventRow[] | null> {
+  const supabase = await createClient();
+  const { data: evRows, error: evErr } = await supabase
+    .from("events")
+    .select("type, listing_id, payload, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(80);
+
+  if (evErr) {
+    console.warn("[fetchRecommendEventsForUser]", evErr.message);
+    return null;
+  }
+  return (evRows ?? []) as RecommendEventRow[];
+}
+
 type ListingSignalRow = {
   id: string;
   author: string | null;
@@ -77,25 +101,31 @@ export async function recommendListingsForUser(
   pool: ListingWithRelations[],
   limit = 12,
   excludeIds?: Set<string>,
+  /** Optional: events already fetched in parallel with other Home work. */
+  preloadedEvents?: EventRow[] | null,
 ): Promise<ListingWithRelations[]> {
   const filteredPool = excludeIds ? pool.filter((p) => !excludeIds.has(p.id)) : pool;
   if (filteredPool.length <= limit) return filteredPool.slice(0, limit);
 
   const supabase = await createClient();
 
-  const { data: evRows, error: evErr } = await supabase
-    .from("events")
-    .select("type, listing_id, payload, created_at")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(80);
+  let events: EventRow[];
+  if (preloadedEvents) {
+    events = preloadedEvents;
+  } else {
+    const { data: evRows, error: evErr } = await supabase
+      .from("events")
+      .select("type, listing_id, payload, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(80);
 
-  if (evErr) {
-    console.warn("[recommendListingsForUser] events", evErr.message);
-    return filteredPool.slice(0, limit);
+    if (evErr) {
+      console.warn("[recommendListingsForUser] events", evErr.message);
+      return filteredPool.slice(0, limit);
+    }
+    events = (evRows ?? []) as EventRow[];
   }
-
-  const events = (evRows ?? []) as EventRow[];
 
   // Collect listing ids referenced by meaningful events.
   const signalListingIds = Array.from(

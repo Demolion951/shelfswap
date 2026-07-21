@@ -9,33 +9,56 @@ import {
   fetchRecentListings,
   fetchSavedListingIdsForUser,
 } from "@/lib/listings/queries";
-import { recommendListingsForUser } from "@/lib/listings/recommendations";
+import {
+  fetchRecommendEventsForUser,
+  recommendListingsForUser,
+} from "@/lib/listings/recommendations";
 
-/** Always fresh — feed sections depend on latest listings and viewer location. */
+/** Always fresh on full load — client staleTimes still softens tab switches. */
 export const dynamic = "force-dynamic";
 
 const HOME_POOL_LIMIT = 64;
 
+/**
+ * Home feed. Parallelizes distance, saves, and recommend-events after the listing pool loads.
+ * Location: app/app/home/page.tsx
+ */
 export default async function HomePage() {
   const user = await getCachedAuthUser();
-  const recent = await fetchRecentListings(HOME_POOL_LIMIT, user?.id ?? null);
+  const userId = user?.id ?? null;
+  const recent = await fetchRecentListings(HOME_POOL_LIMIT, userId);
+  const recentIds = recent.map((l) => l.id);
 
-  const allWithDistance = await attachDistanceKmToListings(recent, user?.id ?? null);
+  // Distance + saves + recommend events in one wave (was sequential before recommend).
+  const [allWithDistance, savedIdSet, recommendEvents] = await Promise.all([
+    attachDistanceKmToListings(recent, userId),
+    userId
+      ? fetchSavedListingIdsForUser(userId, recentIds)
+      : Promise.resolve(new Set<string>()),
+    userId ? fetchRecommendEventsForUser(userId) : Promise.resolve(null),
+  ]);
+
   const all = sortListingsByDistanceThenRecency(allWithDistance);
   const newListings = all.slice(0, 12);
 
   const excludeNew = new Set(newListings.map((l) => l.id));
   const notInNew = all.filter((l) => !excludeNew.has(l.id));
-  const recentIds = recent.map((l) => l.id);
 
-  const [recommendedRaw, savedIdSet] = await Promise.all([
-    user
-      ? recommendListingsForUser(user.id, all, 12, excludeNew)
-      : Promise.resolve(notInNew.slice(0, 12)),
-    user
-      ? fetchSavedListingIdsForUser(user.id, recentIds)
-      : Promise.resolve(new Set<string>()),
-  ]);
+  let recommendedRaw: typeof all;
+  if (!userId) {
+    recommendedRaw = notInNew.slice(0, 12);
+  } else if (recommendEvents !== null) {
+    recommendedRaw = await recommendListingsForUser(
+      userId,
+      all,
+      12,
+      excludeNew,
+      recommendEvents,
+    );
+  } else {
+    recommendedRaw = await recommendListingsForUser(userId, all, 12, excludeNew);
+  }
+
   // Small catalog: if nothing left after New, still show picks from the full pool (may overlap New).
   let recommendedFilled =
     recommendedRaw.length > 0
