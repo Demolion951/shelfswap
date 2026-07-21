@@ -23,7 +23,7 @@ export function LegalDocShell({ title, children }: Props) {
         </Link>
         <article className="rounded-2xl border border-base-300/80 bg-base-100 p-6 shadow-sm sm:p-8">
           <h1 className="shelfswap-heading text-2xl font-semibold text-primary mb-6">{title}</h1>
-          <div className="space-y-4 text-sm text-base-content/90 leading-relaxed [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-base-content [&_h2]:mt-6 [&_h2]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1 [&_a]:link [&_a]:link-primary">
+          <div className="space-y-4 text-sm text-base-content/90 leading-relaxed [&_h2]:shelfswap-heading [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:text-primary [&_h2]:mt-8 [&_h2]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1 [&_a]:link [&_a]:link-primary">
             {children}
           </div>
         </article>

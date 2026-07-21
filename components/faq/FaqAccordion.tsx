@@ -268,7 +268,7 @@ export function FaqAccordion() {
     <div className="space-y-8">
       {SECTIONS.map((section) => (
         <section key={section.name} className="space-y-3">
-          <h2 className="shelfswap-heading text-base font-semibold text-primary tracking-tight">
+          <h2 className="shelfswap-heading text-xl font-semibold text-primary tracking-tight sm:text-2xl border-b border-primary/20 pb-2">
             {section.title}
           </h2>
           <div className="flex flex-col gap-2">
