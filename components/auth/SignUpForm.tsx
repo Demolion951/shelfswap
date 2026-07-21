@@ -1,13 +1,13 @@
 "use client";
 
 /**
- * Sign-up form: name, email, birthday, sex, and password for ShelfSwap.
- * Server action creates auth user; DB trigger provisions profiles row.
+ * Sign-up form: name, email, birthday, sex, password, required Terms + optional marketing.
  * Location: components/auth/SignUpForm.tsx
  */
 import { signUpWithPassword, type AuthActionState } from "@/app/auth/actions";
 import { PROFILE_SEX_OPTIONS } from "@/lib/auth/signupProfile";
-import { useActionState, useRef, useEffect } from "react";
+import Link from "next/link";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 type Props = {
   defaultNext?: string;
@@ -17,6 +17,7 @@ const initialState: AuthActionState = {};
 
 function maxBirthdayIso(): string {
   const d = new Date();
+  d.setFullYear(d.getFullYear() - 18);
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
@@ -33,10 +34,8 @@ function minBirthdayIso(): string {
 }
 
 export function SignUpForm({ defaultNext = "/app/home" }: Props) {
-  const [state, formAction, pending] = useActionState(
-    signUpWithPassword,
-    initialState,
-  );
+  const [state, formAction, pending] = useActionState(signUpWithPassword, initialState);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -96,12 +95,7 @@ export function SignUpForm({ defaultNext = "/app/home" }: Props) {
         </label>
         <label className="form-control w-full">
           <span className="label-text">Sex</span>
-          <select
-            className="select select-bordered w-full"
-            name="sex"
-            defaultValue=""
-            required
-          >
+          <select className="select select-bordered w-full" name="sex" defaultValue="" required>
             <option value="" disabled>
               Select…
             </option>
@@ -123,10 +117,47 @@ export function SignUpForm({ defaultNext = "/app/home" }: Props) {
             minLength={8}
           />
         </label>
+
+        <div className="space-y-3 rounded-xl border border-base-300/80 bg-base-200/40 p-3">
+          <label className="flex cursor-pointer items-start gap-3 text-sm leading-snug">
+            <input
+              type="checkbox"
+              name="accept_terms"
+              className="checkbox checkbox-primary checkbox-sm mt-0.5 shrink-0"
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              required
+            />
+            <span>
+              I have read and agree to the{" "}
+              <Link href="/terms" className="link link-primary" target="_blank" rel="noreferrer">
+                Terms &amp; Conditions
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" className="link link-primary" target="_blank" rel="noreferrer">
+                Privacy Policy
+              </Link>
+              .
+            </span>
+          </label>
+
+          <label className="flex cursor-pointer items-start gap-3 text-sm leading-snug">
+            <input
+              type="checkbox"
+              name="marketing_opt_in"
+              className="checkbox checkbox-sm mt-0.5 shrink-0"
+            />
+            <span>
+              Keep me in the loop with exclusive ShelfSwap updates, early access to new features and community news. I
+              can unsubscribe at any time.
+            </span>
+          </label>
+        </div>
+
         <button
           type="submit"
           className="btn btn-primary w-full"
-          disabled={pending}
+          disabled={pending || !acceptedTerms}
         >
           {pending ? <span className="loading loading-spinner" /> : "Sign up"}
         </button>

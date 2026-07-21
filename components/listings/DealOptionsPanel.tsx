@@ -12,14 +12,16 @@ import {
 } from "@/app/app/listings/actions";
 import type { UnlockDeal } from "@/components/listings/DealPanel";
 import type { DealOptionsEligibility } from "@/lib/listings/dealOptions";
-import { supportDealReportHref } from "@/lib/site/support";
-import { AlertTriangle, Loader2, MoreHorizontal, RotateCcw, UserX, XCircle } from "lucide-react";
-import Link from "next/link";
+import { ReportAbuseButton } from "@/components/reports/ReportAbuseButton";
+import { Loader2, MoreHorizontal, RotateCcw, UserX, XCircle } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
 
 type Props = {
   listingId: string;
   listingTitle: string;
+  sellerId: string;
+  sellerDisplayName?: string | null;
+  isOwner: boolean;
   deal: UnlockDeal;
   eligibility: DealOptionsEligibility;
   onDealUpdated?: (deal: UnlockDeal | null) => void;
@@ -36,6 +38,9 @@ type ConfirmKind =
 export function DealOptionsPanel({
   listingId,
   listingTitle,
+  sellerId,
+  sellerDisplayName = null,
+  isOwner,
   deal,
   eligibility,
   onDealUpdated,
@@ -197,17 +202,14 @@ export function DealOptionsPanel({
           ) : null}
           {eligibility.canReportProblem ? (
             <li>
-              <Link
-                href={supportDealReportHref(listingId, listingTitle)}
-                className="gap-2 text-sm"
-                onClick={() => {
-                  const el = document.activeElement as HTMLElement | null;
-                  el?.blur();
-                }}
-              >
-                <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />
-                Report a problem
-              </Link>
+              <ReportAbuseButton
+                variant="menu"
+                label="Report a problem"
+                listingId={listingId}
+                reportedUserId={isOwner ? deal.buyerId : sellerId}
+                listingTitle={listingTitle}
+                reportedDisplayName={isOwner ? null : sellerDisplayName}
+              />
             </li>
           ) : null}
         </ul>

@@ -17,18 +17,11 @@ export default function ContactPage() {
 
   return (
     <LegalDocShell title="Contact">
+      <p>Questions, feedback, or need help with your account? We&apos;d love to hear from you.</p>
       <p>
-        For account issues, bugs, safety concerns, or general questions, email us and we will do our best to
-        reply within a few business days.
-      </p>
-      <p>
-        <a href={mailto} className="link link-primary font-medium text-base">
+        <a href={mailto} className="link link-primary font-semibold text-base">
           {email}
         </a>
-      </p>
-      <p className="text-xs text-base-content/55">
-        To change this address in production, set <code className="text-[0.7rem] bg-base-200 px-1 rounded">NEXT_PUBLIC_SUPPORT_EMAIL</code> in your
-        deployment environment.
       </p>
     </LegalDocShell>
   );

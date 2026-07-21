@@ -9,6 +9,7 @@ const links = [
   { href: "/contact", label: "Contact" },
   { href: "/terms", label: "Terms" },
   { href: "/privacy", label: "Privacy" },
+  { href: "/cookies", label: "Cookies" },
 ] as const;
 
 export function MarketingFooter() {

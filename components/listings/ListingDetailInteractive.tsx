@@ -34,6 +34,7 @@ import type { BookBlurb } from "@/lib/books/openLibraryBlurb";
 import { MapPin } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ReportAbuseButton } from "@/components/reports/ReportAbuseButton";
 
 type Props = {
   listing: ListingWithRelations & { status?: string };
@@ -337,21 +338,43 @@ export function ListingDetailInteractive({
               Listed by <span className="font-medium text-base-content">@{seller}</span>
             </p>
           )}
-          {unlockDeal ? (
-            <DealHandoffPanel
+          <div className="flex flex-wrap items-center gap-2">
+            {!isOwner && isSignedIn ? (
+              <ReportAbuseButton
+                listingId={listing.id}
+                reportedUserId={listing.user_id}
+                listingTitle={listing.title}
+                reportedDisplayName={seller}
+                label="Report listing"
+              />
+            ) : null}
+            {unlockDeal ? (
+              <DealHandoffPanel
+                listingId={listing.id}
+                currentUserId={currentUserId}
+                deal={unlockDeal}
+                onDealUpdated={handleDealUpdated}
+              />
+            ) : null}
+          </div>
+        </div>
+      ) : !isOwner ? (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <SellerListingLink
+            sellerId={listing.user_id}
+            sellerName={seller}
+            activeListingCount={sellerActiveListingCount}
+          />
+          {isSignedIn ? (
+            <ReportAbuseButton
               listingId={listing.id}
-              currentUserId={currentUserId}
-              deal={unlockDeal}
-              onDealUpdated={handleDealUpdated}
+              reportedUserId={listing.user_id}
+              listingTitle={listing.title}
+              reportedDisplayName={seller}
+              label="Report listing"
             />
           ) : null}
         </div>
-      ) : !isOwner ? (
-        <SellerListingLink
-          sellerId={listing.user_id}
-          sellerName={seller}
-          activeListingCount={sellerActiveListingCount}
-        />
       ) : null}
 
       {showParticipantSections ? (
@@ -391,6 +414,8 @@ export function ListingDetailInteractive({
               listingUnlockCredits={credits}
               isOwner={isOwner}
               currentUserId={currentUserId}
+              sellerId={listing.user_id}
+              sellerDisplayName={seller}
               listingOpenToSwaps={!!listing.open_to_swaps}
               deal={unlockDeal}
               myOfferOptions={buyerOfferOptions}

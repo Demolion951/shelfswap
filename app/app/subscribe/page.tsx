@@ -47,8 +47,8 @@ export default async function SubscribePage() {
       />
 
       <p className="text-center text-xs text-base-content/50">
-        <Link href="/faq#how-it-works" className="link link-primary">
-          How messaging &amp; karma work
+        <Link href="/faq" className="link link-primary">
+          FAQ
         </Link>
         {" · "}
         <Link href="/app/profile" className="link link-primary">

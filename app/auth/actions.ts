@@ -98,6 +98,9 @@ export async function signUpWithPassword(
   const sex = parseSignupSex(String(formData.get("sex") ?? ""));
   const nextRaw = String(formData.get("next") ?? "");
   const next = safeNextPath(nextRaw, "/app/home");
+  const acceptedTerms = formData.get("accept_terms") === "on";
+  const marketingOptIn = formData.get("marketing_opt_in") === "on";
+  const termsAcceptedAt = new Date().toISOString();
 
   if (!displayName) {
     return { error: "Enter your name (at least 2 characters)." };
@@ -115,6 +118,11 @@ export async function signUpWithPassword(
   if (!sex) {
     return { error: "Please select sex." };
   }
+  if (!acceptedTerms) {
+    return {
+      error: "Please agree to the Terms & Conditions and Privacy Policy to create an account.",
+    };
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
@@ -125,6 +133,8 @@ export async function signUpWithPassword(
         display_name: displayName,
         birthday: birthdayParsed.value,
         sex,
+        marketing_opt_in: marketingOptIn,
+        terms_accepted_at: termsAcceptedAt,
       },
     },
   });
@@ -140,6 +150,8 @@ export async function signUpWithPassword(
         display_name: displayName,
         birthday: birthdayParsed.value,
         sex,
+        marketing_opt_in: marketingOptIn,
+        terms_accepted_at: termsAcceptedAt,
       })
       .eq("id", data.user.id);
     if (profileErr) {

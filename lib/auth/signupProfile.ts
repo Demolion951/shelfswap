@@ -39,9 +39,9 @@ export function parseSignupBirthday(raw: string): { ok: true; value: string } | 
     return { ok: false, error: "Birthday cannot be in the future." };
   }
   const minAge = new Date(today);
-  minAge.setFullYear(minAge.getFullYear() - 13);
+  minAge.setFullYear(minAge.getFullYear() - 18);
   if (date.getTime() > minAge.getTime()) {
-    return { ok: false, error: "You must be at least 13 to create an account." };
+    return { ok: false, error: "You must be at least 18 to create an account." };
   }
   const maxAge = new Date(today);
   maxAge.setFullYear(maxAge.getFullYear() - 120);

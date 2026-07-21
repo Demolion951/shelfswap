@@ -1,238 +1,241 @@
 /**
- * Sectioned FAQ accordion layout (DaisyUI collapse groups).
+ * Flat FAQ accordion with partner Q&As (DaisyUI collapse).
  * Location: components/faq/FaqAccordion.tsx
  */
 import { FaqAccordionItem } from "@/components/faq/FaqAccordionItem";
-import { PremiumDealGuide } from "@/components/faq/PremiumDealGuide";
 
-type Section = {
-  title: string;
-  name: string;
-  items: {
-    id?: string;
-    title: string;
-    defaultOpen?: boolean;
-    body: React.ReactNode;
-  }[];
-};
-
-const SECTIONS: Section[] = [
+const FAQ_ITEMS: { title: string; body: React.ReactNode }[] = [
   {
-    title: "Getting started",
-    name: "faq-getting-started",
-    items: [
-      {
-        title: "What is ShelfSwap?",
-        defaultOpen: true,
-        body: (
-          <p>
-            ShelfSwap is a local book community. List books you want to pass on or swap, browse nearby
-            listings, message sellers, and arrange pickup or a book-for-book swap in person.
-          </p>
-        ),
-      },
-      {
-        title: "Is ShelfSwap free?",
-        body: (
-          <>
-            <p>
-              Yes. During launch, listing, browsing, messaging, and swap offers are free and unlimited.
-              You only need an account to message sellers and manage your own books.
-            </p>
-            <p>
-              Optional <strong>Premium</strong> extras (wishlist alerts, no ads, meetups, badge, and
-              extra visibility) are marked <strong>Coming soon</strong> on the Plan page. They are not
-              required to use the app.
-            </p>
-          </>
-        ),
-      },
-      {
-        title: "Is listing free?",
-        body: (
-          <p>
-            Yes. Anyone with an account can create and manage listings. Add photos, condition notes,
-            binding type (paperback or hardback), and a rough pickup area.
-          </p>
-        ),
-      },
-    ],
+    title: "What is ShelfSwap?",
+    body: (
+      <p>
+        ShelfSwap is a free platform that helps readers exchange books with one another. List the books you&apos;ve
+        finished, discover books nearby, and arrange swaps directly with other readers.
+      </p>
+    ),
   },
   {
-    title: "Messaging & chat",
-    name: "faq-messaging",
-    items: [
-      {
-        id: "how-it-works",
-        title: "How messaging works",
-        defaultOpen: true,
-        body: <PremiumDealGuide />,
-      },
-      {
-        title: "Can more than one buyer chat on the same listing?",
-        body: (
-          <p>
-            Yes. Several buyers can message the same seller until the book is sold or the deal is
-            completed with one buyer. Each conversation is private between that buyer and the seller.
-            When a handoff is confirmed, other chats on that listing close.
-          </p>
-        ),
-      },
-      {
-        title: "Can I unsend a message?",
-        body: (
-          <p>
-            Yes, for your own messages within <strong>30 minutes</strong> of sending. On mobile,
-            long-press the message; on desktop, use the ⋯ menu or right-click. After 30 minutes, Unsend
-            is no longer available.
-          </p>
-        ),
-      },
-      {
-        title: "Can I zoom photos in chat?",
-        body: (
-          <p>
-            Yes. Tap a photo in a message to open it full screen. Pinch or scroll to zoom, drag to pan,
-            and double-tap to reset. Tap outside or press Esc to close.
-          </p>
-        ),
-      },
-    ],
+    title: "Is ShelfSwap free to use?",
+    body: (
+      <p>
+        Yes. Creating an account, listing books and connecting with other readers is completely free.
+      </p>
+    ),
   },
   {
-    title: "Deals & karma",
-    name: "faq-deals",
-    items: [
-      {
-        title: "What is karma?",
-        defaultOpen: true,
-        body: (
-          <>
-            <p>
-              Karma reflects how many <strong>completed exchanges</strong> you have on ShelfSwap —
-              pickups, sales, or swaps where both people confirmed handoff in the app. It is not a score
-              out of 100.
-            </p>
-            <p>Tiers grow with completed exchanges:</p>
-            <ul className="list-disc space-y-1 pl-5">
-              <li>
-                <strong>New member</strong> — no completed exchanges yet
-              </li>
-              <li>
-                <strong>Active</strong> — 1+
-              </li>
-              <li>
-                <strong>Reliable</strong> — 5+
-              </li>
-              <li>
-                <strong>Trusted</strong> — 15+
-              </li>
-            </ul>
-            <p>
-              Your badge can appear on your profile and when a seller reviews buyers for a listing.
-              Inbox and notifications still sort by most recent activity.
-            </p>
-          </>
-        ),
-      },
-      {
-        title: "How do I finish a deal?",
-        body: (
-          <>
-            <p>
-              After you meet and exchange the book (or complete a swap), both people confirm handoff in
-              the chat. That archives the listing, closes other conversations on it, and adds to both
-              people&apos;s karma.
-            </p>
-            <p>
-              If plans change, use the <strong>⋯ menu</strong> in an active chat to leave (when the
-              seller never replied), call off the deal together, or close a stalled conversation.
-            </p>
-          </>
-        ),
-      },
-      {
-        title: "How do swaps work?",
-        body: (
-          <p>
-            Swap offers are unlimited during launch. In chat, a buyer can propose one of their own live
-            listings; the seller accepts or declines. When both confirm handoff on a completed swap,
-            both listings are archived and both people earn karma.
-          </p>
-        ),
-      },
-    ],
+    title: "How does ShelfSwap work?",
+    body: (
+      <p>
+        Simply list the books you&apos;d like to exchange, browse books from other readers, send a swap request and
+        arrange a convenient place to meet if both parties agree.
+      </p>
+    ),
   },
   {
-    title: "Premium & listings",
-    name: "faq-listings",
-    items: [
-      {
-        title: "What about Premium and wishlist?",
-        defaultOpen: true,
-        body: (
-          <p>
-            Premium is not for sale during launch. Planned perks include a book wishlist with match
-            notifications, no ads, meetup invites, a Premium badge, and extra visibility when messaging
-            sellers. You can still save favourites on listings today.
-          </p>
-        ),
-      },
-      {
-        title: "What do paperback and hardback mean?",
-        body: (
-          <p>
-            That is the <strong>binding type</strong> of the book, not a price in the app. Any payment
-            for the physical book is arranged between you and the other person outside ShelfSwap.
-          </p>
-        ),
-      },
-      {
-        title: "Photos and condition",
-        body: (
-          <p>
-            Sellers can add photos and describe condition. Use your own judgment before meeting someone
-            you do not know, and meet in a public place when you can.
-          </p>
-        ),
-      },
-      {
-        title: "Location and distance",
-        body: (
-          <p>
-            Set <strong>where your books are</strong> in Profile → App settings → Set Location (UK
-            postcode). That rough area appears on your listings so buyers know where pickup happens.
-            Home and Search use your current area when location is allowed. We store only a coarse area
-            (~1 km) and show town or area on listings — never your postcode or full address.
-          </p>
-        ),
-      },
-    ],
+    title: "Who can join ShelfSwap?",
+    body: (
+      <p>
+        Anyone who meets our minimum age requirement and agrees to our Terms &amp; Conditions can create an account.
+      </p>
+    ),
+  },
+  {
+    title: "What books can I list?",
+    body: (
+      <p>
+        You can list most physical books in good, readable condition, including fiction, non-fiction, classics,
+        romance, fantasy, thrillers, biographies and children&apos;s books.
+      </p>
+    ),
+  },
+  {
+    title: "What books can't I list?",
+    body: (
+      <p>
+        You shouldn&apos;t list books that are counterfeit, illegally reproduced, heavily damaged or missing pages, as
+        well as magazines, digital books or items unrelated to books.
+      </p>
+    ),
+  },
+  {
+    title: "Can I edit or remove my listings?",
+    body: <p>Yes. You can update or remove your listings at any time from your account.</p>,
+  },
+  {
+    title: "Can I list books with annotations or highlighting?",
+    body: (
+      <p>
+        Absolutely. We simply ask that you mention any writing, highlighting or notes in the description so other
+        readers know what to expect.
+      </p>
+    ),
+  },
+  {
+    title: "How are swaps arranged?",
+    body: (
+      <p>
+        Once another reader accepts your request, you can chat through ShelfSwap to arrange a convenient time and place
+        to exchange your books.
+      </p>
+    ),
+  },
+  {
+    title: "Where should I meet another reader?",
+    body: (
+      <p>
+        We recommend meeting in a safe public place such as a café, library or shopping centre. Always use your own
+        judgement when arranging a meeting.
+      </p>
+    ),
+  },
+  {
+    title: "What happens if someone doesn't show up?",
+    body: (
+      <p>
+        Because exchanges are arranged directly between users, ShelfSwap can&apos;t guarantee another person&apos;s
+        attendance. If someone repeatedly behaves unfairly or inappropriately, you can report them.
+      </p>
+    ),
+  },
+  {
+    title: "What if the book isn't as described?",
+    body: (
+      <p>
+        We encourage honest and accurate listings. If you believe a listing was misleading, you can report it and
+        we&apos;ll review the situation.
+      </p>
+    ),
+  },
+  {
+    title: "Does ShelfSwap verify users?",
+    body: (
+      <p>
+        Not currently. We encourage users to exercise good judgement, communicate clearly and always meet in public
+        places.
+      </p>
+    ),
+  },
+  {
+    title: "How do I report a user or listing?",
+    body: (
+      <p>
+        You can report a user or listing directly from the app. We&apos;ll review reports and take appropriate action
+        where necessary.
+      </p>
+    ),
+  },
+  {
+    title: "Does ShelfSwap inspect books?",
+    body: (
+      <p>
+        No. ShelfSwap doesn&apos;t inspect or verify books before they&apos;re listed. We rely on our community to
+        provide honest descriptions and photos.
+      </p>
+    ),
+  },
+  {
+    title: "How do I change my profile?",
+    body: (
+      <p>
+        You can update your profile information, profile picture and bio from your account settings at any time.
+      </p>
+    ),
+  },
+  {
+    title: "I forgot my password. What should I do?",
+    body: (
+      <p>
+        Select Forgot Password on the sign-in page and follow the instructions to reset your password.
+      </p>
+    ),
+  },
+  {
+    title: "Can I delete my account?",
+    body: <p>Yes. You can permanently delete your account from your account settings at any time.</p>,
+  },
+  {
+    title: "Why should I use ShelfSwap instead of buying books?",
+    body: (
+      <p>
+        ShelfSwap helps you discover new reads while saving money, reducing waste and giving books a second life.
+        It&apos;s a simple way to read more without continually growing your book budget.
+      </p>
+    ),
+  },
+  {
+    title: "Why doesn't ShelfSwap offer postage?",
+    body: (
+      <p>
+        ShelfSwap is built around local exchanges. Meeting nearby readers keeps swaps quick, affordable and more
+        sustainable while helping build local reading communities.
+      </p>
+    ),
+  },
+  {
+    title: "Do I have to swap every book I receive?",
+    body: (
+      <p>
+        No. Once you&apos;ve received a book, it&apos;s yours. You can keep it, gift it or list it on ShelfSwap again
+        whenever you&apos;re ready.
+      </p>
+    ),
+  },
+  {
+    title: "Can I swap books I've already received through ShelfSwap?",
+    body: (
+      <p>
+        Absolutely. One of our goals is to help books continue their journey from reader to reader.
+      </p>
+    ),
+  },
+  {
+    title: "Can I suggest new features?",
+    body: (
+      <p>
+        Yes! We&apos;re always looking for ways to improve ShelfSwap, and many future features will be shaped by
+        feedback from our community. You can suggest your ideas directly to us using the{" "}
+        <a href="/contact" className="link link-primary">
+          Contact
+        </a>{" "}
+        page.
+      </p>
+    ),
+  },
+  {
+    title: "Can I donate books through ShelfSwap?",
+    body: (
+      <p>
+        Yes. If you&apos;d simply like to pass a book on to another reader without receiving one in return, you can.
+        ShelfSwap isn&apos;t just about swapping—it&apos;s also a place to rehome books and help them find their next
+        reader.
+      </p>
+    ),
+  },
+  {
+    title: "Do all exchanges have to be one-for-one?",
+    body: (
+      <>
+        <p>
+          No. ShelfSwap gives readers flexibility. Depending on what both people are happy with, you can:
+        </p>
+        <ul className="list-disc space-y-1 pl-5">
+          <li>Swap books with another reader.</li>
+          <li>Give a book away for free.</li>
+          <li>Receive a book that another reader is giving away.</li>
+        </ul>
+        <p>Every exchange is arranged by mutual agreement between the people involved.</p>
+      </>
+    ),
   },
 ];
 
 export function FaqAccordion() {
   return (
-    <div className="space-y-8">
-      {SECTIONS.map((section) => (
-        <section key={section.name} className="space-y-3">
-          <h2 className="shelfswap-heading text-base font-semibold text-primary tracking-tight">
-            {section.title}
-          </h2>
-          <div className="flex flex-col gap-2">
-            {section.items.map((item) => (
-              <FaqAccordionItem
-                key={item.title}
-                id={item.id}
-                name={section.name}
-                title={item.title}
-                defaultOpen={item.defaultOpen}
-              >
-                {item.body}
-              </FaqAccordionItem>
-            ))}
-          </div>
-        </section>
+    <div className="flex flex-col gap-2">
+      {FAQ_ITEMS.map((item) => (
+        <FaqAccordionItem key={item.title} name="faq-main" title={item.title}>
+          {item.body}
+        </FaqAccordionItem>
       ))}
     </div>
   );

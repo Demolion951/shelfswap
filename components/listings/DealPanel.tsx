@@ -40,6 +40,8 @@ type Props = {
   listingUnlockCredits: number;
   isOwner: boolean;
   currentUserId: string | null;
+  sellerId: string;
+  sellerDisplayName?: string | null;
   listingOpenToSwaps: boolean;
   deal: UnlockDeal;
   myOfferOptions: OfferOption[];
@@ -54,6 +56,8 @@ export function DealPanel({
   listingUnlockCredits,
   isOwner,
   currentUserId,
+  sellerId,
+  sellerDisplayName = null,
   listingOpenToSwaps,
   deal,
   myOfferOptions,
@@ -119,6 +123,9 @@ export function DealPanel({
               <DealOptionsPanel
                 listingId={listingId}
                 listingTitle={listingTitle}
+                sellerId={sellerId}
+                sellerDisplayName={sellerDisplayName}
+                isOwner={isOwner}
                 deal={deal}
                 eligibility={dealOptionsEligibility}
                 onDealUpdated={onDealUpdated}
