@@ -1,3 +1,5 @@
+import { coverSuccessHeaders } from "@/lib/books/coverCacheHeaders";
+import { unstable_cache } from "next/cache";
 import { type NextRequest, NextResponse } from "next/server";
 
 /**
@@ -18,6 +20,33 @@ function upstreamUrl(isbn: string | null, id: string | null, size: string): stri
   }
   return null;
 }
+
+type CachedOlCover = {
+  bytesB64: string;
+  contentType: string;
+};
+
+const getCachedOlCover = unstable_cache(
+  async (target: string): Promise<CachedOlCover> => {
+    const upstream = await fetch(target, {
+      next: { revalidate: 604_800 },
+      headers: { Accept: "image/*" },
+    });
+    if (!upstream.ok) {
+      throw new Error(`ol-cover:${upstream.status}`);
+    }
+    const bytes = Buffer.from(await upstream.arrayBuffer());
+    if (bytes.byteLength < 500) {
+      throw new Error("ol-cover:too-small");
+    }
+    return {
+      bytesB64: bytes.toString("base64"),
+      contentType: upstream.headers.get("content-type") ?? "image/jpeg",
+    };
+  },
+  ["openlibrary-cover-bytes-v1"],
+  { revalidate: 604_800 },
+);
 
 export async function GET(request: NextRequest) {
   const sp = request.nextUrl.searchParams;
@@ -43,34 +72,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Invalid parameters" }, { status: 400 });
   }
 
-  const upstream = await fetch(target, {
-    next: { revalidate: 86_400 },
-    headers: { Accept: "image/*" },
-  });
-
-  if (!upstream.ok) {
-    return new NextResponse(null, {
-      status: upstream.status === 404 ? 404 : 502,
-      headers: { "Cache-Control": "no-store" },
+  try {
+    const cached = await getCachedOlCover(target);
+    const bytes = Buffer.from(cached.bytesB64, "base64");
+    return new Response(bytes, {
+      status: 200,
+      headers: {
+        "Content-Type": cached.contentType,
+        "Content-Length": String(bytes.byteLength),
+        ...coverSuccessHeaders(),
+      },
     });
-  }
-
-  const bytes = await upstream.arrayBuffer();
-  if (bytes.byteLength < 500) {
+  } catch {
     return new NextResponse(null, {
       status: 404,
       headers: { "Cache-Control": "no-store" },
     });
   }
-
-  const contentType = upstream.headers.get("content-type") ?? "image/jpeg";
-
-  return new Response(bytes, {
-    status: 200,
-    headers: {
-      "Content-Type": contentType,
-      "Content-Length": String(bytes.byteLength),
-      "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
-    },
-  });
 }

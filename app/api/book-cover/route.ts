@@ -1,4 +1,5 @@
 import { resolveCatalogueCoverBytes } from "@/lib/books/catalogueCoverResolve";
+import { coverSuccessHeaders } from "@/lib/books/coverCacheHeaders";
 import { unstable_cache } from "next/cache";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -34,7 +35,7 @@ const getCachedCoverBytes = unstable_cache(
     };
   },
   ["book-cover-bytes-v5"],
-  { revalidate: 86_400 },
+  { revalidate: 604_800 },
 );
 
 export async function GET(request: NextRequest) {
@@ -57,8 +58,7 @@ export async function GET(request: NextRequest) {
       headers: {
         "Content-Type": resolved.contentType,
         "Content-Length": String(bytes.byteLength),
-        "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
-        "X-Cover-Source": resolved.source,
+        ...coverSuccessHeaders({ "X-Cover-Source": resolved.source }),
       },
     });
   } catch {

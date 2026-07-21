@@ -6,6 +6,13 @@
  * Location: components/listings/CoverImageChain.tsx
  */
 import {
+  forgetCoverChainWin,
+  getCoverChainWin,
+  isCoverUrlOk,
+  rememberCoverChainWin,
+  rememberCoverUrlOk,
+} from "@/lib/client/coverSessionCache";
+import {
   catalogueCoverCandidatesForClient,
   isCatalogueCoverApiUrl,
 } from "@/lib/listings/listingCover";
@@ -14,19 +21,6 @@ import { useEffect, useMemo, useState } from "react";
 const MIN_COVER_BYTES = 500;
 /** If preferred catalogue is still pending, show a ready fallback after this. */
 const FALLBACK_SHOW_MS = 420;
-
-/** Maps candidate-chain key → winning candidate URL (never blob:). */
-const sessionOkSrc = new Map<string, string>();
-const MAX_SESSION = 180;
-
-function rememberSession(chainKey: string, src: string) {
-  if (src.startsWith("blob:")) return;
-  if (sessionOkSrc.size >= MAX_SESSION) {
-    const first = sessionOkSrc.keys().next().value;
-    if (first) sessionOkSrc.delete(first);
-  }
-  sessionOkSrc.set(chainKey, src);
-}
 
 type Props = {
   candidates: string[];
@@ -43,12 +37,18 @@ function isAbsoluteHttpUrl(url: string): boolean {
 
 /** Probe that a candidate works; returns the URL to put in <img src>. */
 function probeCandidate(url: string): Promise<string> {
+  // Already validated this session — skip network.
+  if (isCoverUrlOk(url)) {
+    return Promise.resolve(url);
+  }
+
   if (isCatalogueCoverApiUrl(url) && !isAbsoluteHttpUrl(url)) {
     return fetch(url, { credentials: "same-origin", cache: "force-cache" }).then(
       async (res) => {
         if (!res.ok) throw new Error("cover fetch failed");
         const blob = await res.blob();
         if (blob.size < MIN_COVER_BYTES) throw new Error("cover too small");
+        rememberCoverUrlOk(url);
         // Use the path itself — HTTP cache is warm; avoids revoked blob: URLs.
         return url;
       },
@@ -58,7 +58,10 @@ function probeCandidate(url: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.decoding = "async";
-    img.onload = () => resolve(url);
+    img.onload = () => {
+      rememberCoverUrlOk(url);
+      resolve(url);
+    };
     img.onerror = () => reject(new Error("img failed"));
     if (!isCatalogueCoverApiUrl(url)) {
       img.referrerPolicy = "no-referrer";
@@ -80,7 +83,7 @@ export function CoverImageChain({
     [rawCandidates],
   );
   const chainKey = candidates.join("\0");
-  const cached = sessionOkSrc.get(chainKey) ?? null;
+  const cached = getCoverChainWin(chainKey);
 
   const [displaySrc, setDisplaySrc] = useState<string | null>(cached);
   const [loadingCover, setLoadingCover] = useState(!cached);
@@ -93,16 +96,18 @@ export function CoverImageChain({
     let shownIndex = -1;
     let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const hit = sessionOkSrc.get(chainKey);
+    const hit = getCoverChainWin(chainKey);
     if (hit) {
       setDisplaySrc(hit);
       setLoadingCover(false);
       setExhausted(false);
-    } else {
-      setDisplaySrc(null);
-      setLoadingCover(true);
-      setExhausted(false);
+      // Same cover already chosen — skip re-probing (big win on scroll/remount).
+      return;
     }
+
+    setDisplaySrc(null);
+    setLoadingCover(true);
+    setExhausted(false);
 
     if (candidates.length === 0) {
       setLoadingCover(false);
@@ -117,7 +122,7 @@ export function CoverImageChain({
       setDisplaySrc(src);
       setLoadingCover(false);
       setExhausted(false);
-      rememberSession(chainKey, src);
+      rememberCoverChainWin(chainKey, src);
     }
 
     function pickBest(allowFallbackWhileWaiting: boolean) {
@@ -195,7 +200,7 @@ export function CoverImageChain({
       decoding="async"
       referrerPolicy={catalogue ? undefined : "no-referrer"}
       onError={() => {
-        sessionOkSrc.delete(chainKey);
+        forgetCoverChainWin(chainKey);
         setExhausted(true);
         setDisplaySrc(null);
       }}
