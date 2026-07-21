@@ -8,7 +8,7 @@
 import { useBadgeCounts } from "@/components/nav/BadgeCountsProvider";
 import { Home, MessageCircle, PlusCircle, Search, UserRound } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 const tabs = [
   { href: "/app/home", label: "Home", Icon: Home, guestOk: true },
@@ -46,6 +46,7 @@ type Props = {
 
 export function BottomTabs({ isSignedIn }: Props) {
   const pathname = usePathname();
+  const router = useRouter();
   const { counts } = useBadgeCounts();
   const unreadMessagesCount = isSignedIn ? counts.unreadMessages : 0;
   const msgBadge =
@@ -65,6 +66,9 @@ export function BottomTabs({ isSignedIn }: Props) {
               <Link
                 href={linkHref}
                 prefetch={guestOk || isSignedIn}
+                onTouchStart={() => {
+                  if (guestOk || isSignedIn) router.prefetch(linkHref);
+                }}
                 className={`flex flex-1 flex-col items-center justify-center gap-1 px-0.5 text-[10px] font-medium tracking-wide transition-colors ${
                   active
                     ? "text-primary"

@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { clearProfileReadyCookie } from "@/lib/auth/profileReadyCookie";
 import {
   parseSignupBirthday,
   parseSignupDisplayName,
@@ -171,63 +172,10 @@ export async function signUpWithPassword(
   redirect(next);
 }
 
-/**
- * Ensures a public.profiles row exists for the current user (backup if the DB trigger did not run).
- */
-export async function ensureProfileRow(): Promise<{ ok: true } | { error: string }> {
-  const supabase = await createClient();
-  const { data: authData, error: userError } = await supabase.auth.getUser();
-  const user = authData?.user ?? null;
-  if (userError || !user) {
-    return { error: "Not signed in." };
-  }
-
-  const displayName =
-    (user.user_metadata?.display_name as string | undefined)?.trim() ||
-    user.email?.split("@")[0] ||
-    "New user";
-  const birthdayRaw = (user.user_metadata?.birthday as string | undefined)?.trim() || null;
-  const sexRaw = (user.user_metadata?.sex as string | undefined)?.trim() || null;
-  const sex = parseSignupSex(sexRaw ?? "");
-  let birthday: string | null = null;
-  if (birthdayRaw) {
-    const parsed = parseSignupBirthday(birthdayRaw);
-    if (parsed.ok) birthday = parsed.value;
-  }
-
-  const { data: existing, error: selErr } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (selErr) {
-    return { error: selErr.message };
-  }
-  if (existing) {
-    return { ok: true };
-  }
-
-  const { error } = await supabase.from("profiles").insert({
-    id: user.id,
-    display_name: displayName,
-    avatar_url: null,
-    birthday,
-    sex,
-  });
-
-  if (error) {
-    if (error.code === "23505") {
-      return { ok: true };
-    }
-    return { error: error.message };
-  }
-  return { ok: true };
-}
-
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
+  await clearProfileReadyCookie();
   revalidatePath("/", "layout");
   redirect("/auth/sign-in");
 }

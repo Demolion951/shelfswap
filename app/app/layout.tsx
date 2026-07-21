@@ -1,4 +1,4 @@
-import { ensureProfileRow } from "@/app/auth/actions";
+import { ensureProfileRowIfNeeded } from "@/lib/auth/ensureProfile";
 import { AutoApproxLocationUpdater } from "@/components/AutoApproxLocationUpdater";
 import { AppTopBar } from "@/components/nav/AppTopBar";
 import { BadgeCountsProvider } from "@/components/nav/BadgeCountsProvider";
@@ -7,6 +7,10 @@ import { getOptionalUser } from "@/lib/auth/requireUser";
 import { getBadgeCountsForUser } from "@/lib/notifications/queries";
 import { createClient } from "@/lib/supabase/server";
 
+/**
+ * App shell: top bar + tabs. Profile ensure is cookie-gated so tab switches skip that DB hit.
+ * Location: app/app/layout.tsx
+ */
 export default async function AppShellLayout({
   children,
 }: {
@@ -20,7 +24,7 @@ export default async function AppShellLayout({
   if (user) {
     const supabase = await createClient();
     const [, counts] = await Promise.all([
-      ensureProfileRow(),
+      ensureProfileRowIfNeeded(),
       getBadgeCountsForUser(supabase, user.id),
     ]);
     badgeCounts = counts;

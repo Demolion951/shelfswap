@@ -7,6 +7,12 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "20mb",
     },
+    // Keep recently visited /app tabs in the client router cache so phone tab
+    // switches feel instant (same screens; brief reuse of last RSC payload).
+    staleTimes: {
+      dynamic: 30,
+      static: 180,
+    },
   },
 };
 

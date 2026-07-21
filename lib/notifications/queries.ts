@@ -82,11 +82,34 @@ export async function getBadgeCountsForUser(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<BadgeCounts> {
-  const [unreadNotifications, unreadMessages] = await Promise.all([
-    getUnreadNotificationCountForUser(supabase, userId),
-    getUnreadMessageThreadCountForUser(supabase, userId),
-  ]);
-  return { unreadNotifications, unreadMessages };
+  // One round-trip: derive both badge numbers from unread notification rows.
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("type, listing_id")
+    .eq("user_id", userId)
+    .is("read_at", null);
+
+  if (error) {
+    const msg = error.message.toLowerCase();
+    if (!msg.includes("relation") && !msg.includes("does not exist") && !msg.includes("schema cache")) {
+      console.error("[getBadgeCountsForUser]", error.message);
+    }
+    return { unreadNotifications: 0, unreadMessages: 0 };
+  }
+
+  const rows = data ?? [];
+  const messageListings = new Set<string>();
+  for (const row of rows) {
+    const type = String(row.type ?? "");
+    if (!isMessageNotificationType(type)) continue;
+    const lid = row.listing_id as string | null;
+    if (lid) messageListings.add(lid);
+  }
+
+  return {
+    unreadNotifications: rows.length,
+    unreadMessages: messageListings.size,
+  };
 }
 
 export function isMessageNotificationType(type: string): boolean {
