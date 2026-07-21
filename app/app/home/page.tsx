@@ -44,7 +44,7 @@ export default async function HomePage() {
   const excludeNew = new Set(newListings.map((l) => l.id));
   const notInNew = all.filter((l) => !excludeNew.has(l.id));
 
-  let recommendedRaw: typeof all;
+  let recommendedRaw: Awaited<ReturnType<typeof recommendListingsForUser>>;
   if (!userId) {
     recommendedRaw = notInNew.slice(0, 12);
   } else if (recommendEvents !== null) {
