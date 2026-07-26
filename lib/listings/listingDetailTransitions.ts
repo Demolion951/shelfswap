@@ -9,6 +9,7 @@ import type { ListingMessageRow } from "@/lib/listings/queries";
 export function createUnlockDealFromRequest(req: PendingUnlockRequest): UnlockDeal {
   return {
     buyerId: req.buyerId,
+    buyerDisplayName: req.buyerHandle?.trim() || null,
     dealType: "pickup",
     swapStatus: null,
     offeredListingId: null,

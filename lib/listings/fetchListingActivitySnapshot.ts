@@ -48,20 +48,40 @@ async function buildUnlockDeal(
     buyer_mutual_cancel_at: string | null;
     seller_mutual_cancel_at: string | null;
   },
+  buyerDisplayNameHint?: string | null,
 ): Promise<UnlockDeal> {
   let offeredTitle: string | null = null;
   let offeredCredits: number | null = null;
-  if (row.offered_listing_id) {
-    const { data: ol } = await supabase
-      .from("listings")
-      .select("title, unlock_credits")
-      .eq("id", row.offered_listing_id)
-      .maybeSingle();
-    offeredTitle = (ol?.title as string | null) ?? null;
-    if (ol) offeredCredits = normalizeUnlockCredits(ol.unlock_credits);
+  let buyerDisplayName = buyerDisplayNameHint?.trim() || null;
+
+  const offeredPromise = row.offered_listing_id
+    ? supabase
+        .from("listings")
+        .select("title, unlock_credits")
+        .eq("id", row.offered_listing_id)
+        .maybeSingle()
+    : Promise.resolve({ data: null as { title: string | null; unlock_credits: unknown } | null });
+
+  const namePromise =
+    buyerDisplayName
+      ? Promise.resolve(null)
+      : supabase.rpc("profiles_public_batch", { p_user_ids: [row.buyer_id] });
+
+  const [{ data: ol }, profRes] = await Promise.all([offeredPromise, namePromise]);
+
+  if (ol) {
+    offeredTitle = (ol.title as string | null) ?? null;
+    offeredCredits = normalizeUnlockCredits(ol.unlock_credits);
   }
+  if (!buyerDisplayName && profRes && "data" in profRes) {
+    const pr = (profRes.data ?? []) as Array<{ id: string; display_name: string | null }>;
+    const hit = pr.find((p) => String(p.id) === String(row.buyer_id));
+    buyerDisplayName = (hit?.display_name ?? "").trim() || "member";
+  }
+
   return {
     buyerId: String(row.buyer_id),
+    buyerDisplayName,
     dealType: row.deal_type === "swap" ? "swap" : "pickup",
     swapStatus: (row.swap_status as UnlockDeal["swapStatus"]) ?? null,
     offeredListingId: (row.offered_listing_id as string | null) ?? null,
@@ -134,6 +154,8 @@ export async function fetchListingActivitySnapshot(
 
     const targetBuyerId = dealBuyerId ?? threadBuyerId ?? unlockedBuyers[0]?.buyerId ?? null;
     if (targetBuyerId) {
+      const hint =
+        unlockedBuyers.find((b) => b.buyerId === targetBuyerId)?.handle ?? null;
       const { data: u } = await supabase
         .from("listing_unlocks")
         .select(
@@ -142,7 +164,7 @@ export async function fetchListingActivitySnapshot(
         .eq("listing_id", listingId)
         .eq("buyer_id", targetBuyerId)
         .maybeSingle();
-      if (u) unlockDeal = await buildUnlockDeal(supabase, u);
+      if (u) unlockDeal = await buildUnlockDeal(supabase, u, hint);
     }
 
     const { data: reqs } = await supabase

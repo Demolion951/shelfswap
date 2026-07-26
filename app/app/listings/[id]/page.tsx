@@ -66,6 +66,7 @@ export default async function ListingPage({ params }: Props) {
   let pendingRequestsForSeller: PendingUnlockRequest[] = [];
   let unlockDeal: {
     buyerId: string;
+    buyerDisplayName: string | null;
     dealType: "pickup" | "swap";
     swapStatus: "proposed" | "accepted" | "declined" | null;
     offeredListingId: string | null;
@@ -193,8 +194,19 @@ export default async function ListingPage({ params }: Props) {
           offeredTitle = (ol?.title as string | null) ?? null;
           if (ol) offeredCredits = normalizeUnlockCredits(ol.unlock_credits);
         }
+        const buyerId = String(u.buyer_id);
+        let buyerDisplayName =
+          initialUnlockedBuyers.find((b) => b.buyerId === buyerId)?.handle?.trim() || null;
+        if (!buyerDisplayName) {
+          const { data: profs } = await supabase.rpc("profiles_public_batch", {
+            p_user_ids: [buyerId],
+          });
+          const pr = (profs ?? []) as Array<{ id: string; display_name: string | null }>;
+          buyerDisplayName = (pr[0]?.display_name ?? "").trim() || "member";
+        }
         unlockDeal = {
-          buyerId: String(u.buyer_id),
+          buyerId,
+          buyerDisplayName,
           dealType: (u.deal_type as any) === "swap" ? "swap" : "pickup",
           swapStatus: (u.swap_status as any) ?? null,
           offeredListingId: (u.offered_listing_id as any) ?? null,
@@ -233,6 +245,7 @@ export default async function ListingPage({ params }: Props) {
         }
         unlockDeal = {
           buyerId: String(u.buyer_id),
+          buyerDisplayName: null,
           dealType: (u.deal_type as any) === "swap" ? "swap" : "pickup",
           swapStatus: (u.swap_status as any) ?? null,
           offeredListingId: (u.offered_listing_id as any) ?? null,

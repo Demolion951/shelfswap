@@ -15,6 +15,8 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 
 export type UnlockDeal = {
   buyerId: string;
+  /** Buyer's display name for swap copy (“Zak offered …”). */
+  buyerDisplayName: string | null;
   dealType: "pickup" | "swap";
   swapStatus: "proposed" | "accepted" | "declined" | null;
   offeredListingId: string | null;
@@ -167,9 +169,18 @@ export function DealPanel({
                     They accepted{" "}
                     <span className="font-medium text-base-content">{listingTitle}</span>
                     {" ↔ "}
-                    <span className="font-medium text-base-content break-words">
-                      {deal.offeredTitle ?? "your offered book"}
-                    </span>
+                    {deal.offeredListingId ? (
+                      <Link
+                        href={`/app/listings/${deal.offeredListingId}`}
+                        className="link link-primary font-medium break-words"
+                      >
+                        {deal.offeredTitle ?? "your offered book"}
+                      </Link>
+                    ) : (
+                      <span className="font-medium text-base-content break-words">
+                        {deal.offeredTitle ?? "your offered book"}
+                      </span>
+                    )}
                     . Message below to arrange pickup; confirm handoff when you&apos;re done.
                   </p>
                   {deal.offeredListingId ? (
@@ -215,8 +226,21 @@ export function DealPanel({
             <div className="text-sm font-medium text-base-content">
               Swap offer received
             </div>
-            <div className="text-xs text-base-content/60 mt-1 break-words leading-relaxed">
-              Offered: {deal.offeredTitle ?? "a book"}
+            <div className="text-xs text-base-content/70 mt-1 break-words leading-relaxed">
+              {deal.offeredListingId ? (
+                <Link
+                  href={`/app/listings/${deal.offeredListingId}`}
+                  className="link link-primary font-medium"
+                >
+                  {(deal.buyerDisplayName?.trim() || "Someone")} offered{" "}
+                  {deal.offeredTitle ?? "a book"}
+                </Link>
+              ) : (
+                <span>
+                  {(deal.buyerDisplayName?.trim() || "Someone")} offered{" "}
+                  {deal.offeredTitle ?? "a book"}
+                </span>
+              )}
             </div>
             <div className="mt-3 flex gap-2">
               <button
@@ -254,19 +278,20 @@ export function DealPanel({
               You accepted{" "}
               <span className="font-medium text-base-content">{listingTitle}</span>
               {" ↔ "}
-              <span className="font-medium text-base-content break-words">
-                {deal.offeredTitle ?? "their offered book"}
-              </span>
+              {deal.offeredListingId ? (
+                <Link
+                  href={`/app/listings/${deal.offeredListingId}`}
+                  className="link link-primary font-medium break-words"
+                >
+                  {deal.offeredTitle ?? "their offered book"}
+                </Link>
+              ) : (
+                <span className="font-medium text-base-content break-words">
+                  {deal.offeredTitle ?? "their offered book"}
+                </span>
+              )}
               . Message below to arrange pickup; confirm handoff when you&apos;ve handed over your copy.
             </p>
-            {deal.offeredListingId ? (
-              <Link
-                href={`/app/listings/${deal.offeredListingId}`}
-                className="link link-primary text-sm font-medium"
-              >
-                View their offered listing
-              </Link>
-            ) : null}
           </div>
         ) : null}
       </div>
